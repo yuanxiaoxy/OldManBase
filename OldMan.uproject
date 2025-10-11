@@ -7,7 +7,11 @@
 		{
 			"Name": "OldMan",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"XyFrame"
+			]
 		}
 	],
 	"Plugins": [

@@ -1,3 +1,27 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4c8cb2d9b7e050f6b0694dd7561f586671a660b2218431c08059c3109bdff5ab
-size 557
+#pragma once
+
+#include "CoreMinimal.h"
+#include "StateMachine/StateMachineBase.h"
+#include "Character/States/OldManStateBase.h"
+#include "OldManLandState.generated.h"
+
+/**
+ * 落地状态 - 角色从空中落地时的短暂状态
+ * 可以转换到：站立、行走、跑步、死亡
+ */
+UCLASS()
+class OLDMAN_API UOldManLandState : public UOldManStateBase
+{
+	GENERATED_BODY()
+
+public:
+	virtual void Enter() override;
+	virtual void Exit() override;
+	virtual void Update(float DeltaTime) override;
+
+private:
+	float LandStartTime;
+	float LandDuration;
+
+	void CheckStateTransitions(class AOldManCharacter* Character);
+};

@@ -1,3 +1,24 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b3b5f5316badfffa46c50a69d2b89860a7f965c897af2d5f079338983caf8c4a
-size 472
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "XyFrame",
+	"Description": "XyFrame",
+	"Category": "Other",
+	"CreatedBy": "yuanxiaoxy",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "XyFrame",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

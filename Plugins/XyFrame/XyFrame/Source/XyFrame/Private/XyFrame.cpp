@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4b4a04e03a184c445abce82f12c5c845968b46b38209a82b8c45fca15b01ad91
-size 593
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "XyFrame.h"
+
+#define LOCTEXT_NAMESPACE "FXyFrameModule"
+
+void FXyFrameModule::StartupModule()
+{
+	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+}
+
+void FXyFrameModule::ShutdownModule()
+{
+	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+	// we call this function before unloading the module.
+}
+
+#undef LOCTEXT_NAMESPACE
+	
+IMPLEMENT_MODULE(FXyFrameModule, XyFrame)

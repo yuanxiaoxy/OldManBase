@@ -1,3 +1,39 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:63344c8d480de24d8d4677d4211db6c04e69b23d58e8caf46d90fe32322e4bb1
-size 1099
+#include "Character/States/OldManFallingState.h"
+#include "Character/OldManCharacter.h"
+#include "Character/States/OldManLandState.h"
+#include "Character/States/OldManDoubleJumpingState.h"
+#include "Character/States/OldManDeadState.h"
+
+void UOldManFallingState::Enter()
+{
+	UE_LOG(LogTemp, Log, TEXT("Entering Falling State"));
+}
+
+void UOldManFallingState::Exit()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exiting Falling State"));
+}
+
+void UOldManFallingState::Update(float DeltaTime)
+{
+	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
+	{
+		CheckStateTransitions(Character);
+	}
+}
+
+void UOldManFallingState::CheckStateTransitions(AOldManCharacter* Character)
+{
+	if (!Character->IsAlive())
+	{
+		CheckTransition(UOldManDeadState::StaticClass());
+		return;
+	}
+
+	if (!Character->IsFalling() && Character->bJustLanded)
+	{
+		// 落地后转换到落地状态
+		CheckTransition(UOldManLandState::StaticClass());
+		return;
+	}
+}

@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4c4c363c77cca8a2e540235b959166891b7664dc39e38994f404996857dd3b45
-size 437
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+using UnrealBuildTool;
+using System.Collections.Generic;
+
+public class OldManTarget : TargetRules
+{
+	public OldManTarget(TargetInfo Target) : base(Target)
+	{
+		Type = TargetType.Game;
+		DefaultBuildSettings = BuildSettingsVersion.V5;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
+		ExtraModuleNames.AddRange(new string[] { "OldMan", "XyFrame" });
+    }
+}

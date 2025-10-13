@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:07e79b89d2d51d9ff6ae49aae259efc157e0ff90c10f1b746ceda5e899a01fc9
-size 324
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+
+class FXyFrameModule : public IModuleInterface
+{
+public:
+
+	/** IModuleInterface implementation */
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+};

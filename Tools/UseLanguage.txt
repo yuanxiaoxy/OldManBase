@@ -1,0 +1,5 @@
+D:\UE\UE5\UE_5.4\Engine\Build\BatchFiles\Build.bat OldManEditor Win64 DebugGame -Project="D:\UE\Programes\OldMan\Oldman\OldMan.uproject" -WaitMutex -FromMsBuild -architecture=x64 > build_output.log
+
+D:\UE\UE5\UE_5.4\Engine\Build\BatchFiles\Build.bat -projectfiles -project="D:\UE\Programes\Oldman\OldMan\OldMan.uproject" -game -rocket -progress
+
+find_large_files.bat "D:\UE\Programes\Oldman\OldMan" "my_large_files.txt"

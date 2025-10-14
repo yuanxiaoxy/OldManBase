@@ -23,5 +23,5 @@ private:
 	float LandStartTime;
 	float LandDuration;
 
-	void CheckStateTransitions(class AOldManCharacter* Character);
+	void CheckStateTransitions();
 };

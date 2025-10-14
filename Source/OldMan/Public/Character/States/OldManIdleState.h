@@ -21,5 +21,5 @@ public:
 
 private:
 	// 检查状态转换条件
-	void CheckStateTransitions(class AOldManCharacter* Character);
+	void CheckStateTransitions();
 };

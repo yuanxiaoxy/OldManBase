@@ -23,6 +23,6 @@ private:
 	float AttackStartTime;
 	float AttackDuration;
 
-	void CheckStateTransitions(class AOldManCharacter* Character);
+	void CheckStateTransitions();
 	void PerformAttack(class AOldManCharacter* Character);
 };

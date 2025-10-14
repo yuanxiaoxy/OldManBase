@@ -2,4 +2,40 @@ D:\UE\UE5\UE_5.4\Engine\Build\BatchFiles\Build.bat OldManEditor Win64 DebugGame 
 
 D:\UE\UE5\UE_5.4\Engine\Build\BatchFiles\Build.bat -projectfiles -project="D:\UE\Programes\Oldman\OldMan\OldMan.uproject" -game -rocket -progress
 
-find_large_files.bat "D:\UE\Programes\Oldman\OldMan" "my_large_files.txt"
+D:\UE\Programes\Oldman\OldMan\Tools\find_large_files.bat  "D:\UE\Programes\Oldman\OldMan" "my_large_files.txt"
+
+# 安装 Git LFS
+git lfs install
+
+# 为当前仓库初始化 LFS
+git lfs install --local
+
+# 跟踪特定文件类型
+git lfs track "*.psd"
+git lfs track "*.zip"
+git lfs track "*.mp4"
+
+# 跟踪特定目录下的文件
+git lfs track "assets/**"
+
+# 拉取 LFS 文件（通常在 git pull 时自动执行）
+git lfs pull
+
+# 推送 LFS 文件（通常在 git push 时自动执行）
+git lfs push origin main
+
+# 预取 LFS 文件（不检出）
+git lfs fetch
+
+# 查看 LFS 存储使用情况
+git lfs storage
+
+# 列出所有 LFS 环境变量
+git lfs env
+
+# 1. 停止跟踪
+git lfs untrack "*.zip"
+
+# 2. 提交 .gitattributes 的更改
+git add .gitattributes
+git commit -m "停止跟踪 ZIP 文件"

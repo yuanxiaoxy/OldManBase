@@ -9,68 +9,88 @@
 
 void UOldManWalkingState::Enter()
 {
-	UE_LOG(LogTemp, Log, TEXT("Entering Walking State"));
+    UE_LOG(LogTemp, Log, TEXT("Entering Walking State"));
 
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		// 设置行走速度
-		if (Character->GetCharacterMovement() && Character->CharacterAttributes)
-		{
-			Character->GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
-		}
-	}
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        // 设置行走速度
+        if (GetCharacterMovement() && Character->CharacterAttributes)
+        {
+            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
+        }
+    }
 }
 
 void UOldManWalkingState::Exit()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exiting Walking State"));
+    UE_LOG(LogTemp, Log, TEXT("Exiting Walking State"));
 }
 
 void UOldManWalkingState::Update(float DeltaTime)
 {
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		CheckStateTransitions(Character);
-		UpdateAnimation(Character);
-	}
+    Super::Update(DeltaTime);
+
+    // 处理移动和旋转
+    HandleMovement(DeltaTime);
+
+    // 更新动画
+    UpdateAnimation();
+
+    // 检查状态转换
+    CheckStateTransitions();
 }
 
-void UOldManWalkingState::CheckStateTransitions(AOldManCharacter* Character)
+void UOldManWalkingState::CheckStateTransitions()
 {
-	if (!Character->IsAlive())
-	{
-		CheckTransition(UOldManDeadState::StaticClass());
-		return;
-	}
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-	if (Character->IsFalling())
-	{
-		CheckTransition(UOldManFallingState::StaticClass());
-		return;
-	}
+    if (CheckFallingCondition())
+    {
+        CheckTransition(UOldManFallingState::StaticClass());
+        return;
+    }
 
-	if (!Character->IsMoving())
-	{
-		CheckTransition(UOldManIdleState::StaticClass());
-		return;
-	}
+    if (CheckAttackCondition())
+    {
+        CheckTransition(UOldManAttackingState::StaticClass());
+        return;
+    }
 
-	if (Character->bIsRunning)
-	{
-		CheckTransition(UOldManRunningState::StaticClass());
-		return;
-	}
+    if (CheckJumpCondition())
+    {
+        CheckTransition(UOldManJumpingState::StaticClass());
+        return;
+    }
+
+    if (!HasMovementInput())
+    {
+        CheckTransition(UOldManIdleState::StaticClass());
+        return;
+    }
+
+    if (IsRunning())
+    {
+        CheckTransition(UOldManRunningState::StaticClass());
+        return;
+    }
 }
 
-void UOldManWalkingState::UpdateAnimation(AOldManCharacter* Character)
+void UOldManWalkingState::UpdateAnimation()
 {
-	// 计算移动速度和方向用于动画混合
-	FVector Velocity = Character->GetVelocity();
-	FVector Forward = Character->GetActorForwardVector();
-	FVector Right = Character->GetActorRightVector();
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        // 计算移动速度和方向用于动画混合
+        FVector Velocity = Character->GetVelocity();
+        FVector Forward = Character->GetActorForwardVector();
+        FVector Right = Character->GetActorRightVector();
 
-	float ForwardSpeed = FVector::DotProduct(Velocity, Forward);
-	float RightSpeed = FVector::DotProduct(Velocity, Right);
+        float ForwardSpeed = FVector::DotProduct(Velocity, Forward);
+        float RightSpeed = FVector::DotProduct(Velocity, Right);
 
-	Character->PlayMoveAnimation(ForwardSpeed, RightSpeed);
+        Character->PlayMoveAnimation(ForwardSpeed, RightSpeed);
+    }
 }

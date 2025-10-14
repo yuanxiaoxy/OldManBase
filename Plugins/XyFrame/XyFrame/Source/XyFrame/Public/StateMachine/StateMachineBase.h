@@ -106,6 +106,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     virtual void Destroy();
 
+
     // 状态共享数据操作
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void SetSharedData(const FString& Key, UObject* Data);

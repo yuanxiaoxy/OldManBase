@@ -101,7 +101,7 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
 
-	// 绑定移动输入动作 - 修复：只绑定Triggered事件
+	// 绑定移动输入动作
 	if (MoveAction)
 	{
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AOldManPersonPlayerController::HandleMove);
@@ -116,8 +116,8 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 	// 绑定角色动作输入
 	if (JumpAction)
 	{
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleJump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleStopJumping);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleJumpStart);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleJumpStop);
 	}
 
 	if (RunAction)
@@ -128,7 +128,8 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 
 	if (AttackAction)
 	{
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleAttack);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleAttackStart);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleAttackStop);
 	}
 
 	// 绑定相机控制输入动作
@@ -151,34 +152,6 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 }
 
 // ========== 移动输入处理函数 ==========
-
-void AOldManPersonPlayerController::HandleMove(const FInputActionValue& Value)
-{
-	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-		return;
-
-	// 获取二维向量输入值（WASD移动）
-	FVector2D InputVal2D = Value.Get<FVector2D>();
-
-	// 转换为三维向量，Z轴为0
-	FVector InputVal = FVector(InputVal2D.X, InputVal2D.Y, 0.0f);
-
-	if (InputVal.IsNearlyZero())
-		return;
-
-	// 处理移动 - 角色会在Move中处理朝向
-	CachedOldManCharacter->Move(InputVal);
-}
-
-void AOldManPersonPlayerController::HandleMoveCancel(const FInputActionValue& Value)
-{
-	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-		return;
-
-	// 停止移动时传递零向量
-	CachedOldManCharacter->Move(FVector::ZeroVector);
-}
-
 void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
 {
 	if (!bInputEnabled)
@@ -199,22 +172,57 @@ void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
 	CameraComp->SetCameraInput(LookAxisVector.Y * mouseSensitivity, LookAxisVector.X * mouseSensitivity);
 }
 
-// ========== 角色动作输入处理函数 ==========
-
-void AOldManPersonPlayerController::HandleJump(const FInputActionValue& Value)
+void AOldManPersonPlayerController::HandleMove(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->Jump();
+	FVector2D InputVal2D = Value.Get<FVector2D>();
+	FVector InputVal = FVector(InputVal2D.X, InputVal2D.Y, 0.0f);
+
+	// 设置移动输入
+	CachedOldManCharacter->SetMovementInput(InputVal);
 }
 
-void AOldManPersonPlayerController::HandleStopJumping(const FInputActionValue& Value)
+void AOldManPersonPlayerController::HandleMoveCancel(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter)
 		return;
 
-	CachedOldManCharacter->StopJumping();
+	// 清除移动输入
+	CachedOldManCharacter->SetMovementInput(FVector::ZeroVector);
+}
+
+void AOldManPersonPlayerController::HandleJumpStart(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
+		return;
+
+	CachedOldManCharacter->SetJumpInput(true);
+}
+
+void AOldManPersonPlayerController::HandleJumpStop(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter)
+		return;
+
+	CachedOldManCharacter->SetJumpInput(false);
+}
+
+void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
+		return;
+
+	CachedOldManCharacter->SetAttackInput(true);
+}
+
+void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter)
+		return;
+
+	CachedOldManCharacter->SetAttackInput(false);
 }
 
 void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)
@@ -222,7 +230,7 @@ void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& 
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->StartRunning();
+	CachedOldManCharacter->SetRunning(true);
 }
 
 void AOldManPersonPlayerController::HandleStopRunning(const FInputActionValue& Value)
@@ -230,15 +238,7 @@ void AOldManPersonPlayerController::HandleStopRunning(const FInputActionValue& V
 	if (!bInputEnabled || !CachedOldManCharacter)
 		return;
 
-	CachedOldManCharacter->StopRunning();
-}
-
-void AOldManPersonPlayerController::HandleAttack(const FInputActionValue& Value)
-{
-	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-		return;
-
-	CachedOldManCharacter->Attack();
+	CachedOldManCharacter->SetRunning(false);
 }
 
 // ========== 相机控制输入处理函数 ==========

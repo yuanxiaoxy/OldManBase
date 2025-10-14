@@ -119,7 +119,7 @@ UStateBase* UStateMachineBase::GetOrCreateState(TSubclassOf<UStateBase> StateCla
 
 void UStateMachineBase::Stop()
 {
-    if (IsValid(CurrentState))
+    if (IsValid(CurrentState) && CurrentState->IsNative())
     {
         CurrentState->Exit();
         CurrentState = nullptr;

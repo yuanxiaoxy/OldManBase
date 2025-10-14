@@ -29,6 +29,9 @@ public:
     float AirControl = 0.05f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float LandDuration = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float RotationRate = 10.0f;
 
     // œ‡ª˙ Ù–‘

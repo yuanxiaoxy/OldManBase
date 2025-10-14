@@ -4,60 +4,66 @@
 #include "Character/States/OldManWalkingState.h"
 #include "Character/States/OldManRunningState.h"
 #include "Character/States/OldManDeadState.h"
+#include "Character/States/OldManAttackingState.h"
 
 void UOldManLandState::Enter()
 {
-	UE_LOG(LogTemp, Log, TEXT("Entering Land State"));
+    UE_LOG(LogTemp, Log, TEXT("Entering Land State"));
 
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		LandStartTime = GetWorld()->GetTimeSeconds();
-		LandDuration = 0.3f; // 落地动画持续时间
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        LandStartTime = GetWorld()->GetTimeSeconds();
+        LandDuration = Character->CharacterAttributes->LandDuration; // 落地动画持续时间
 
-		// 播放落地动画
-		Character->PlayLandAnimation();
+        // 播放落地动画
+        Character->PlayLandAnimation();
 
-		// 重置落地标志
-		Character->bJustLanded = false;
-	}
+        // 重置落地标志
+        Character->bJustLanded = false;
+
+        // 重置二段跳
+        Character->hasIntoDoubleJump = false;
+    }
 }
 
 void UOldManLandState::Exit()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exiting Land State"));
+    UE_LOG(LogTemp, Log, TEXT("Exiting Land State"));
 }
 
 void UOldManLandState::Update(float DeltaTime)
 {
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		CheckStateTransitions(Character);
-	}
+    Super::Update(DeltaTime);
+    CheckStateTransitions();
 }
 
-void UOldManLandState::CheckStateTransitions(AOldManCharacter* Character)
+void UOldManLandState::CheckStateTransitions()
 {
-	if (!Character->IsAlive())
-	{
-		CheckTransition(UOldManDeadState::StaticClass());
-		return;
-	}
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-	// 落地动画结束后根据移动状态转换
-	float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LandStartTime >= LandDuration)
-	{
-		if (!Character->IsMoving())
-		{
-			CheckTransition(UOldManIdleState::StaticClass());
-		}
-		else if (Character->bIsRunning)
-		{
-			CheckTransition(UOldManRunningState::StaticClass());
-		}
-		else
-		{
-			CheckTransition(UOldManWalkingState::StaticClass());
-		}
-	}
+    // 落地动画结束后根据移动状态转换
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+    if (CurrentTime - LandStartTime >= LandDuration)
+    {
+        if (CheckAttackCondition())
+        {
+            CheckTransition(UOldManAttackingState::StaticClass());
+        }
+        else if (!HasMovementInput())
+        {
+            CheckTransition(UOldManIdleState::StaticClass());
+        }
+        else if (IsRunning())
+        {
+            CheckTransition(UOldManRunningState::StaticClass());
+        }
+        else
+        {
+            CheckTransition(UOldManWalkingState::StaticClass());
+        }
+    }
 }

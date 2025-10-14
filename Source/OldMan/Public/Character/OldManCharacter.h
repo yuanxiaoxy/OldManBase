@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -11,9 +9,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "OldManCharacter.generated.h"
 
-/**
- * 老人角色类 - 3C结构中的Character部分，包含相机组件和弹簧臂
- */
 UCLASS()
 class OLDMAN_API AOldManCharacter : public AXyCharacterBase, public IStateMachineOwner
 {
@@ -25,6 +20,8 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
+    virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+    virtual bool CanJumpInternal_Implementation() const override;
 
 public:
     // ========== 相机组件 ==========
@@ -45,21 +42,28 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
     UOldManCharacterAttributes* CharacterAttributes;
 
-    // ========== 移动控制 ==========
+    // ========== 输入缓存 ==========
+    UPROPERTY(BlueprintReadWrite, Category = "Input")
+    FVector MovementInputVector;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Input")
+    bool bHasJumpInput;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Input")
+    bool bHasAttackInput;
+
+    // ========== 移动控制接口 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void Move(FVector inputDir);
+    void SetMovementInput(FVector inputDir);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void StartRunning();
+    void SetJumpInput(bool bJumping);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void StopRunning();
+    void SetAttackInput(bool bAttacking);
 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    void Attack();
-
-    virtual void Jump() override;
-    virtual void StopJumping() override;
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void SetRunning(bool bRunning);
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -93,6 +97,19 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "State")
     bool CanAttack() const;
 
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "State")
+    bool HasMovementInput() const;
+
+    // ========== 落地检测改进 ==========
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    bool IsActuallyGrounded() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    float GetTimeSinceLastLanding() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Debug")
+    void PrintMovementState() const;
+
     // ========== 动画接口 ==========
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayMoveAnimation(float MovementSpeed, float Direction);
@@ -116,6 +133,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
 
+    // ========== 战斗系统 ==========
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void PerformAttackDetection();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    void OnAttackHit(AActor* HitActor);
+
     // ========== 相机属性 ==========
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     float CameraDistance = 300.0f;
@@ -123,39 +147,33 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     FVector CameraOffset = FVector(0.0f, 0.0f, 75.0f);
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraLagSpeed = 10.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraRotationLagSpeed = 10.0f;
-
     // ========== 状态变量 ==========
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bIsRunning;
 
     UPROPERTY(BlueprintReadWrite, Category = "State")
-    bool bCanDoubleJump;
+    bool hasIntoDoubleJump;
 
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bJustLanded;
 
-    // ========== 旋转控制 ==========
+    UPROPERTY(BlueprintReadWrite, Category = "State")
+    float LastAttackTime;
+
+    // ========== 内部方法 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void UpdateCharacterRotation(float DeltaTime);
+    void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    FVector GetMovementDirectionFromCamera() const;
 
 private:
-    // 内部变量
-    float LastAttackTime;
-    FVector MovementInputVector;
-
-    // 人物旋转平滑
-    FRotator TargetCharacterRotation;
-
-    // 旋转插值速度
-    UPROPERTY(EditAnywhere, Category = "Movement")
-    float CharacterRotationInterpSpeed = 8.0f;
+    // 落地检测改进
+    float LastLandingTime;
+    bool bWasFalling;
 
     // 初始化函数
+    void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
 };

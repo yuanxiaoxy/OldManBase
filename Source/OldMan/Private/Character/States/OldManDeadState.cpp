@@ -3,38 +3,45 @@
 
 void UOldManDeadState::Enter()
 {
-	UE_LOG(LogTemp, Log, TEXT("Entering Dead State"));
+    UE_LOG(LogTemp, Log, TEXT("Entering Dead State"));
 
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		HandleDeath(Character);
-	}
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        HandleDeath(Character);
+    }
 }
 
 void UOldManDeadState::Exit()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exiting Dead State"));
+    UE_LOG(LogTemp, Log, TEXT("Exiting Dead State"));
 }
 
 void UOldManDeadState::Update(float DeltaTime)
 {
-	// 死亡状态不需要更新逻辑
-	// 可以在这里添加死亡动画的更新或复活计时器等
+    // 死亡状态不需要更新逻辑
 }
 
 void UOldManDeadState::HandleDeath(AOldManCharacter* Character)
 {
-	// 禁用移动和碰撞
-	if (Character->GetCharacterMovement())
-	{
-		Character->GetCharacterMovement()->DisableMovement();
-	}
+    if (!Character) return;
 
-	// 播放死亡动画
-	Character->PlayDeathAnimation();
+    // 禁用移动
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->DisableMovement();
+    }
 
-	// 触发死亡事件
-	Character->TriggerSimpleCharacterEvent(EGameEventType::PlayerDied, TEXT("OldManDeath"));
+    // 清除所有输入
+    Character->MovementInputVector = FVector::ZeroVector;
+    Character->bHasJumpInput = false;
+    Character->bHasAttackInput = false;
+    Character->bIsRunning = false;
 
-	UE_LOG(LogTemp, Log, TEXT("Character has died"));
+    // 播放死亡动画
+    Character->PlayDeathAnimation();
+
+    // 触发死亡事件
+    Character->TriggerSimpleCharacterEvent(EGameEventType::PlayerDied, TEXT("OldManDeath"));
+
+    UE_LOG(LogTemp, Log, TEXT("Character has died"));
 }

@@ -20,5 +20,5 @@ public:
 	virtual void Update(float DeltaTime) override;
 
 private:
-	void CheckStateTransitions(class AOldManCharacter* Character);
+	void CheckStateTransitions();
 };

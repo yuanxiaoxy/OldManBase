@@ -9,64 +9,67 @@
 
 void UOldManIdleState::Enter()
 {
-	// 站立状态进入逻辑
-	UE_LOG(LogTemp, Log, TEXT("Entering Idle State"));
+    UE_LOG(LogTemp, Log, TEXT("Entering Idle State"));
 
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		// 重置移动速度到行走速度
-		if (Character->GetCharacterMovement() && Character->CharacterAttributes)
-		{
-			Character->GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
-		}
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        // 重置移动速度到行走速度
+        if (GetCharacterMovement() && Character->CharacterAttributes)
+        {
+            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
+        }
 
-		// 调用蓝图动画事件
-		Character->PlayMoveAnimation(0.0f, 0.0f);
-	}
+        // 调用蓝图动画事件
+        Character->PlayMoveAnimation(0.0f, 0.0f);
+    }
 }
 
 void UOldManIdleState::Exit()
 {
-	// 站立状态退出逻辑
-	UE_LOG(LogTemp, Log, TEXT("Exiting Idle State"));
+    UE_LOG(LogTemp, Log, TEXT("Exiting Idle State"));
 }
 
 void UOldManIdleState::Update(float DeltaTime)
 {
-	if (AOldManCharacter* Character = Cast<AOldManCharacter>(Owner.GetObject()))
-	{
-		CheckStateTransitions(Character);
-	}
+    Super::Update(DeltaTime);
+    CheckStateTransitions();
 }
 
-void UOldManIdleState::CheckStateTransitions(AOldManCharacter* Character)
+void UOldManIdleState::CheckStateTransitions()
 {
-	if (!Character->IsAlive())
-	{
-		// 转换到死亡状态
-		CheckTransition(UOldManDeadState::StaticClass());
-		return;
-	}
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-	if (Character->IsFalling())
-	{
-		// 转换到下落状态
-		CheckTransition(UOldManFallingState::StaticClass());
-		return;
-	}
+    if (CheckFallingCondition())
+    {
+        CheckTransition(UOldManFallingState::StaticClass());
+        return;
+    }
 
-	if (Character->IsMoving())
-	{
-		if (Character->bIsRunning)
-		{
-			// 转换到跑步状态
-			CheckTransition(UOldManRunningState::StaticClass());
-		}
-		else
-		{
-			// 转换到行走状态
-			CheckTransition(UOldManWalkingState::StaticClass());
-		}
-		return;
-	}
+    if (CheckAttackCondition())
+    {
+        CheckTransition(UOldManAttackingState::StaticClass());
+        return;
+    }
+
+    if (CheckJumpCondition())
+    {
+        CheckTransition(UOldManJumpingState::StaticClass());
+        return;
+    }
+
+    if (HasMovementInput())
+    {
+        if (IsRunning())
+        {
+            CheckTransition(UOldManRunningState::StaticClass());
+        }
+        else
+        {
+            CheckTransition(UOldManWalkingState::StaticClass());
+        }
+    }
 }

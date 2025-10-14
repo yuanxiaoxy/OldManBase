@@ -68,11 +68,12 @@ protected:
 	void HandleLook(const FInputActionValue& Value);
 
 	// 输入处理函数 - 角色动作
-	void HandleJump(const FInputActionValue& Value);
-	void HandleStopJumping(const FInputActionValue& Value);
+	void HandleJumpStart(const FInputActionValue& Value);
+	void HandleJumpStop(const FInputActionValue& Value);
 	void HandleStartRunning(const FInputActionValue& Value);
 	void HandleStopRunning(const FInputActionValue& Value);
-	void HandleAttack(const FInputActionValue& Value);
+	void HandleAttackStart(const FInputActionValue& Value);
+	void HandleAttackStop(const FInputActionValue& Value);
 
 	// 输入处理函数 - 相机控制
 	void HandleZoomIn(const FInputActionValue& Value);

@@ -22,8 +22,8 @@ AOldManCharacter::AOldManCharacter()
     CameraBoom->bUsePawnControlRotation = true;
     CameraBoom->bEnableCameraLag = true;
     CameraBoom->bEnableCameraRotationLag = true;
-    CameraBoom->CameraLagSpeed = CameraLagSpeed;
-    CameraBoom->CameraRotationLagSpeed = CameraRotationLagSpeed;
+    CameraBoom->CameraLagSpeed = 10.0f;
+    CameraBoom->CameraRotationLagSpeed = 10.0f;
     CameraBoom->bDoCollisionTest = true;
 
     // 创建跟随相机组件
@@ -33,16 +33,6 @@ AOldManCharacter::AOldManCharacter()
 
     // 创建相机控制组件
     CameraComponent = CreateDefaultSubobject<UOldManCameraComponent>(TEXT("CameraComponent"));
-
-    // 初始化变量
-    bIsRunning = false;
-    bCanDoubleJump = false;
-    bJustLanded = false;
-    LastAttackTime = 0.0f;
-    MovementInputVector = FVector::ZeroVector;
-
-    // 新增变量初始化
-    TargetCharacterRotation = FRotator::ZeroRotator;
 
     // 确保角色不自动朝向移动方向，由我们手动控制
     bUseControllerRotationYaw = false;
@@ -56,6 +46,7 @@ AOldManCharacter::AOldManCharacter()
 void AOldManCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    InitializeParam();
     InitializeCameraComponent();
     InitializeStateMachine();
 }
@@ -77,90 +68,85 @@ void AOldManCharacter::Tick(float DeltaTime)
     }
 }
 
-void AOldManCharacter::Jump()
+void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
-    if (IsAlive())
+    Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+    EMovementMode NewMovementMode = GetCharacterMovement()->MovementMode;
+
+    // 检测从下落状态切换到行走状态（表示落地）
+    if (PrevMovementMode == MOVE_Falling && NewMovementMode == MOVE_Walking)
     {
-        Super::Jump();
+        bJustLanded = true;
+        LastLandingTime = GetWorld()->GetTimeSeconds();
+        bWasFalling = false;
+
+        UE_LOG(LogTemp, Log, TEXT("Character landed successfully"));
+    }
+    // 检测开始下落
+    else if (NewMovementMode == MOVE_Falling)
+    {
+        bWasFalling = true;
+        UE_LOG(LogTemp, Log, TEXT("Character started falling"));
     }
 }
 
-void AOldManCharacter::StopJumping()
+bool AOldManCharacter::CanJumpInternal_Implementation() const
 {
-    Super::StopJumping();
+    return true;
 }
 
-void AOldManCharacter::Move(FVector inputDir)
+void AOldManCharacter::SetMovementInput(FVector inputDir)
 {
     MovementInputVector = inputDir;
-
-    if (!inputDir.IsNearlyZero() && Controller && Controller->IsValidLowLevel())
-    {
-        // 基于相机方向计算移动方向
-        if (CameraComponent)
-        {
-            FRotator CameraRotation = CameraComponent->GetCameraRotation();
-            CameraRotation.Pitch = 0.0f;
-            CameraRotation.Roll = 0.0f;
-
-            const FVector Direction = CameraRotation.RotateVector(inputDir);
-            AddMovementInput(Direction);
-
-            // 只有在有移动输入时才设置目标旋转并启用旋转更新
-            if (!Direction.IsZero())
-            {
-                TargetCharacterRotation = Direction.Rotation();
-
-                // 立即调用一次旋转更新，确保及时响应
-                UpdateCharacterRotation(GetWorld()->GetDeltaSeconds());
-            }
-        }
-    }
-    else if (inputDir.IsNearlyZero())
-    {
-        MovementInputVector = FVector::Zero();
-    }
 }
 
-void AOldManCharacter::UpdateCharacterRotation(float DeltaTime)
+void AOldManCharacter::SetJumpInput(bool bJumping)
 {
+    bHasJumpInput = bJumping;
+}
+
+void AOldManCharacter::SetAttackInput(bool bAttacking)
+{
+    bHasAttackInput = bAttacking;
+}
+
+void AOldManCharacter::SetRunning(bool bRunning)
+{
+    bIsRunning = bRunning;
+}
+
+FVector AOldManCharacter::GetMovementDirectionFromCamera() const
+{
+    if (CameraComponent && !MovementInputVector.IsNearlyZero())
+    {
+        FRotator CameraRotation = CameraComponent->GetCameraRotation();
+        CameraRotation.Pitch = 0.0f;
+        CameraRotation.Roll = 0.0f;
+        return CameraRotation.RotateVector(MovementInputVector);
+    }
+    return MovementInputVector;
+}
+
+void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection)
+{
+    if (DesiredDirection.IsNearlyZero())
+        return;
+
     FRotator CurrentRotation = GetActorRotation();
+    FRotator TargetRotation = DesiredDirection.Rotation();
 
     // 计算旋转差异，避免小角度的抖动
-    float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetCharacterRotation.Yaw);
-    if (YawDifference > 1.0f) // 1度以上的差异才需要旋转
+    float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
+    if (YawDifference > 1.0f)
     {
         FRotator NewRotation = FMath::RInterpTo(
             CurrentRotation,
-            TargetCharacterRotation,
+            TargetRotation,
             DeltaTime,
-            CharacterRotationInterpSpeed
+            CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
         );
-
         SetActorRotation(FRotator(0.0f, NewRotation.Yaw, 0.0f));
-    }
-    else
-    {
-        // 如果差异很小，直接设置
-        SetActorRotation(FRotator(0.0f, TargetCharacterRotation.Yaw, 0.0f));
-    }
-}
-
-void AOldManCharacter::StartRunning()
-{
-    bIsRunning = true;
-}
-
-void AOldManCharacter::StopRunning()
-{
-    bIsRunning = false;
-}
-
-void AOldManCharacter::Attack()
-{
-    if (CanAttack())
-    {
-        LastAttackTime = GetWorld()->GetTimeSeconds();
     }
 }
 
@@ -221,19 +207,124 @@ bool AOldManCharacter::IsMoving() const
 
 bool AOldManCharacter::IsFalling() const
 {
-    return GetCharacterMovement() && GetCharacterMovement()->IsFalling();
+    // 使用更可靠的检测方法
+    if (!GetCharacterMovement())
+        return false;
+
+    // 如果移动组件说在下落，并且没有刚落地，则认为在下落
+    bool bMovementFalling = GetCharacterMovement()->IsFalling();
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    // 防止刚落地时仍然返回true
+    if (!bMovementFalling && (CurrentTime - LastLandingTime < 0.1f))
+    {
+        return false; // 刚落地，不算下落
+    }
+
+    return bMovementFalling;
 }
 
 bool AOldManCharacter::CanDoubleJump() const
 {
-    return bCanDoubleJump && IsFalling();
+    //判断是否进入过
+    return !hasIntoDoubleJump;
 }
 
 bool AOldManCharacter::CanAttack() const
 {
     if (!IsAlive()) return false;
     float CurrentTime = GetWorld()->GetTimeSeconds();
-    return (CurrentTime - LastAttackTime) >= CharacterAttributes->AttackCooldown;
+    return (CurrentTime - LastAttackTime) >= (CharacterAttributes ? CharacterAttributes->AttackCooldown : 1.0f);
+}
+
+bool AOldManCharacter::HasMovementInput() const
+{
+    return !MovementInputVector.IsNearlyZero();
+}
+
+bool AOldManCharacter::IsActuallyGrounded() const
+{
+    if (!GetCharacterMovement())
+        return false;
+
+    // 使用多种条件判断是否真的在地面
+    bool bIsOnGround = GetCharacterMovement()->IsMovingOnGround();
+    bool bIsFalling = GetCharacterMovement()->IsFalling();
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    // 如果移动组件说在地面，并且最近有落地事件，则认为真的在地面
+    return bIsOnGround && !bIsFalling && (CurrentTime - LastLandingTime < 0.5f);
+}
+
+float AOldManCharacter::GetTimeSinceLastLanding() const
+{
+    return GetWorld()->GetTimeSeconds() - LastLandingTime;
+}
+
+void AOldManCharacter::PrintMovementState() const
+{
+    if (!GetCharacterMovement()) return;
+
+    FString MovementState;
+    switch (GetCharacterMovement()->MovementMode)
+    {
+    case MOVE_None: MovementState = "None"; break;
+    case MOVE_Walking: MovementState = "Walking"; break;
+    case MOVE_NavWalking: MovementState = "NavWalking"; break;
+    case MOVE_Falling: MovementState = "Falling"; break;
+    case MOVE_Swimming: MovementState = "Swimming"; break;
+    case MOVE_Flying: MovementState = "Flying"; break;
+    case MOVE_Custom: MovementState = "Custom"; break;
+    default: MovementState = "Unknown"; break;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Movement State: %s, IsFalling: %d, IsActuallyGrounded: %d, JustLanded: %d"),
+        *MovementState,
+        GetCharacterMovement()->IsFalling(),
+        IsActuallyGrounded(),
+        bJustLanded);
+}
+
+void AOldManCharacter::PerformAttackDetection()
+{
+    if (!CharacterAttributes) return;
+
+    // 攻击检测逻辑
+    FVector StartLocation = GetActorLocation();
+    FVector ForwardVector = GetActorForwardVector();
+    FVector EndLocation = StartLocation + ForwardVector * CharacterAttributes->AttackRange;
+
+    // 球形检测
+    TArray<FHitResult> HitResults;
+    FCollisionShape Sphere = FCollisionShape::MakeSphere(50.0f);
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    bool bHit = GetWorld()->SweepMultiByChannel(
+        HitResults,
+        StartLocation,
+        EndLocation,
+        FQuat::Identity,
+        ECC_Pawn,
+        Sphere,
+        Params
+    );
+
+    if (bHit)
+    {
+        for (const FHitResult& Hit : HitResults)
+        {
+            AActor* HitActor = Hit.GetActor();
+            if (HitActor && HitActor != this)
+            {
+                // 应用伤害或触发事件
+                OnAttackHit(HitActor);
+                UE_LOG(LogTemp, Log, TEXT("Hit actor: %s"), *HitActor->GetName());
+            }
+        }
+    }
+
+    LastAttackTime = GetWorld()->GetTimeSeconds();
 }
 
 void AOldManCharacter::SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass)
@@ -247,6 +338,22 @@ void AOldManCharacter::SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAni
     {
         GetMesh()->SetAnimInstanceClass(NewAnimClass);
     }
+}
+
+void AOldManCharacter::InitializeParam()
+{
+    // 初始化变量
+    bIsRunning = false;
+    hasIntoDoubleJump = false;
+    bJustLanded = false;
+    LastAttackTime = 0.0f;
+    MovementInputVector = FVector::ZeroVector;
+    bHasJumpInput = false;
+    bHasAttackInput = false;
+
+    // 落地检测改进
+    LastLandingTime = 0.0f;
+    bWasFalling = false;
 }
 
 void AOldManCharacter::InitializeStateMachine()

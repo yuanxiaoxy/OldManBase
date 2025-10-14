@@ -11,3 +11,6 @@ Saved/
 *.sdf
 *.sln
 *.suo
+Tools/build_output.log
+Tools/UseLanguage.txt
+Tools/my_large_files.txt

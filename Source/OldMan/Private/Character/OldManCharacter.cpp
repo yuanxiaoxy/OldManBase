@@ -111,6 +111,12 @@ void AOldManCharacter::SetAttackInput(bool bAttacking)
     bHasAttackInput = bAttacking;
 }
 
+void AOldManCharacter::SetPullInput(bool bPulling)
+{
+    bHasPullInput = bPulling;
+}
+
+
 void AOldManCharacter::SetRunning(bool bRunning)
 {
     bIsRunning = bRunning;

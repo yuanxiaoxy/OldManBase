@@ -38,14 +38,15 @@ protected:
     // 输入状态
     bool HasMovementInput();
     bool HasJumpInput();
-    void ResetJumpInput(bool jumpInputActive);
     bool HasAttackInput();
     bool IsRunning();
+    void ResetJumpInput(bool jumpInputActive);
 
     // 事件管理
     void InPatchEvents();
     void OutPatchEvents();
 
+    //临时数据
     UPROPERTY()
     float targetSpeed;
 

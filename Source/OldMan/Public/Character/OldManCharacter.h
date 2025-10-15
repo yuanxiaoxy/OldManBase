@@ -52,6 +52,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     bool bHasAttackInput;
 
+    UPROPERTY(BlueprintReadWrite, Category = "Input")
+    bool bHasPullInput;
+
     // ========== 移动控制接口 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetMovementInput(FVector inputDir);
@@ -61,6 +64,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetAttackInput(bool bAttacking);
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void SetPullInput(bool bAttacking);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetRunning(bool bRunning);

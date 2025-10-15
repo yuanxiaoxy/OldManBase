@@ -132,6 +132,13 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleAttackStop);
 	}
 
+	if (PullAction)
+	{
+		EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandlePullStart);
+		EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandlePullStop);
+
+	}
+
 	// 绑定相机控制输入动作
 	if (ZoomInAction)
 	{
@@ -223,6 +230,22 @@ void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Va
 		return;
 
 	CachedOldManCharacter->SetAttackInput(false);
+}
+
+void AOldManPersonPlayerController::HandlePullStart(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
+		return;
+
+	CachedOldManCharacter->SetPullInput(true);
+}
+
+void AOldManPersonPlayerController::HandlePullStop(const FInputActionValue& Value)
+{
+	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
+		return;
+
+	CachedOldManCharacter->SetPullInput(false);
 }
 
 void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)

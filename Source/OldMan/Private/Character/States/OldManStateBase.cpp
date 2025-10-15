@@ -34,8 +34,6 @@ void UOldManStateBase::HandleMovement(float DeltaTime)
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                /*float Speed = FMath::Lerp(GetCharacterMovement()->Velocity.Size(), targetSpeed, 
-                    DeltaTime * Character->CharacterAttributes->SpeedChangeRate);     */
                 //È¡ÏûzÖáÓ°Ïì
                 FVector tempVector = GetCharacterMovement()->Velocity;
                 tempVector.Z = 0.0f;

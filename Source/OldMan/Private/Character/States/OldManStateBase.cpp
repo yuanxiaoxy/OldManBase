@@ -29,15 +29,13 @@ void UOldManStateBase::HandleMovement(float DeltaTime)
 {
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
-        if (HasMovementInput())
+        if (HasMovementInput() && GetCharacterMovement())
         {
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                // Ó¦ÓÃÒÆ¶¯
-                float Speed = IsRunning() ?
-                    Character->CharacterAttributes->RunSpeed :
-                    Character->CharacterAttributes->WalkSpeed;
+                float Speed = FMath::Lerp(GetCharacterMovement()->Velocity.Size(), targetSpeed, 
+                    DeltaTime * Character->CharacterAttributes->SpeedChangeRate);
 
                 ApplyMovement(MovementDirection, Speed);
 

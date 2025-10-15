@@ -7,6 +7,11 @@
 void UOldManFallingState::Enter()
 {
     UE_LOG(LogTemp, Log, TEXT("Entering Falling State"));
+
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        targetSpeed = Character->CharacterAttributes->MoveSpeedInAir;
+    }
 }
 
 void UOldManFallingState::Exit()

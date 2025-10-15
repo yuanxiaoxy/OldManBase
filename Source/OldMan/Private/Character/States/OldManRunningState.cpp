@@ -16,7 +16,7 @@ void UOldManRunningState::Enter()
         // 设置跑步速度
         if (GetCharacterMovement() && Character->CharacterAttributes)
         {
-            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->RunSpeed;
+            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->MoveSpeedInWalk;
         }
     }
 }

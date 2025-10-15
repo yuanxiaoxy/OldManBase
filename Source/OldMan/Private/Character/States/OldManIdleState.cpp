@@ -16,8 +16,10 @@ void UOldManIdleState::Enter()
         // 重置移动速度到行走速度
         if (GetCharacterMovement() && Character->CharacterAttributes)
         {
-            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
+            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->MoveSpeedInWalk;
         }
+
+        targetSpeed = 0.0f;
 
         // 调用蓝图动画事件
         Character->PlayMoveAnimation(0.0f, 0.0f);
@@ -33,6 +35,7 @@ void UOldManIdleState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
     CheckStateTransitions();
+    HandleMovement(DeltaTime);
 }
 
 void UOldManIdleState::CheckStateTransitions()
@@ -63,13 +66,16 @@ void UOldManIdleState::CheckStateTransitions()
 
     if (HasMovementInput())
     {
-        if (IsRunning())
+        CheckTransition(UOldManWalkingState::StaticClass());
+
+        //暂时没有跑步
+        /*if (IsRunning())
         {
             CheckTransition(UOldManRunningState::StaticClass());
         }
         else
         {
             CheckTransition(UOldManWalkingState::StaticClass());
-        }
+        }*/
     }
 }

@@ -14,16 +14,29 @@ class OLDMAN_API UOldManCharacterAttributes : public UDataAsset
 public:
     // 移动属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    float WalkSpeed = 600.0f;
+    float MoveSpeedInWalk = 600.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    float RunSpeed = 900.0f;
+    float MoveSpeedInJump = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveSpeedInDoubleJump = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveSpeedInAir = 600.0f;
+
+    //暂时没有跑步
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    //float RunSpeed = 900.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float JumpVelocity = 420.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float DoubleJumpVelocity = 500.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float SpeedChangeRate = 10.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float AirControl = 0.05f;

@@ -20,6 +20,8 @@ void UOldManDoubleJumpingState::Enter()
             ResetJumpInput(false);
         }
 
+        targetSpeed = Character->CharacterAttributes->MoveSpeedInDoubleJump;
+
         // ²¥·Å¶þ¶ÎÌø¶¯»­
         Character->PlayDoubleJumpAnimation();
     }

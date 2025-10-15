@@ -13,10 +13,11 @@ void UOldManWalkingState::Enter()
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
+        targetSpeed = Character->CharacterAttributes->MoveSpeedInWalk;
         // 设置行走速度
         if (GetCharacterMovement() && Character->CharacterAttributes)
         {
-            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->WalkSpeed;
+            GetCharacterMovement()->MaxWalkSpeed = Character->CharacterAttributes->MoveSpeedInWalk;
         }
     }
 }
@@ -72,11 +73,12 @@ void UOldManWalkingState::CheckStateTransitions()
         return;
     }
 
-    if (IsRunning())
-    {
-        CheckTransition(UOldManRunningState::StaticClass());
-        return;
-    }
+    //暂时没有跑步
+    //if (IsRunning())
+    //{
+    //    CheckTransition(UOldManRunningState::StaticClass());
+    //    return;
+    //}
 }
 
 void UOldManWalkingState::UpdateAnimation()

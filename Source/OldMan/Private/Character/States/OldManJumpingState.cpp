@@ -20,6 +20,8 @@ void UOldManJumpingState::Enter()
             Jump();
         }
 
+        targetSpeed = Character->CharacterAttributes->MoveSpeedInJump;
+
         // ²¥·ÅÌøÔ¾¶¯»­
         Character->PlayJumpAnimation();
     }

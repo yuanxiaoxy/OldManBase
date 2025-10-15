@@ -39,13 +39,15 @@ protected:
     bool HasMovementInput();
     bool HasJumpInput();
     void ResetJumpInput(bool jumpInputActive);
-    void ResetDoubleJump(bool couldBDoubleJump);
     bool HasAttackInput();
     bool IsRunning();
 
     // 事件管理
     void InPatchEvents();
     void OutPatchEvents();
+
+    UPROPERTY()
+    float targetSpeed;
 
 private:
     FName Key_CheckJumpStatesTranisition = "key_CheckJumpStatesTranisition";

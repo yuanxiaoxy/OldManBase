@@ -61,6 +61,48 @@ void AOldManCharacter::Tick(float DeltaTime)
     {
         StateMachine->Update(DeltaTime);
     }
+
+    // 更新鼠标位置
+    FVector2D CurrentMousePosition;
+    if (GetOldManController()->GetMousePosition(CurrentMousePosition.X, CurrentMousePosition.Y))
+    {
+        if (bHasValidLastPosition)
+        {
+            CurrentMouseDelta = CurrentMousePosition - LastMousePosition;
+        }
+        LastMousePosition = CurrentMousePosition;
+        bHasValidLastPosition = true;
+    }
+
+    // 处理拖动(暂时放着)
+    if (curOldManPullItem && CurrentMouseDelta.SizeSquared() > FMath::Square(MinMovementThreshold))
+    {
+        APlayerCameraManager* CameraManager = GetOldManController()->PlayerCameraManager;
+        if (CameraManager)
+        {
+            // 将2D鼠标移动转换为3D视角移动方向
+            FVector CameraForward = CameraManager->GetCameraRotation().Vector();
+            FVector CameraRight = FRotationMatrix(CameraManager->GetCameraRotation()).GetScaledAxis(EAxis::Y);
+            FVector CameraUp = FRotationMatrix(CameraManager->GetCameraRotation()).GetScaledAxis(EAxis::Z);
+
+            FVector ViewMovementDirection =
+                (CameraRight * CurrentMouseDelta.X) +
+                (CameraUp * -CurrentMouseDelta.Y);
+
+            ViewMovementDirection.Normalize();
+
+            // 修改：使用更平滑的强度计算
+            float RawIntensity = CurrentMouseDelta.Size() * DragSensitivity;
+
+            // 应用非线性响应
+            float MovementIntensity = FMath::Sign(RawIntensity) * FMath::Pow(FMath::Abs(RawIntensity), 0.8f);
+
+            // 应用移动
+            curOldManPullItem->HandleMouseData(ViewMovementDirection, MovementIntensity * 0.001f);
+        }
+
+        CurrentMouseDelta = FVector2D::ZeroVector;
+    }
 }
 
 #pragma region Control Param
@@ -114,12 +156,6 @@ void AOldManCharacter::SetAttackInput(bool bAttacking)
 {
     bHasAttackInput = bAttacking;
 }
-
-void AOldManCharacter::SetPullItemState(bool bPulling)
-{
-    bHasPullItem = bPulling;
-}
-
 
 void AOldManCharacter::SetRunning(bool bRunning)
 {
@@ -385,6 +421,11 @@ void AOldManCharacter::InitializeCameraComponent()
 #pragma endregion
 
 #pragma region Item Fun
+void AOldManCharacter::SetPullItemState(bool bPulling)
+{
+    bHasPullItem = bPulling;
+}
+
 //使用射线与Tag判断当前是否有可拖动物品能控制
 void AOldManCharacter::StartRightMousePull()
 {
@@ -413,6 +454,7 @@ void AOldManCharacter::StartRightMousePull()
         if (HitActor)
         {
             SetPullItemState(true);
+            HitActor->StartDragging();
             curOldManPullItem = HitActor;
 
             // 绘制命中点
@@ -424,7 +466,11 @@ void AOldManCharacter::StartRightMousePull()
 void AOldManCharacter::StopRightMousePull()
 {
     SetPullItemState(false);
-    curOldManPullItem = nullptr;
+    if (curOldManPullItem)
+    {
+        curOldManPullItem->StopDragging();
+        curOldManPullItem = nullptr;
+    }
 }
 
 void AOldManCharacter::SetCurOldManInterectItem(AOldManInterectItemBase* newItem)

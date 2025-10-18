@@ -55,11 +55,23 @@ void UOldManStateBase::HandleMovementInAir(float DeltaTime)
     {
         if (HasMovementInput() && GetCharacterMovement())
         {
-            HandleMovement(DeltaTime);
+            FVector MovementDirection = Character->GetMovementDirectionFromCamera();
+            if (!MovementDirection.IsNearlyZero())
+            {
+                //取消z轴影响
+                FVector tempVector = GetCharacterMovement()->Velocity;
+                tempVector.Z = 0.0f;
+                float Speed = FMath::Lerp(tempVector.Size(), targetSpeed,
+                    DeltaTime * Character->CharacterAttributes->SpeedChangeRate);
+
+                ApplyMovement(MovementDirection, Speed);
+
+                // 处理旋转
+                HandleRotation(DeltaTime);
+            }
         }
         else if (!HasMovementInput() && GetCharacterMovement())//在空中没有移动输入
         {
-            
             //存储x，y值 插值运算
             int x = FMath::Lerp(GetCharacterMovement()->Velocity.X, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);
             int y = FMath::Lerp(GetCharacterMovement()->Velocity.Y, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);

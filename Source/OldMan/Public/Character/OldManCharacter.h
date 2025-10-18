@@ -192,6 +192,28 @@ private:
 #pragma endregion
 
 #pragma region Item Param
+public:
+    //暂时放着
+    FVector2D CurrentMouseDelta;
+    // 拖动灵敏度
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float DragSensitivity = 0.001f;
+
+    // 最小移动阈值
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float MinMovementThreshold = 0.01f;
+
+    FVector2D LastMousePosition;
+    bool bHasValidLastPosition;
+
+
+
+
+
+
+
+
+
 //PullItem
 public:
     UPROPERTY(BlueprintReadWrite, Category = "PullItem")

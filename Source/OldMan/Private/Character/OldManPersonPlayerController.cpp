@@ -226,7 +226,7 @@ void AOldManPersonPlayerController::HandleRightMouseStart(const FInputActionValu
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->StartRightMouseInterect();
+	CachedOldManCharacter->StartRightMousePull();
 }
 
 void AOldManPersonPlayerController::HandleRightMouseStop(const FInputActionValue& Value)
@@ -234,7 +234,7 @@ void AOldManPersonPlayerController::HandleRightMouseStop(const FInputActionValue
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->StopRightMouseInterect();
+	CachedOldManCharacter->StopRightMousePull();
 }
 
 void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)

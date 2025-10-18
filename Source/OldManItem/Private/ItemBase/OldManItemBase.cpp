@@ -27,8 +27,3 @@ void AOldManItemBase::Tick(float DeltaTime)
 
 }
 
-void AOldManItemBase::Interect(FOldManItemInteractData interectData)
-{
-	UE_LOG(LogTemp, Display, TEXT("Start Interect %s"), *(GetName()));
-}
-

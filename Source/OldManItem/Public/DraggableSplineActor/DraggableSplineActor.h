@@ -32,13 +32,15 @@ protected:
     UPROPERTY(BlueprintReadWrite, Category = "Drag")
     float CurrentSplinePosition;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Drag")
-    bool bIsBeingDragged;
+    // 新增：拖动控制参数
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float DragSensitivity = 0.01f;
 
-    // 平滑移动插值
-    FVector TargetLocation;
-    FRotator TargetRotation;
-    float MovementAlpha;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float MaxDragSpeed = 0.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float DeadZone = 0.1f;
 
     // 调试可视化
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
@@ -50,7 +52,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     float DebugArrowSize = 50.0f;
 
-    // 新增：编辑器预览功能
+    // 编辑器预览功能
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor Preview",
         meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
     float EditorPreviewPosition = 0.0f;
@@ -58,21 +60,20 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor Preview")
     bool bEnableEditorPreview = false;
 
-    // 编辑器预览计时器
-    float PreviewTimer;
-
     // 存储初始位置和旋转（用于重置）
     FVector InitialMeshLocation;
     FRotator InitialMeshRotation;
 
+    // 新增：平滑移动插值
+    FVector TargetLocation;
+    FRotator TargetRotation;
+    float MovementAlpha;
+
 public:
-    UFUNCTION(BlueprintCallable)
-    virtual void StartDragging();
+    virtual void StartDragging() override;
 
-    UFUNCTION(BlueprintCallable)
-    virtual void StopDragging();
+    virtual void StopDragging() override;
 
-    UFUNCTION(BlueprintCallable)
     virtual void HandleMouseData(const FVector& ViewDirection, float Intensity) override;
 
     UFUNCTION(BlueprintCallable)
@@ -91,7 +92,7 @@ public:
     UFUNCTION(BlueprintCallable)
     void ToggleDebugVisualization() { bShowDebugVisualization = !bShowDebugVisualization; }
 
-    // 新增：编辑器预览函数
+    // 编辑器预览函数
     UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor Preview")
     void UpdateEditorPreview();
 
@@ -105,9 +106,12 @@ protected:
     // 绘制调试可视化
     void DrawDebugVisualization(const FVector& ViewDirection, float ProjectedMovement);
 
-    // 新增：编辑器预览函数
+    // 编辑器预览函数
     void UpdatePreviewPosition();
 
-    // 新增：设置网格体位置和旋转
+    // 设置网格体位置和旋转
     void SetMeshPositionAndRotation(const FVector& Location, const FRotator& Rotation);
+
+    // 新增：计算归一化移动量
+    float CalculateNormalizedMovement(const FVector& ViewDirection, float Intensity);
 };

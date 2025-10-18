@@ -22,7 +22,7 @@ void UOldManStateBase::Exit()
 
 void UOldManStateBase::Update(float DeltaTime)
 {
-    // 基类不实现具体逻辑，由子类重写
+    
 }
 
 void UOldManStateBase::HandleMovement(float DeltaTime)
@@ -117,6 +117,12 @@ bool UOldManStateBase::CheckAttackCondition()
 {
     AOldManCharacter* Character = GetOldManCharacter();
     return Character && Character->bHasAttackInput && Character->CanAttack();
+}
+
+bool UOldManStateBase::CheckPullItemCondition()
+{
+    AOldManCharacter* Character = GetOldManCharacter();
+    return Character && Character->bHasPullItem;
 }
 
 void UOldManStateBase::ResetJumpInput(bool jumpInputActive)

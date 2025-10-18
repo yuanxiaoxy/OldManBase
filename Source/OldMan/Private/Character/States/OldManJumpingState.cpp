@@ -15,6 +15,8 @@ void UOldManJumpingState::Enter()
         {
             //ÖØÖÃÌøÔ¾ÊäÈë
             ResetJumpInput(false);
+            // ÖØÖÃ¶þ¶ÎÌø
+            Character->hasIntoDoubleJump = false;
 
             GetCharacterMovement()->JumpZVelocity = Character->CharacterAttributes->JumpVelocity;
             Jump();

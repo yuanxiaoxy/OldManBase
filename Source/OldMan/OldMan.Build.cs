@@ -16,10 +16,12 @@ public class OldMan : ModuleRules
 				"InputCore", 
 				"EnhancedInput",
 				"XyFrame",
+				"OldManItem",
 			});
 
         PublicIncludePaths.AddRange(
-			new string[] { "XyFrame/Public"
+			new string[] { "XyFrame/Public",
+            "OldManItem/Public"
             });
     }
 }

@@ -7,7 +7,13 @@
 #include "Character/OldManCameraComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "ItemBase/OldManInterectItemBase.h"
+#include "ItemBase/OldManPullItemBase.h"
 #include "OldManCharacter.generated.h"
+
+class AOldManPullItemBase;
+class AOldManInterectItemBase;
+class AOldManPersonPlayerController;
 
 UCLASS()
 class OLDMAN_API AOldManCharacter : public AXyCharacterBase, public IStateMachineOwner
@@ -23,6 +29,16 @@ protected:
     virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
     virtual bool CanJumpInternal_Implementation() const override;
 
+private:
+    // 缓存的角色控制器指针
+    UPROPERTY()
+    AOldManPersonPlayerController* OldManController;
+
+    // 获取角色控制器组件
+    UFUNCTION(BlueprintCallable, Category = "Controller")
+    AOldManPersonPlayerController* GetOldManController();
+
+#pragma region Control Param
 public:
     // ========== 相机组件 ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -52,9 +68,6 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     bool bHasAttackInput;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Input")
-    bool bHasPullInput;
-
     // ========== 移动控制接口 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetMovementInput(FVector inputDir);
@@ -64,9 +77,6 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetAttackInput(bool bAttacking);
-
-    UFUNCTION(BlueprintCallable, Category = "Movement")
-    void SetPullInput(bool bAttacking);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetRunning(bool bRunning);
@@ -161,9 +171,6 @@ public:
     bool hasIntoDoubleJump;
 
     UPROPERTY(BlueprintReadWrite, Category = "State")
-    bool bJustLanded;
-
-    UPROPERTY(BlueprintReadWrite, Category = "State")
     float LastAttackTime;
 
     // ========== 内部方法 ==========
@@ -182,4 +189,37 @@ private:
     void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
+#pragma endregion
+
+#pragma region Item Param
+//PullItem
+public:
+    UPROPERTY(BlueprintReadWrite, Category = "PullItem")
+    AOldManPullItemBase* curOldManPullItem;
+
+    UPROPERTY(BlueprintReadWrite, Category = "PullItem")
+    bool bHasPullItem;
+
+public:
+    UFUNCTION(BlueprintCallable, Category = "PullItem")
+    void SetPullItemState(bool bAttacking);
+
+    UFUNCTION(BlueprintCallable, Category = "PullItem")
+    void StartRightMousePull();
+    UFUNCTION(BlueprintCallable, Category = "PullItem")
+    void StopRightMousePull();
+
+//InterectItem
+public:
+    UPROPERTY(BlueprintReadWrite, Category = "InterectItem")
+    AOldManInterectItemBase* curOldManInterectItem;
+
+public:
+    UFUNCTION(BlueprintCallable, Category = "InterectItem")
+    void SetCurOldManInterectItem(AOldManInterectItemBase* newItem);
+    UFUNCTION(BlueprintCallable, Category = "InterectItem")
+    void ClearCurOldManInterectItem();
+    UFUNCTION(BlueprintCallable, Category = "InterectItem")
+    void InterectCurOldManInterectItem(FOldManItemInteractData interectData);
+#pragma endregion
 };

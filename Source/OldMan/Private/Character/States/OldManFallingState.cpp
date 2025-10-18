@@ -42,14 +42,13 @@ void UOldManFallingState::CheckStateTransitions()
 
     // 使用更可靠的落地检测
     bool bIsActuallyGrounded = Character->IsActuallyGrounded();
-    bool bHasJustLanded = Character->bJustLanded;
     float TimeSinceLanding = Character->GetTimeSinceLastLanding();
 
-    UE_LOG(LogTemp, VeryVerbose, TEXT("FallingState Check - IsGrounded: %d, JustLanded: %d, TimeSinceLand: %.3f"),
-        bIsActuallyGrounded, bHasJustLanded, TimeSinceLanding);
+    UE_LOG(LogTemp, VeryVerbose, TEXT("FallingState Check - IsGrounded: %d, TimeSinceLand: %.3f"),
+        bIsActuallyGrounded, TimeSinceLanding);
 
     // 检查是否落地（使用更宽松的条件）
-    if (!CheckFallingCondition() && (bIsActuallyGrounded || bHasJustLanded || TimeSinceLanding < 0.3f))
+    if (!CheckFallingCondition() && (bIsActuallyGrounded || TimeSinceLanding < 0.3f))
     {
         UE_LOG(LogTemp, Log, TEXT("Transitioning from Falling to Land state"));
         CheckTransition(UOldManLandState::StaticClass());

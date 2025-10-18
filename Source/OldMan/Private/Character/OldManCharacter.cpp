@@ -1,4 +1,5 @@
 #include "Character/OldManCharacter.h"
+#include "Character/OldManPersonPlayerController.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/States/OldManIdleState.h"
 #include "Character/States/OldManWalkingState.h"
@@ -60,14 +61,9 @@ void AOldManCharacter::Tick(float DeltaTime)
     {
         StateMachine->Update(DeltaTime);
     }
-
-    // 重置落地标志
-    if (bJustLanded && !IsFalling())
-    {
-        bJustLanded = false;
-    }
 }
 
+#pragma region Control Param
 void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
     Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
@@ -77,7 +73,6 @@ void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
     // 检测从下落状态切换到行走状态（表示落地）
     if (PrevMovementMode == MOVE_Falling && NewMovementMode == MOVE_Walking)
     {
-        bJustLanded = true;
         LastLandingTime = GetWorld()->GetTimeSeconds();
         bWasFalling = false;
 
@@ -96,6 +91,15 @@ bool AOldManCharacter::CanJumpInternal_Implementation() const
     return true;
 }
 
+AOldManPersonPlayerController* AOldManCharacter::GetOldManController()
+{
+    if (!OldManController)
+    {
+        OldManController = Cast<AOldManPersonPlayerController>(GetController());
+    }
+    return OldManController;
+}
+
 void AOldManCharacter::SetMovementInput(FVector inputDir)
 {
     MovementInputVector = inputDir;
@@ -111,9 +115,9 @@ void AOldManCharacter::SetAttackInput(bool bAttacking)
     bHasAttackInput = bAttacking;
 }
 
-void AOldManCharacter::SetPullInput(bool bPulling)
+void AOldManCharacter::SetPullItemState(bool bPulling)
 {
-    bHasPullInput = bPulling;
+    bHasPullItem = bPulling;
 }
 
 
@@ -284,11 +288,10 @@ void AOldManCharacter::PrintMovementState() const
     default: MovementState = "Unknown"; break;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Movement State: %s, IsFalling: %d, IsActuallyGrounded: %d, JustLanded: %d"),
+    UE_LOG(LogTemp, Warning, TEXT("Movement State: %s, IsFalling: %d, IsActuallyGrounded: %d"),
         *MovementState,
         GetCharacterMovement()->IsFalling(),
-        IsActuallyGrounded(),
-        bJustLanded);
+        IsActuallyGrounded());
 }
 
 void AOldManCharacter::PerformAttackDetection()
@@ -351,7 +354,6 @@ void AOldManCharacter::InitializeParam()
     // 初始化变量
     bIsRunning = false;
     hasIntoDoubleJump = false;
-    bJustLanded = false;
     LastAttackTime = 0.0f;
     MovementInputVector = FVector::ZeroVector;
     bHasJumpInput = false;
@@ -380,3 +382,69 @@ void AOldManCharacter::InitializeCameraComponent()
         CameraComponent->SetCameraTarget(this);
     }
 }
+#pragma endregion
+
+#pragma region Item Fun
+//使用射线与Tag判断当前是否有可拖动物品能控制
+void AOldManCharacter::StartRightMousePull()
+{
+    if (!GetOldManController() || !GetOldManController()->PlayerCameraManager) return;
+
+    FVector CameraLocation = GetOldManController()->PlayerCameraManager->GetCameraLocation();
+    FRotator CameraRotation = GetOldManController()->PlayerCameraManager->GetCameraRotation();
+    FVector CameraDirection = CameraRotation.Vector();
+
+    UE_LOG(LogTemp, Display, TEXT("Camera Raycast - Location: %s, Direction: %s"),
+        *CameraLocation.ToString(), *CameraDirection.ToString());
+
+    FHitResult HitResult;
+    FCollisionQueryParams QueryParams;
+    QueryParams.bTraceComplex = true;
+    QueryParams.AddIgnoredActor(GetOldManController()->GetPawn());
+
+    FVector TraceEnd = CameraLocation + CameraDirection * 10000.0f;
+
+    // 调试绘制
+    DrawDebugLine(GetWorld(), CameraLocation, TraceEnd, FColor::Cyan, false, 5.0f, 0, 2.0f);
+
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, CameraLocation, TraceEnd, ECC_Visibility, QueryParams))
+    {
+        AOldManPullItemBase* HitActor = Cast<AOldManPullItemBase>(HitResult.GetActor());
+        if (HitActor)
+        {
+            SetPullItemState(true);
+            curOldManPullItem = HitActor;
+
+            // 绘制命中点
+            DrawDebugSphere(GetWorld(), HitResult.Location, 15.0f, 12, FColor::Magenta, false, 5.0f, 0, 3.0f);
+        }
+    }
+}
+
+void AOldManCharacter::StopRightMousePull()
+{
+    SetPullItemState(false);
+    curOldManPullItem = nullptr;
+}
+
+void AOldManCharacter::SetCurOldManInterectItem(AOldManInterectItemBase* newItem)
+{
+    if (newItem)
+    {
+        curOldManInterectItem = newItem;
+    }
+}
+
+void AOldManCharacter::ClearCurOldManInterectItem()
+{
+    curOldManInterectItem = nullptr;
+}
+
+void AOldManCharacter::InterectCurOldManInterectItem(FOldManItemInteractData interectData)
+{
+    if (curOldManInterectItem)
+    {
+        curOldManInterectItem->Interect(interectData);
+    }
+}
+#pragma endregion

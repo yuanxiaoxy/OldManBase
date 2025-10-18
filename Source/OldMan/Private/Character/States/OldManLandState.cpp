@@ -18,9 +18,6 @@ void UOldManLandState::Enter()
         // 播放落地动画
         Character->PlayLandAnimation();
 
-        // 重置落地标志
-        Character->bJustLanded = false;
-
         // 重置二段跳
         Character->hasIntoDoubleJump = false;
     }

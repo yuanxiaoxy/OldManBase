@@ -12,6 +12,15 @@
 				"Engine",
 				"XyFrame"
 			]
+		},
+		{
+			"Name": "OldManItem",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject"
+			]
 		}
 	],
 	"Plugins": [

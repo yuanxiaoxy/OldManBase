@@ -53,7 +53,7 @@ protected:
 	UInputAction* AttackAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* PullAction;
+	UInputAction* RightMouseAction;
 
 	// 输入动作 - 相机控制
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -77,8 +77,8 @@ protected:
 	void HandleStopRunning(const FInputActionValue& Value);
 	void HandleAttackStart(const FInputActionValue& Value);
 	void HandleAttackStop(const FInputActionValue& Value);
-	void HandlePullStart(const FInputActionValue& Value);
-	void HandlePullStop(const FInputActionValue& Value);
+	void HandleRightMouseStart(const FInputActionValue& Value);
+	void HandleRightMouseStop(const FInputActionValue& Value);
 
 	// 输入处理函数 - 相机控制
 	void HandleZoomIn(const FInputActionValue& Value);

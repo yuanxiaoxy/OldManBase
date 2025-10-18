@@ -42,9 +42,6 @@ void AOldManPersonPlayerController::SetupInputComponent()
 		UE_LOG(LogTemp, Error, TEXT("Failed to get EnhancedInputComponent"));
 		return;
 	}
-
-	// 绑定角色输入
-	BindCharacterInputs();
 }
 
 void AOldManPersonPlayerController::OnPossess(APawn* InPawn)
@@ -53,14 +50,6 @@ void AOldManPersonPlayerController::OnPossess(APawn* InPawn)
 
 	// 缓存角色指针
 	CachedOldManCharacter = Cast<AOldManCharacter>(InPawn);
-
-	if (CachedOldManCharacter)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Possessed OldManCharacter: %s"), *CachedOldManCharacter->GetName());
-
-		// 绑定新角色的输入
-		BindCharacterInputs();
-	}
 }
 
 void AOldManPersonPlayerController::OnUnPossess()
@@ -132,10 +121,10 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleAttackStop);
 	}
 
-	if (PullAction)
+	if (RightMouseAction)
 	{
-		EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandlePullStart);
-		EnhancedInputComponent->BindAction(PullAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandlePullStop);
+		EnhancedInputComponent->BindAction(RightMouseAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleRightMouseStart);
+		EnhancedInputComponent->BindAction(RightMouseAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleRightMouseStop);
 
 	}
 
@@ -232,20 +221,20 @@ void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Va
 	CachedOldManCharacter->SetAttackInput(false);
 }
 
-void AOldManPersonPlayerController::HandlePullStart(const FInputActionValue& Value)
+void AOldManPersonPlayerController::HandleRightMouseStart(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->SetPullInput(true);
+	CachedOldManCharacter->StartRightMouseInterect();
 }
 
-void AOldManPersonPlayerController::HandlePullStop(const FInputActionValue& Value)
+void AOldManPersonPlayerController::HandleRightMouseStop(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->SetPullInput(false);
+	CachedOldManCharacter->StopRightMouseInterect();
 }
 
 void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)

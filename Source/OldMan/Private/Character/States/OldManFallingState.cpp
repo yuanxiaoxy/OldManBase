@@ -24,7 +24,7 @@ void UOldManFallingState::Update(float DeltaTime)
     Super::Update(DeltaTime);
 
     // 在空中也可以移动
-    HandleMovement(DeltaTime);
+    HandleMovementInAir(DeltaTime);
 
     CheckStateTransitions();
 }

@@ -20,10 +20,11 @@ protected:
     class AOldManCharacter* CachedOldManCharacter;
 
     // 移动相关方法
-    void HandleMovement(float DeltaTime);
+    virtual void HandleMovement(float DeltaTime);
     void HandleRotation(float DeltaTime);
     void ApplyMovement(const FVector& Direction, float Speed);
     void Jump();
+    void HandleMovementInAir(float DeltaTime);
 
     // 状态检查方法
     bool CheckDeathCondition();

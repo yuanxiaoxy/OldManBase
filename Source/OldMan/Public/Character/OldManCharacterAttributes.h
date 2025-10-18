@@ -37,6 +37,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float SpeedChangeRate = 10.0f;
+   
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float SpeedChangeRateInAir = 10.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float AirControl = 0.05f;

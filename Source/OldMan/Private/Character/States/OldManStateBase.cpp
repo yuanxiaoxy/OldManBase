@@ -49,6 +49,28 @@ void UOldManStateBase::HandleMovement(float DeltaTime)
     }
 }
 
+void UOldManStateBase::HandleMovementInAir(float DeltaTime)
+{
+    if (AOldManCharacter* Character = GetOldManCharacter())
+    {
+        if (HasMovementInput() && GetCharacterMovement())
+        {
+            HandleMovement(DeltaTime);
+        }
+        else if (!HasMovementInput() && GetCharacterMovement())//在空中没有移动输入
+        {
+            
+            //存储x，y值 插值运算
+            int x = FMath::Lerp(GetCharacterMovement()->Velocity.X, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);
+            int y = FMath::Lerp(GetCharacterMovement()->Velocity.Y, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);
+
+            GetCharacterMovement()->Velocity.X = x;
+            GetCharacterMovement()->Velocity.Y = y;
+            
+        }
+    }
+}
+
 void UOldManStateBase::HandleRotation(float DeltaTime)
 {
     if (AOldManCharacter* Character = GetOldManCharacter())

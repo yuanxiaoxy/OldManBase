@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "OldManItemBase.generated.h"
+#include "PhoneNumberManager.generated.h"
 
-UCLASS(Blueprintable)
-class OLDMANITEM_API AOldManItemBase : public AActor
+UCLASS()
+class OLDMANITEM_API APhoneNumberManager : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AOldManItemBase();
+	APhoneNumberManager();
 
 protected:
 	// Called when the game starts or when spawned
@@ -23,7 +23,4 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
-	UStaticMeshComponent* MeshComponent;
 };

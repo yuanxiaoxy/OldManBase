@@ -21,6 +21,15 @@
 				"Engine",
 				"CoreUObject"
 			]
+		},
+		{
+			"Name": "OldManConfig",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject"
+			]
 		}
 	],
 	"Plugins": [

@@ -454,7 +454,7 @@ void AOldManCharacter::HandleMouseLook(FVector2D mouseDelta)
             FVector CameraUp = FRotationMatrix(CameraRotation).GetScaledAxis(EAxis::Z);
 
             // 基于鼠标输入构建移动方向
-            FVector ViewMovementDirection = (CameraRight * MouseXInput + CameraUp * -MouseYInput).GetSafeNormal();
+            FVector ViewMovementDirection = (CameraRight * MouseXInput + CameraUp * MouseYInput).GetSafeNormal();
 
             // 计算移动强度
             float MovementIntensity = FVector2D(MouseXInput, MouseYInput).Size() * DragSensitivity;

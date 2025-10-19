@@ -45,6 +45,13 @@ class OLDMANITEM_API AOldManInterectItemBase : public AOldManItemBase
 	GENERATED_BODY()
 
 public:
+    AOldManInterectItemBase();
+
+public:
     virtual void Interect(FOldManItemInteractData interectData);
 	
+    // 用于互动的碰撞组件
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class UBoxComponent* InteractionBox;
+
 };

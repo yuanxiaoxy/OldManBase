@@ -90,6 +90,9 @@ public:
     UFUNCTION(BlueprintCallable)
     FVector GetCurrentTangent() const;
 
+    UFUNCTION(BlueprintCallable)
+    void SetStartPosition();
+
     // µ÷ÊÔÏÔÊ¾º¯Êý
     UFUNCTION(BlueprintCallable)
     void SetDebugVisualization(bool bEnable) { bShowDebugVisualization = bEnable; }

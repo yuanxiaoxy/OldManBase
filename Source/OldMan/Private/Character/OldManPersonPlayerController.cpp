@@ -163,6 +163,8 @@ void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
 	if (!CameraComp)
 		return;
 
+	CachedOldManCharacter->HandleMouseLook(LookAxisVector);
+
 	// 处理视角旋转，通过相机组件传递输入
 	float mouseSensitivity = CachedOldManCharacter ? CachedOldManCharacter->CharacterAttributes->MouseSensitivity : 1.0f;
 	CameraComp->SetCameraInput(LookAxisVector.Y * mouseSensitivity, LookAxisVector.X * mouseSensitivity);

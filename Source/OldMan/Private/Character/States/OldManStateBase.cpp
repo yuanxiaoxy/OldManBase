@@ -153,10 +153,10 @@ bool UOldManStateBase::CheckAttackCondition()
     return Character && Character->bHasAttackInput && Character->CanAttack();
 }
 
-bool UOldManStateBase::CheckPullItemCondition()
+bool UOldManStateBase::CheckPullItemStateCondition()
 {
-    AOldManCharacter* Character = GetOldManCharacter();
-    return Character && Character->bHasPullItem;
+    AOldManCharacter* Character = GetOldManCharacter();  
+    return Character && Character->bInCanPullState;
 }
 
 void UOldManStateBase::ResetJumpInput(bool jumpInputActive)

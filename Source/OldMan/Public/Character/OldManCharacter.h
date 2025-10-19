@@ -30,13 +30,17 @@ protected:
     virtual bool CanJumpInternal_Implementation() const override;
 
 private:
-    // 缓存的角色控制器指针
+    // 玩家控制器引用
     UPROPERTY()
     AOldManPersonPlayerController* OldManController;
 
-    // 获取角色控制器组件
+    // 获取玩家控制器
     UFUNCTION(BlueprintCallable, Category = "Controller")
     AOldManPersonPlayerController* GetOldManController();
+
+    // 鼠标输入处理
+    void OnMouseX(float Value);
+    void OnMouseY(float Value);
 
 #pragma region Control Param
 public:
@@ -58,7 +62,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
     UOldManCharacterAttributes* CharacterAttributes;
 
-    // ========== 输入缓存 ==========
+    // ========== 输入控制 ==========
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     FVector MovementInputVector;
 
@@ -68,7 +72,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     bool bHasAttackInput;
 
-    // ========== 移动控制接口 ==========
+    // ========== 移动控制函数 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetMovementInput(FVector inputDir);
 
@@ -116,7 +120,7 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "State")
     bool HasMovementInput() const;
 
-    // ========== 落地检测改进 ==========
+    // ========== 地面检测改进 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     bool IsActuallyGrounded() const;
 
@@ -126,7 +130,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Debug")
     void PrintMovementState() const;
 
-    // ========== 动画接口 ==========
+    // ========== 动画事件 ==========
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayMoveAnimation(float MovementSpeed, float Direction);
 
@@ -145,7 +149,7 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayLandAnimation();
 
-    // ========== 模型设置 ==========
+    // ========== 角色设置 ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
 
@@ -173,7 +177,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     float LastAttackTime;
 
-    // ========== 内部方法 ==========
+    // ========== 旋转控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
 
@@ -181,57 +185,46 @@ public:
     FVector GetMovementDirectionFromCamera() const;
 
 private:
-    // 落地检测改进
+    // 地面检测改进
     float LastLandingTime;
     bool bWasFalling;
 
-    // 初始化函数
+    // 初始化参数
     void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
 #pragma endregion
 
 #pragma region Item Param
+    // PullItem
 public:
-    //暂时放着
-    FVector2D CurrentMouseDelta;
     // 拖动灵敏度
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    float DragSensitivity = 0.001f;
+    float DragSensitivity = 0.5f;
 
     // 最小移动阈值
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float MinMovementThreshold = 0.01f;
 
-    FVector2D LastMousePosition;
-    bool bHasValidLastPosition;
-
-
-
-
-
-
-
-
-
-//PullItem
-public:
     UPROPERTY(BlueprintReadWrite, Category = "PullItem")
     AOldManPullItemBase* curOldManPullItem;
 
     UPROPERTY(BlueprintReadWrite, Category = "PullItem")
-    bool bHasPullItem;
+    bool bInCanPullState;
 
 public:
     UFUNCTION(BlueprintCallable, Category = "PullItem")
-    void SetPullItemState(bool bAttacking);
+    void SetPullItemState(bool bPulling);
 
     UFUNCTION(BlueprintCallable, Category = "PullItem")
     void StartRightMousePull();
+
     UFUNCTION(BlueprintCallable, Category = "PullItem")
     void StopRightMousePull();
 
-//InterectItem
+    void HandleMouseLook(FVector2D mouseDelta);
+
+    // InterectItem
 public:
     UPROPERTY(BlueprintReadWrite, Category = "InterectItem")
     AOldManInterectItemBase* curOldManInterectItem;
@@ -239,8 +232,10 @@ public:
 public:
     UFUNCTION(BlueprintCallable, Category = "InterectItem")
     void SetCurOldManInterectItem(AOldManInterectItemBase* newItem);
+
     UFUNCTION(BlueprintCallable, Category = "InterectItem")
     void ClearCurOldManInterectItem();
+
     UFUNCTION(BlueprintCallable, Category = "InterectItem")
     void InterectCurOldManInterectItem(FOldManItemInteractData interectData);
 #pragma endregion

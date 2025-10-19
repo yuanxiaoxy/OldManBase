@@ -10,6 +10,7 @@
 #include "Character/States/OldManLandState.h"
 #include "Character/States/OldManAttackingState.h"
 #include "Character/States/OldManDeadState.h"
+#include "Components/InputComponent.h"
 
 AOldManCharacter::AOldManCharacter()
 {
@@ -60,48 +61,6 @@ void AOldManCharacter::Tick(float DeltaTime)
     if (StateMachine && StateMachine->IsRunning())
     {
         StateMachine->Update(DeltaTime);
-    }
-
-    // 更新鼠标位置
-    FVector2D CurrentMousePosition;
-    if (GetOldManController()->GetMousePosition(CurrentMousePosition.X, CurrentMousePosition.Y))
-    {
-        if (bHasValidLastPosition)
-        {
-            CurrentMouseDelta = CurrentMousePosition - LastMousePosition;
-        }
-        LastMousePosition = CurrentMousePosition;
-        bHasValidLastPosition = true;
-    }
-
-    // 处理拖动(暂时放着)
-    if (curOldManPullItem && CurrentMouseDelta.SizeSquared() > FMath::Square(MinMovementThreshold))
-    {
-        APlayerCameraManager* CameraManager = GetOldManController()->PlayerCameraManager;
-        if (CameraManager)
-        {
-            // 将2D鼠标移动转换为3D视角移动方向
-            FVector CameraForward = CameraManager->GetCameraRotation().Vector();
-            FVector CameraRight = FRotationMatrix(CameraManager->GetCameraRotation()).GetScaledAxis(EAxis::Y);
-            FVector CameraUp = FRotationMatrix(CameraManager->GetCameraRotation()).GetScaledAxis(EAxis::Z);
-
-            FVector ViewMovementDirection =
-                (CameraRight * CurrentMouseDelta.X) +
-                (CameraUp * -CurrentMouseDelta.Y);
-
-            ViewMovementDirection.Normalize();
-
-            // 修改：使用更平滑的强度计算
-            float RawIntensity = CurrentMouseDelta.Size() * DragSensitivity;
-
-            // 应用非线性响应
-            float MovementIntensity = FMath::Sign(RawIntensity) * FMath::Pow(FMath::Abs(RawIntensity), 0.8f);
-
-            // 应用移动
-            curOldManPullItem->HandleMouseData(ViewMovementDirection, MovementIntensity * 0.001f);
-        }
-
-        CurrentMouseDelta = FVector2D::ZeroVector;
     }
 }
 
@@ -394,6 +353,7 @@ void AOldManCharacter::InitializeParam()
     MovementInputVector = FVector::ZeroVector;
     bHasJumpInput = false;
     bHasAttackInput = false;
+    bInCanPullState = true;
 
     // 落地检测改进
     LastLandingTime = 0.0f;
@@ -423,7 +383,7 @@ void AOldManCharacter::InitializeCameraComponent()
 #pragma region Item Fun
 void AOldManCharacter::SetPullItemState(bool bPulling)
 {
-    bHasPullItem = bPulling;
+    bInCanPullState = bPulling;
 }
 
 //使用射线与Tag判断当前是否有可拖动物品能控制
@@ -470,6 +430,42 @@ void AOldManCharacter::StopRightMousePull()
     {
         curOldManPullItem->StopDragging();
         curOldManPullItem = nullptr;
+    }
+}
+
+void AOldManCharacter::HandleMouseLook(FVector2D mouseDelta)
+{
+    // 鼠标输入
+    float MouseXInput = mouseDelta.X;
+    float MouseYInput = mouseDelta.Y;
+
+    // 处理拖动
+    if (curOldManPullItem && bInCanPullState)
+    {
+        APlayerCameraManager* CameraManager = GetOldManController()->PlayerCameraManager;
+        if (CameraManager && (FMath::Abs(MouseXInput) > MinMovementThreshold || FMath::Abs(MouseYInput) > MinMovementThreshold))
+        {
+            FVector CameraLocation = CameraManager->GetCameraLocation();
+            FRotator CameraRotation = CameraManager->GetCameraRotation();
+
+            // 获取相机的方向向量
+            FVector CameraForward = CameraRotation.Vector();
+            FVector CameraRight = FRotationMatrix(CameraRotation).GetScaledAxis(EAxis::Y);
+            FVector CameraUp = FRotationMatrix(CameraRotation).GetScaledAxis(EAxis::Z);
+
+            // 基于鼠标输入构建移动方向
+            FVector ViewMovementDirection = (CameraRight * MouseXInput + CameraUp * -MouseYInput).GetSafeNormal();
+
+            // 计算移动强度
+            float MovementIntensity = FVector2D(MouseXInput, MouseYInput).Size() * DragSensitivity;
+
+            // 应用移动
+            curOldManPullItem->HandleMouseData(ViewMovementDirection, MovementIntensity);
+
+            // 重置鼠标输入
+            MouseXInput = 0.0f;
+            MouseYInput = 0.0f;
+        }
     }
 }
 

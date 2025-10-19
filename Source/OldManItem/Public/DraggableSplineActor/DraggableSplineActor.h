@@ -32,17 +32,24 @@ protected:
     UPROPERTY(BlueprintReadWrite, Category = "Drag")
     float CurrentSplinePosition;
 
-    // 新增：拖动控制参数
+    // 拖动参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    float DragSensitivity = 0.01f;
+    float DragStartPos = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    float MaxDragSpeed = 0.5f;
+    float DragSensitivity = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    float DeadZone = 0.1f;
+    float MaxDragSpeed = 0.1f;
 
-    // 调试可视化
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float DeadZone = 0.05f;
+
+    // 平滑参数
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float SmoothingFactor = 0.8f;
+
+    // 调试显示
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     bool bShowDebugVisualization = true;
 
@@ -64,20 +71,18 @@ protected:
     FVector InitialMeshLocation;
     FRotator InitialMeshRotation;
 
-    // 新增：平滑移动插值
+    // 平滑移动插值
     FVector TargetLocation;
     FRotator TargetRotation;
     float MovementAlpha;
 
+    // 平滑移动向量
+    FVector SmoothedMovementDirection;
+
 public:
     virtual void StartDragging() override;
-
     virtual void StopDragging() override;
-
     virtual void HandleMouseData(const FVector& ViewDirection, float Intensity) override;
-
-    UFUNCTION(BlueprintCallable)
-    virtual void MoveBasedOnViewDirection(const FVector& ViewDirection, float Intensity);
 
     UFUNCTION(BlueprintCallable)
     USplineComponent* GetSplineComponent() const { return SplineComponent; }
@@ -85,7 +90,7 @@ public:
     UFUNCTION(BlueprintCallable)
     FVector GetCurrentTangent() const;
 
-    // 调试可视化函数
+    // 调试显示函数
     UFUNCTION(BlueprintCallable)
     void SetDebugVisualization(bool bEnable) { bShowDebugVisualization = bEnable; }
 
@@ -103,15 +108,15 @@ public:
     void ResetEditorPreview();
 
 protected:
-    // 绘制调试可视化
+    // 绘制调试显示
     void DrawDebugVisualization(const FVector& ViewDirection, float ProjectedMovement);
 
-    // 编辑器预览函数
+    // 编辑器预览更新
     void UpdatePreviewPosition();
 
-    // 设置网格体位置和旋转
+    // 设置网格位置和旋转
     void SetMeshPositionAndRotation(const FVector& Location, const FRotator& Rotation);
 
-    // 新增：计算归一化移动量
-    float CalculateNormalizedMovement(const FVector& ViewDirection, float Intensity);
+    // 计算归一化移动量
+    float CalculateNormalizedMovement(const FVector& ViewDirection);
 };

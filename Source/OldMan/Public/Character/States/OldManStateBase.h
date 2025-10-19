@@ -27,16 +27,13 @@ protected:
     void HandleMovementInAir(float DeltaTime);
 
     //交互相关方法
-    void HandlePullItem();
-    void HandleInterectItem();
-
 
     // 状态检查方法
     bool CheckDeathCondition();
     bool CheckFallingCondition();
     bool CheckJumpCondition();
     bool CheckAttackCondition();
-    bool CheckPullItemCondition();
+    bool CheckPullItemStateCondition();
 
     // 辅助方法
     class AOldManCharacter* GetOldManCharacter();

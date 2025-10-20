@@ -39,7 +39,7 @@ struct FOldManItemInteractData
     }
 };
 
-UCLASS()
+UCLASS(Blueprintable)
 class OLDMANITEM_API AOldManInterectItemBase : public AOldManItemBase
 {
 	GENERATED_BODY()
@@ -53,5 +53,19 @@ public:
     // 用于互动的碰撞组件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class UBoxComponent* InteractionBox;
+
+public:
+    UFUNCTION(BlueprintImplementableEvent, Category = "OnEnterTrigger")
+    void OnEnterTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "OnExitTrigger")
+    void OnExitTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+protected:
+    UFUNCTION()
+        virtual void OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+        virtual void OnOverlayEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 
 };

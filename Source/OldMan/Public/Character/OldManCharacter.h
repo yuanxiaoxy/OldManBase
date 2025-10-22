@@ -44,6 +44,10 @@ private:
 
 #pragma region Control Param
 public:
+    // 用于互动的碰撞组件
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class UBoxComponent* InteractionBox;
+
     // ========== 相机组件 ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     USpringArmComponent* CameraBoom;

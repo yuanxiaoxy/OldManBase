@@ -20,19 +20,29 @@ void APhoneNumberActor::InitPhoneNumberActor(int number, FString groupName, APho
 	phoneNumberManager = PhoneNumberManager;
 }
 
+void APhoneNumberActor::Reset()
+{
+	inEnableState = false;
+	OnReset();
+}
+
 void APhoneNumberActor::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player))
+	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+
+	int a = Tags.Find("asd");
+	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) >= 0)
 	{
 		if (phoneNumberManager && !inEnableState)
 		{
 			inEnableState = true;
-			//phoneNumberManager->
+
+			phoneNumberManager->EnablePhoneNumberByGroupName(thisGroup, thisNumber);
 		}
 	}
 }
 
 void APhoneNumberActor::OnOverlayEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-
+	Super::OnOverlayEnd(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 }

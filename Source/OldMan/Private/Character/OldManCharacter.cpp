@@ -11,10 +11,17 @@
 #include "Character/States/OldManAttackingState.h"
 #include "Character/States/OldManDeadState.h"
 #include "Components/InputComponent.h"
+#include "Components/BoxComponent.h"
+#include "GlobalTagName.h"
 
 AOldManCharacter::AOldManCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    // 创建碰撞组件
+    InteractionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractionBox"));
+    InteractionBox->SetupAttachment(RootComponent);
+    InteractionBox->SetCollisionProfileName(TEXT("Player"));
 
     // 创建弹簧臂组件
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -43,6 +50,8 @@ AOldManCharacter::AOldManCharacter()
         GetCharacterMovement()->bOrientRotationToMovement = false;
         GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
     }
+
+    Tags.Add(UGlobalTagName::Tag_Player);
 }
 
 void AOldManCharacter::BeginPlay()

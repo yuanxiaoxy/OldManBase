@@ -32,5 +32,5 @@ void AOldManInterectItemBase::OnOverlayBegin(UPrimitiveComponent* OverlappedComp
 
 void AOldManInterectItemBase::OnOverlayEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-    OnOverlayEnd(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
+    OnExitTrigger(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 }

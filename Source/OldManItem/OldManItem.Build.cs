@@ -13,7 +13,8 @@ public class OldManItem : ModuleRules
             "Core", 
             "CoreUObject", 
             "Engine",
-            "OldManConfig"
+            "OldManConfig",
+            "ProceduralMeshComponent"
         });
 
         //The path for the header files

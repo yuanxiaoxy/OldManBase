@@ -6,10 +6,12 @@
 #include "GameFramework/Actor.h"
 #include "PhoneNumberActor/PhoneNumberActor.h"
 #include "PhoneNumberActor/PhoneNumberFinishActor.h"
+#include "LineGenerate/LineGenerator.h"
 #include "PhoneNumberManager.generated.h"
 
 class APhoneNumberActor;
 class APhoneNumberFinishActor;
+class ULineGenerator;
 
 USTRUCT(BlueprintType)
 struct FPhoneNumberData
@@ -19,8 +21,11 @@ struct FPhoneNumberData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumber")
 	FString TargetSecret;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumber")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PhoneNumber")
 	FString CurSecret;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumber")
+	bool Immediately;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumber")
 	APhoneNumberFinishActor* PhoneNumberTriggerActor;
@@ -28,6 +33,21 @@ struct FPhoneNumberData
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumber")
 	TArray<APhoneNumberActor*> PhoneNumbers;
 
+	// 该组的线段生成器
+	ULineGenerator* LineGenerator;
+
+	// 线段生成的参数
+	UPROPERTY(EditAnywhere, Category = "Line Generation")
+	UStaticMesh* LineStaticMesh;
+
+	UPROPERTY(EditAnywhere, Category = "Line Generation")
+	float LineWidth = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Line Generation")
+	TEnumAsByte<ESplineMeshAxis::Type> LineForwardAxis = ESplineMeshAxis::Z;
+
+	UPROPERTY(EditAnywhere, Category = "Line Generation")
+	UMaterialInstance* LineMaterial;
 };
 
 UCLASS(Blueprintable)
@@ -48,14 +68,37 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumberGroup")
 	TMap<FString, FPhoneNumberData> PhoneNumberGroup;
 
+private:
+	// 存储上一个激活的电话数字（用于按顺序连接）
+	UPROPERTY()
+	TMap<FString, APhoneNumberActor*> LastActivatedPhoneNumber;
+
 public:
 	UFUNCTION(BlueprintCallable)
-	void InitSecretGroupByGroupName();
+	void InitSecretGroupByGroupName(FString groupName);
+
+	UFUNCTION(BlueprintCallable)
+	void ResetSecretGroupByName(FString groupName);
 
 	UFUNCTION(BlueprintCallable)
 	void ResetAllSecretGroup();
 
+	UFUNCTION(BlueprintCallable)
+	void EnablePhoneNumberByGroupName(FString name, int number);
+	
+	//// 清除所有线段
+	//UFUNCTION(BlueprintCallable)
+	//void ClearLinesByGroupName();
+
+	//// 清除所有线段
+	//UFUNCTION(BlueprintCallable)
+	//void ClearAllLines();
+
 private:
 	UFUNCTION()
 	void InitAllSecretGroup();
+
+	//UFUNCTION()
+	//// 生成线段
+	//void GenerateLineBetweenActors(FString GroupName, APhoneNumberActor* FromActor, APhoneNumberActor* ToActor);
 };

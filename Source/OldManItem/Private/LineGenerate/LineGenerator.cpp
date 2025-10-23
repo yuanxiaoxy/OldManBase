@@ -64,12 +64,14 @@ void ULineGenerator::GenerateLine(const FVector& StartPos, const FVector& EndPos
 
     USplineMeshComponent* SplineMesh = SplineComponents[LineIndex];
     SplineMesh->SetStaticMesh(StaticMesh);
+    FVector location = SplineMesh->GetRelativeLocation();
+    UE_LOG(LogTemp, Display, TEXT("%s"), *(location.ToString()));
 
     // 计算方向向量
     FVector StartTangent = (EndPos - StartPos).GetSafeNormal();
     FVector EndTangent = StartTangent;
 
-    SplineMesh->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent);
+    SplineMesh->SetStartAndEnd(StartPos - location, StartTangent, EndPos - location, EndTangent);
 
     // 标记该线段为使用中
     UsedLineIndices.Add(LineIndex);

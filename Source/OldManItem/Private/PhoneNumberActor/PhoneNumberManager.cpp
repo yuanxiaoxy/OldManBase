@@ -43,7 +43,12 @@ void APhoneNumberManager::InitSecretGroupByGroupName(FString groupName)
 
 	if (LastActivatedPhoneNumber.Find(groupName))
 	{
-		LastActivatedPhoneNumber[groupName] = nullptr;
+		LastActivatedPhoneNumber[groupName].LastActivatedPhoneNumber = nullptr;
+		LastActivatedPhoneNumber[groupName].lastIndex = 0;
+	}
+	else
+	{
+		LastActivatedPhoneNumber.Add(groupName, FGenerateLineData());
 	}
 }
 
@@ -53,14 +58,16 @@ void APhoneNumberManager::InitAllSecretGroup()
 	{
 		InitSecretGroupByGroupName(group.Key);
 	}
-
-	LastActivatedPhoneNumber.Empty();
 }
 
 void APhoneNumberManager::ResetSecretGroupByName(FString groupName)
 {
 	if (PhoneNumberGroup.Find(groupName))
 	{
+		PhoneNumberGroup[groupName].LineGenerator->ClearAllLines();
+		LastActivatedPhoneNumber[groupName].LastActivatedPhoneNumber = nullptr;
+		LastActivatedPhoneNumber[groupName].lastIndex = 0;
+
 		PhoneNumberGroup[groupName].CurSecret = "";
 		for (int i = 0; i < PhoneNumberGroup[groupName].PhoneNumbers.Num(); i++)
 		{
@@ -78,11 +85,13 @@ void APhoneNumberManager::ResetAllSecretGroup()
 	}
 }
 
-void APhoneNumberManager::EnablePhoneNumberByGroupName(FString name, int number)
+void APhoneNumberManager::EnablePhoneNumberByGroupName(FString name, int number, APhoneNumberActor* CurActivatedPhoneNumber)
 {
 	if (PhoneNumberGroup.Find(name))
 	{
 		PhoneNumberGroup[name].CurSecret += FString::FromInt(number);
+		GenerateLineBetweenActors(name, LastActivatedPhoneNumber[name], CurActivatedPhoneNumber);
+
 		if (PhoneNumberGroup[name].CurSecret.Equals(PhoneNumberGroup[name].TargetSecret))
 		{
 			PhoneNumberGroup[name].PhoneNumberTriggerActor->BeTriggered(true);
@@ -93,4 +102,32 @@ void APhoneNumberManager::EnablePhoneNumberByGroupName(FString name, int number)
 			ResetSecretGroupByName(name);
 		}
 	}
+}
+
+void APhoneNumberManager::GenerateLineBetweenActors(FString GroupName, FGenerateLineData& lineData, APhoneNumberActor* ToActor)
+{
+	if (!PhoneNumberGroup.Contains(GroupName) || !lineData.LastActivatedPhoneNumber || !ToActor)
+	{
+		lineData.LastActivatedPhoneNumber = ToActor;
+		return;
+	}
+
+	FPhoneNumberData& Group = PhoneNumberGroup[GroupName];
+	if (!Group.LineGenerator)
+	{
+		return;
+	}
+
+	// Éú³ÉÏß¶Î
+	Group.LineGenerator->GenerateLine(
+		lineData.LastActivatedPhoneNumber->GetActorLocation() - GetActorLocation(),
+		ToActor->GetActorLocation() - GetActorLocation(),
+		lineData.lastIndex
+	);
+
+	lineData.LastActivatedPhoneNumber = ToActor;
+	lineData.lastIndex += 1;
+
+	UE_LOG(LogTemp, Warning, TEXT("Generated line between %s and %s in group %s"),
+		*lineData.LastActivatedPhoneNumber->GetName(), *ToActor->GetName(), *GroupName);
 }

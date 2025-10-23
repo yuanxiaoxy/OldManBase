@@ -37,7 +37,7 @@ void APhoneNumberActor::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent,
 		{
 			inEnableState = true;
 
-			phoneNumberManager->EnablePhoneNumberByGroupName(thisGroup, thisNumber);
+			phoneNumberManager->EnablePhoneNumberByGroupName(thisGroup, thisNumber, this);
 		}
 	}
 }

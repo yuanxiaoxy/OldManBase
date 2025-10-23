@@ -50,6 +50,18 @@ struct FPhoneNumberData
 	UMaterialInstance* LineMaterial;
 };
 
+USTRUCT()
+struct FGenerateLineData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int lastIndex;
+
+	UPROPERTY()
+	APhoneNumberActor* LastActivatedPhoneNumber;
+};
+
 UCLASS(Blueprintable)
 class OLDMANITEM_API APhoneNumberManager : public AActor
 {
@@ -63,7 +75,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhoneNumberGroup")
 	TMap<FString, FPhoneNumberData> PhoneNumberGroup;
@@ -71,7 +82,7 @@ public:
 private:
 	// 存储上一个激活的电话数字（用于按顺序连接）
 	UPROPERTY()
-	TMap<FString, APhoneNumberActor*> LastActivatedPhoneNumber;
+	TMap<FString, FGenerateLineData> LastActivatedPhoneNumber;
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -84,7 +95,7 @@ public:
 	void ResetAllSecretGroup();
 
 	UFUNCTION(BlueprintCallable)
-	void EnablePhoneNumberByGroupName(FString name, int number);
+	void EnablePhoneNumberByGroupName(FString name, int number, APhoneNumberActor* curActivatedPhoneNumber);
 	
 	//// 清除所有线段
 	//UFUNCTION(BlueprintCallable)
@@ -98,7 +109,7 @@ private:
 	UFUNCTION()
 	void InitAllSecretGroup();
 
-	//UFUNCTION()
-	//// 生成线段
-	//void GenerateLineBetweenActors(FString GroupName, APhoneNumberActor* FromActor, APhoneNumberActor* ToActor);
+	UFUNCTION()
+	// 生成线段
+	void GenerateLineBetweenActors(FString GroupName, FGenerateLineData& lineData, APhoneNumberActor* ToActor);
 };

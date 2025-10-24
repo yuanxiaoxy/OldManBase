@@ -1,12 +1,12 @@
+// LineGenerator.h
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/SplineMeshComponent.h"
 #include "LineGenerator.generated.h"
 
-// 线段生成器类
 UCLASS(Blueprintable)
-class OLDMANITEM_API  ULineGenerator : public UObject
+class OLDMANITEM_API ULineGenerator : public UObject
 {
     GENERATED_BODY()
 
@@ -21,6 +21,9 @@ public:
 
     // 生成线段
     void GenerateLine(const FVector& StartPos, const FVector& EndPos, int32 LineIndex = 0);
+
+    // 生成线段（自动分配索引）
+    int32 GenerateLineAutoIndex(const FVector& StartPos, const FVector& EndPos);
 
     // 清除所有线段
     void ClearAllLines();
@@ -37,12 +40,22 @@ public:
     // 获取当前使用的线段数量
     int32 GetUsedLineCount() const;
 
+    // 获取可用的线段索引
+    int32 GetAvailableLineIndex() const;
+
+    // 验证组件有效性
+    bool ValidateComponents() const;
+
 private:
-    TArray<USplineMeshComponent*> SplineComponents;
+    // 使用弱指针避免生命周期问题
+    TArray<TWeakObjectPtr<USplineMeshComponent>> SplineComponents;
     UStaticMesh* StaticMesh;
     ESplineMeshAxis::Type ForwardAxis;
     float SplineWidth;
 
     // 跟踪哪些线段正在被使用
     TSet<int32> UsedLineIndices;
+
+    // 组件所有者
+    TWeakObjectPtr<AActor> ComponentOwner;
 };

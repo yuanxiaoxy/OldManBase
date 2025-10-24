@@ -17,4 +17,8 @@ class OLDMANITEM_API AOldManCanBeAttackItemBase : public AOldManItemBase
 public:
 	// Sets default values for this actor's properties
 	AOldManCanBeAttackItemBase();
+
+public:
+	//UFUNCTION(BlueprintCallable)
+	//void 
 };

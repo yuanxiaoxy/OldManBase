@@ -336,7 +336,7 @@ void AOldManPersonPlayerController::ZoomCamera(float Delta)
 		return;
 
 	// 获取当前距离并应用增量
-	float CurrentDistance = CameraComp->CameraDistance;
+	float CurrentDistance = CameraComp->CurCameraDistance;
 	float NewDistance = FMath::Clamp(CurrentDistance + Delta, 100.0f, 1000.0f);
 	CameraComp->SetCameraDistance(NewDistance);
 }

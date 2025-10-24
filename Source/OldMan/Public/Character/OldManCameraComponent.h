@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "OldManCharacterAttributes.h"
 #include "OldManCameraComponent.generated.h"
 
 /**
@@ -23,9 +24,13 @@ protected:
     virtual void BeginPlay() override;
 
 public:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    float CurCameraDistance = 0.0f;
+
+public:
     // ========== 相机初始化 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera);
+    void InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData);
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -56,30 +61,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetFreeLookMode();
 
-    // ========== 属性 ==========
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraDistance = 300.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    FVector CameraOffset = FVector(0.0f, 0.0f, 75.0f);
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraLagSpeed = 10.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraRotationLagSpeed = 10.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraPitchMin = -70.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraPitchMax = 70.0f;
-
-    UPROPERTY(EditAnywhere, Category = "Camera")
-    bool bUseCameraSmoothing = true;
-
-    UPROPERTY(EditAnywhere, Category = "Camera")
-    float CameraRotationInterpSpeed = 10.0f;
+    UFUNCTION(BlueprintCallable, Category = "Camera")
+    void GetActorsInCone(
+        float ConeLength,
+        float ConeAngle,
+        const FName ValidTag,
+        TArray<AActor*>& OutActors,
+        TArray<float>& OutDistances,
+        TArray<float>& OutAngles
+    );
 
 private:
     // 弹簧臂组件引用
@@ -93,6 +83,12 @@ private:
     // 目标角色
     UPROPERTY()
     AActor* TargetActor;
+
+    UPROPERTY()
+    FOldManCameraData MyCameraData;
+
+    UPROPERTY()
+    FOldManDetectionData MyDetectionData;
 
     // 平滑相机旋转变量
     FRotator CurrentCameraRotation;

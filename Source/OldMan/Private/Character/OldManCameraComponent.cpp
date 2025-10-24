@@ -66,17 +66,17 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
         DesiredCameraRotation.Pitch += CurrentLookUpInput * DeltaTime * 60.0f;
 
         // 限制相机俯仰角度
-        DesiredCameraRotation.Pitch = FMath::Clamp(DesiredCameraRotation.Pitch, CameraPitchMin, CameraPitchMax);
+        DesiredCameraRotation.Pitch = FMath::Clamp(DesiredCameraRotation.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
     }
 
     // 平滑插值相机旋转
-    if (bUseCameraSmoothing)
+    if (MyCameraData.bUseCameraSmoothing)
     {
         CurrentCameraRotation = FMath::RInterpTo(
             CurrentCameraRotation,
             DesiredCameraRotation,
             DeltaTime,
-            CameraRotationInterpSpeed
+            MyCameraData.CameraRotationInterpSpeed
         );
     }
     else
@@ -124,17 +124,20 @@ void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
     }
 }
 
-void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera)
+void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
 {
+    MyCameraData = CameraData;
+
     CameraBoom = InCameraBoom;
     FollowCamera = InFollowCamera;
+    CurCameraDistance = MyCameraData.CameraDistance;
 
     if (CameraBoom)
     {
-        CameraBoom->TargetArmLength = CameraDistance;
-        CameraBoom->SocketOffset = CameraOffset;
-        CameraBoom->CameraLagSpeed = CameraLagSpeed;
-        CameraBoom->CameraRotationLagSpeed = CameraRotationLagSpeed;
+        CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
+        CameraBoom->SocketOffset = MyCameraData.CameraOffset;
+        CameraBoom->CameraLagSpeed = MyCameraData.CameraLagSpeed;
+        CameraBoom->CameraRotationLagSpeed = MyCameraData.CameraRotationLagSpeed;
     }
 }
 
@@ -145,19 +148,19 @@ void UOldManCameraComponent::SetCameraTarget(AActor* targetActor)
 
 void UOldManCameraComponent::SetCameraOffset(const FVector& Offset)
 {
-    CameraOffset = Offset;
+    MyCameraData.CameraOffset = Offset;
     if (CameraBoom)
     {
-        CameraBoom->SocketOffset = CameraOffset;
+        CameraBoom->SocketOffset = MyCameraData.CameraOffset;
     }
 }
 
 void UOldManCameraComponent::SetCameraDistance(float Distance)
 {
-    CameraDistance = Distance;
+    CurCameraDistance = Distance;
     if (CameraBoom)
     {
-        CameraBoom->TargetArmLength = CameraDistance;
+        CameraBoom->TargetArmLength = CurCameraDistance;
     }
 }
 
@@ -186,7 +189,7 @@ void UOldManCameraComponent::SetThirdPersonMode()
     CurrentCameraMode = TEXT("ThirdPerson");
     if (CameraBoom && FollowCamera)
     {
-        CameraBoom->TargetArmLength = CameraDistance;
+        CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
         CameraBoom->bUsePawnControlRotation = true;
         CameraBoom->bEnableCameraLag = true;
         CameraBoom->bEnableCameraRotationLag = true;
@@ -212,10 +215,61 @@ void UOldManCameraComponent::SetFreeLookMode()
     CurrentCameraMode = TEXT("FreeLook");
     if (CameraBoom && FollowCamera)
     {
-        CameraBoom->TargetArmLength = CameraDistance;
+        CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
         CameraBoom->bUsePawnControlRotation = true;
         CameraBoom->bEnableCameraLag = true;
         CameraBoom->bEnableCameraRotationLag = true;
         FollowCamera->bUsePawnControlRotation = false;
+    }
+}
+
+UFUNCTION(BlueprintCallable, Category = "Detection")
+void UOldManCameraComponent::GetActorsInCone(
+    float ConeLength,
+    float ConeAngle,
+    const FName ValidTag,
+    TArray<AActor*>& OutActors,
+    TArray<float>& OutDistances,
+    TArray<float>& OutAngles
+)
+{
+    OutActors.Empty();
+    OutDistances.Empty();
+    OutAngles.Empty();
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    FVector Origin = FollowCamera->GetComponentLocation();
+    FVector Direction = FollowCamera->GetForwardVector();
+
+    FVector NormalizedDirection = Direction.GetSafeNormal();
+    float HalfConeAngle = ConeAngle * 0.5f;
+
+    TArray<AActor*> AllActors;
+    UGameplayStatics::GetAllActorsOfClass(World, AActor::StaticClass(), AllActors);
+
+    for (AActor* Actor : AllActors)
+    {
+        if (!Actor) continue;
+
+        // Tags过滤
+        if (Actor->Tags.Find(ValidTag) < 0) continue;
+
+        FVector ToActor = Actor->GetActorLocation() - Origin;
+        float Distance = ToActor.Size();
+
+        if (Distance > ConeLength) continue;
+
+        FVector ToActorNormalized = ToActor.GetSafeNormal();
+        float DotProduct = FVector::DotProduct(NormalizedDirection, ToActorNormalized);
+        float Angle = FMath::Acos(DotProduct) * (180.0f / PI);
+
+        if (Angle <= HalfConeAngle)
+        {
+            OutActors.Add(Actor);
+            OutDistances.Add(Distance);
+            OutAngles.Add(Angle);
+        }
     }
 }

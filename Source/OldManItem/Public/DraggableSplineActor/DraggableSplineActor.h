@@ -49,6 +49,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float SmoothingFactor = 0.8f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    bool IfAdjustRotation = true;
+
     // µ˜ ‘œ‘ æ
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     bool bShowDebugVisualization = true;

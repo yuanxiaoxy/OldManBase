@@ -383,7 +383,7 @@ void AOldManCharacter::InitializeCameraComponent()
 {
     if (CameraComponent && CameraBoom && FollowCamera)
     {
-        CameraComponent->InitializeCameraComponents(CameraBoom, FollowCamera);
+        CameraComponent->InitializeCameraComponents(CameraBoom, FollowCamera, CharacterAttributes->OldManCameraData);
         CameraComponent->SetCameraTarget(this);
     }
 }

@@ -1,10 +1,67 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "OldManCharacterAttributes.generated.h"
+
+USTRUCT(BlueprintType)
+struct FOldManCameraData
+{
+    GENERATED_BODY()
+
+    // ==========  Ù–‘ ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraDistance = 300.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    FVector CameraOffset = FVector(0.0f, 0.0f, 75.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraLagSpeed = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraRotationLagSpeed = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraPitchMin = -70.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraPitchMax = 70.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Camera")
+    bool bUseCameraSmoothing = true;
+
+    UPROPERTY(EditAnywhere, Category = "Camera")
+    float CameraRotationInterpSpeed = 10.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FOldManDetectionData
+{
+    GENERATED_BODY()
+
+    //ºÏ≤‚ Ù–‘
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float DetectionRange = 1000.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float HorizontalFOV = 90.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float VerticalFOV = 60.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    bool bEnableDebugVisualization = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    FColor DebugColor = FColor::Green;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    TArray<FString> ActorTagToDetect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    bool bUseCameraFOV = true;
+};
 
 UCLASS(BlueprintType, Blueprintable)
 class OLDMAN_API UOldManCharacterAttributes : public UDataAsset
@@ -52,13 +109,11 @@ public:
 
     // œ‡ª˙ Ù–‘
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraBoomLength = 300.0f;
+    FOldManCameraData OldManCameraData;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraBoomSocketOffsetZ = 75.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    FRotator CameraRotationRate = FRotator(0.0f, 0.0f, 0.0f);
+    // ∑∂ŒßºÏ≤‚ Ù–‘
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection")
+    FOldManDetectionData OldManDetectionData;
 
     //  Û±Í¡È√Ù∂»
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))

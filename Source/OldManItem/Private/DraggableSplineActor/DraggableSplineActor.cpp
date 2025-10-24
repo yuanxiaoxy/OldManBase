@@ -157,9 +157,6 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
         SmoothedMovementDirection = FMath::Lerp(SmoothedMovementDirection, ViewDirection, SmoothingFactor);
     }
 
-    //往后手感好
-    //SmoothedMovementDirection.Y = -SmoothedMovementDirection.Y;
-
     // 计算归一化移动量
     float MovementDelta = CalculateNormalizedMovement(SmoothedMovementDirection);
 
@@ -310,9 +307,12 @@ void ADraggableSplineActor::SetMeshPositionAndRotation(const FVector& Location, 
     {
         // 将世界坐标转换为相对于Actor的局部坐标
         FVector LocalLocation = GetActorTransform().InverseTransformPosition(Location);
-        FRotator LocalRotation = (GetActorTransform().InverseTransformRotation(Rotation.Quaternion())).Rotator();
-
         MeshComponent->SetRelativeLocation(LocalLocation);
-        MeshComponent->SetRelativeRotation(LocalRotation);
+
+        if (IfAdjustRotation)
+        {
+            FRotator LocalRotation = (GetActorTransform().InverseTransformRotation(Rotation.Quaternion())).Rotator();
+            MeshComponent->SetRelativeRotation(LocalRotation);
+        }
     }
 }

@@ -19,6 +19,11 @@ public:
 	AOldManCanBeAttackItemBase();
 
 public:
-	//UFUNCTION(BlueprintCallable)
-	//void 
+	UFUNCTION(BlueprintImplementableEvent, Category = "OnHItAttack")
+	void BeAttacked();
+
+	// 碰撞开始事件
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse, const FHitResult& Hit);
 };

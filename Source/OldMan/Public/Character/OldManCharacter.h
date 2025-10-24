@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "ItemBase/OldManInterectItemBase.h"
 #include "ItemBase/OldManPullItemBase.h"
+#include "ItemBase/OldManCanBeAttackItemBase.h"
 #include "OldManCharacter.generated.h"
 
 class AOldManPullItemBase;

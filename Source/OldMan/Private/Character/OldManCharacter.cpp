@@ -355,9 +355,29 @@ void AOldManCharacter::DectedActors()
     TArray<float> OutAngles;
     CameraComponent->GetActorsInCone(CharacterAttributes->OldManDetectionData, UGlobalTagName::Tag_DetcedItem, OutActors, OutDistances, OutAngles);
 
+    if (OutActors.Num() != OutDistances.Num() || OutActors.Num() != OutAngles.Num())
+    {
+        return;
+    }
+
+    int actorIndex = 0;
+    float distance = 10000.0f;
+
+    AActor* finalActor = nullptr;
     for (int i = 0; i < OutActors.Num(); i++)
     {
+        if (distance > OutDistances[i])
+        {
+            distance = OutDistances[i];
+            actorIndex = i;
+        }
         UE_LOG(LogTemp, Display, TEXT("%s"), *(OutActors[i]->GetFName().ToString()));
+    }
+
+    //先这样用着， 到后面就是发射子弹就不用这个
+    if (AOldManCanBeAttackItemBase* attackItem = Cast<AOldManCanBeAttackItemBase>(OutActors[actorIndex]))
+    {
+        attackItem->BeAttacked();
     }
 }
 

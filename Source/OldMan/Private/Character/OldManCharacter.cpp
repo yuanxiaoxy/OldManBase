@@ -120,11 +120,6 @@ void AOldManCharacter::SetJumpInput(bool bJumping)
     bHasJumpInput = bJumping;
 }
 
-void AOldManCharacter::SetAttackInput(bool bAttacking)
-{
-    bHasAttackInput = bAttacking;
-}
-
 void AOldManCharacter::SetRunning(bool bRunning)
 {
     bIsRunning = bRunning;
@@ -350,6 +345,19 @@ void AOldManCharacter::SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAni
     if (NewAnimClass)
     {
         GetMesh()->SetAnimInstanceClass(NewAnimClass);
+    }
+}
+
+void AOldManCharacter::DectedActors()
+{
+    TArray<AActor*> OutActors;
+    TArray<float> OutDistances;
+    TArray<float> OutAngles;
+    CameraComponent->GetActorsInCone(CharacterAttributes->OldManDetectionData, UGlobalTagName::Tag_DetcedItem, OutActors, OutDistances, OutAngles);
+
+    for (int i = 0; i < OutActors.Num(); i++)
+    {
+        UE_LOG(LogTemp, Display, TEXT("%s"), *(OutActors[i]->GetFName().ToString()));
     }
 }
 

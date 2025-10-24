@@ -3,3 +3,7 @@
 
 #include "ItemBase/OldManCanBeAttackItemBase.h"
 
+AOldManCanBeAttackItemBase::AOldManCanBeAttackItemBase()
+{
+	Tags.Add(UGlobalTagName::Tag_DetcedItem);
+}

@@ -42,25 +42,23 @@ struct FOldManDetectionData
 
     //检测属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    float DetectionRange = 1000.0f;
+    float ConeLength = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    float HorizontalFOV = 90.0f;
+    float ConeAngle = 80.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    float VerticalFOV = 60.0f;
+    bool DebugMode = false;
 
+    // 在头文件中添加
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    bool bEnableDebugVisualization = true;
+    TArray<TEnumAsByte<ECollisionChannel>> DetectionChannels;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
     FColor DebugColor = FColor::Green;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    TArray<FString> ActorTagToDetect;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
-    bool bUseCameraFOV = true;
+    float DebugDuration = 5.0f;
 };
 
 UCLASS(BlueprintType, Blueprintable)

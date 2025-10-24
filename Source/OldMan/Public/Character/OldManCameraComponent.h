@@ -63,12 +63,23 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void GetActorsInCone(
-        float ConeLength,
-        float ConeAngle,
+        FOldManDetectionData DetectionData,
         const FName ValidTag,
         TArray<AActor*>& OutActors,
         TArray<float>& OutDistances,
         TArray<float>& OutAngles
+    );
+
+
+    UFUNCTION(BlueprintCallable, Category = "Camera")
+    void DrawConeVisualization(
+        UWorld* World,
+        const FVector& Origin,
+        const FVector& Direction,
+        float ConeLength,
+        float ConeAngle,
+        FColor Color,
+        float Duration
     );
 
 private:

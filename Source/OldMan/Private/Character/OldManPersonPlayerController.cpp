@@ -212,15 +212,13 @@ void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& V
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->SetAttackInput(true);
+	CachedOldManCharacter->DectedActors();
 }
 
 void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter)
 		return;
-
-	CachedOldManCharacter->SetAttackInput(false);
 }
 
 void AOldManPersonPlayerController::HandleRightMouseStart(const FInputActionValue& Value)

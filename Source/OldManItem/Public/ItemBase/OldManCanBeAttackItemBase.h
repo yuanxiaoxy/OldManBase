@@ -14,4 +14,7 @@ class OLDMANITEM_API AOldManCanBeAttackItemBase : public AOldManItemBase
 {
 	GENERATED_BODY()
 	
+public:
+	// Sets default values for this actor's properties
+	AOldManCanBeAttackItemBase();
 };

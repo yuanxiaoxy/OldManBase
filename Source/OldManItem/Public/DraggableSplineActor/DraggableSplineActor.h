@@ -52,6 +52,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     bool IfAdjustRotation = true;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    bool IfHasAutoBack = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    float AutoBackRate = 1.0f;
+
     // 调试显示
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     bool bShowDebugVisualization = true;
@@ -81,6 +87,9 @@ protected:
 
     // 平滑移动向量
     FVector SmoothedMovementDirection;
+
+private:
+    bool inAutoBack;
 
 public:
     virtual void StartDragging() override;
@@ -114,6 +123,9 @@ public:
     void ResetEditorPreview();
 
 protected:
+    void StartAutoBack();
+    void StopAutoBack();
+
     // 绘制调试显示
     void DrawDebugVisualization(const FVector& ViewDirection, float ProjectedMovement);
 

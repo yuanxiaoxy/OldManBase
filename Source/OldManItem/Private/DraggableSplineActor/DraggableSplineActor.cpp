@@ -45,6 +45,24 @@ void ADraggableSplineActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    //自动归位计算
+    if (inAutoBack && IfHasAutoBack)
+    {
+        MovementAlpha = 0.0f;
+        // 更新位置
+        CurrentSplinePosition = FMath::Lerp(CurrentSplinePosition, DragStartPos, DeltaTime * AutoBackRate);
+
+        // 计算新位置和旋转
+        TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
+        TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
+
+        if (FMath::IsNearlyEqual(CurrentSplinePosition, DragStartPos, 0.001f))
+        {
+            CurrentSplinePosition = DragStartPos;
+            StopAutoBack();
+        }
+    }
+
     // 平滑移动插值
     if (MovementAlpha < 1.0f)
     {
@@ -122,6 +140,8 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 void ADraggableSplineActor::StartDragging()
 {
+    //取消自动回弹
+    inAutoBack = false;
     bIsBeingDragged = true;
     MovementAlpha = 0.0f;
     SmoothedMovementDirection = FVector::ZeroVector;
@@ -138,7 +158,27 @@ void ADraggableSplineActor::StartDragging()
 
 void ADraggableSplineActor::StopDragging()
 {
-    bIsBeingDragged = false;
+    if (!IfHasAutoBack)
+    {
+        bIsBeingDragged = false;
+        SmoothedMovementDirection = FVector::ZeroVector;
+        SetActorTickEnabled(false);
+    }
+    else
+    {
+        StartAutoBack();
+    }
+}
+
+void ADraggableSplineActor::StartAutoBack()
+{
+    inAutoBack = true;
+}
+
+void ADraggableSplineActor::StopAutoBack()
+{
+    inAutoBack = false;
+    CurrentSplinePosition = DragStartPos;
     SmoothedMovementDirection = FVector::ZeroVector;
     SetActorTickEnabled(false);
 }

@@ -1,4 +1,4 @@
-// DraggableSplineActor.cpp
+ï»¿// DraggableSplineActor.cpp
 #include "DraggableSplineActor/DraggableSplineActor.h"
 #include "Engine/World.h"
 #include "Components/SplineComponent.h"
@@ -22,6 +22,10 @@ ADraggableSplineActor::ADraggableSplineActor()
     MovementAlpha = 1.0f;
     SmoothedMovementDirection = FVector::ZeroVector;
 
+    //è‡ªåŠ¨å›å¼¹æ—¶æ‰€éœ€æ•°å€¼
+    LerpStartPosition = CurrentSplinePosition;
+    AutoBackTimer = 0.0f;
+
     Tags.Add("DragableItem");
 }
 
@@ -31,7 +35,7 @@ void ADraggableSplineActor::BeginPlay()
 
     SetActorTickEnabled(false);
 
-    // ´æ´¢Íø¸ñÌåµÄ³õÊ¼Î»ÖÃºÍĞı×ª
+    // å­˜å‚¨ç½‘æ ¼ä½“çš„åˆå§‹ä½ç½®å’Œæ—‹è½¬
     InitialMeshLocation = MeshComponent->GetRelativeLocation();
     InitialMeshRotation = MeshComponent->GetRelativeRotation();
 
@@ -45,25 +49,41 @@ void ADraggableSplineActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    //×Ô¶¯¹éÎ»¼ÆËã
+    //è‡ªåŠ¨å½’ä½è®¡ç®—
     if (inAutoBack && IfHasAutoBack)
     {
         MovementAlpha = 0.0f;
-        // ¸üĞÂÎ»ÖÃ
-        CurrentSplinePosition = FMath::Lerp(CurrentSplinePosition, DragStartPos, DeltaTime * AutoBackRate);
+        //æ˜¯å¦æ˜¯åŒ€é€Ÿå˜åŒ–
+        if (IfAutoBackUniformSpeed)
+        {
+            AutoBackTimer += DeltaTime / AutoBackRateOrTime;
+            if (AutoBackTimer > 1.0f)
+            {
+                AutoBackTimer = 1.0f;
+            }
+            // æ›´æ–°ä½ç½®
+            CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
+        }
+        else
+        {
+            // æ›´æ–°ä½ç½®
+            CurrentSplinePosition = FMath::Lerp(CurrentSplinePosition, DragStartPos, DeltaTime * AutoBackRateOrTime);
+        }
 
-        // ¼ÆËãĞÂÎ»ÖÃºÍĞı×ª
+        // è®¡ç®—æ–°ä½ç½®å’Œæ—‹è½¬
         TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
         TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
 
-        if (FMath::IsNearlyEqual(CurrentSplinePosition, DragStartPos, 0.001f))
+        if (FMath::IsNearlyEqual(FVector::Dist(MeshComponent->GetComponentLocation(),TargetLocation), DragStartPos, 1.0f))
         {
             CurrentSplinePosition = DragStartPos;
+            SetMeshPositionAndRotation(TargetLocation, TargetRotation);
             StopAutoBack();
+
         }
     }
 
-    // Æ½»¬ÒÆ¶¯²åÖµ
+    // å¹³æ»‘ç§»åŠ¨æ’å€¼
     if (MovementAlpha < 1.0f)
     {
         MovementAlpha = FMath::Min(MovementAlpha + DeltaTime * 8.0f, 1.0f);
@@ -74,10 +94,10 @@ void ADraggableSplineActor::Tick(float DeltaTime)
         SetMeshPositionAndRotation(NewLocation, NewRotation);
     }
 
-    // ³ÖĞø»æÖÆÑùÌõÏßµ÷ÊÔ£¨¼´Ê¹²»ÔÚÍÏ¶¯×´Ì¬£©
+    // æŒç»­ç»˜åˆ¶æ ·æ¡çº¿è°ƒè¯•ï¼ˆå³ä½¿ä¸åœ¨æ‹–åŠ¨çŠ¶æ€ï¼‰
     if (bShowDebugVisualization && SplineComponent)
     {
-        // »æÖÆÑùÌõÏßÂ·¾¶
+        // ç»˜åˆ¶æ ·æ¡çº¿è·¯å¾„
         const int32 NumSegments = 50;
         for (int32 i = 0; i < NumSegments; i++)
         {
@@ -90,18 +110,18 @@ void ADraggableSplineActor::Tick(float DeltaTime)
             DrawDebugLine(GetWorld(), Point1, Point2, FColor::Green, false, -1.0f, 0, 2.0f);
         }
 
-        // »æÖÆµ±Ç°Î»ÖÃ±ê¼Ç
+        // ç»˜åˆ¶å½“å‰ä½ç½®æ ‡è®°
         FVector CurrentPos = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
         DrawDebugSphere(GetWorld(), CurrentPos, 10.0f, 8, FColor::Yellow, false, -1.0f, 0);
 
-        // »æÖÆ±à¼­Æ÷Ô¤ÀÀÎ»ÖÃ±ê¼Ç£¨Èç¹ûÆôÓÃ£©
+        // ç»˜åˆ¶ç¼–è¾‘å™¨é¢„è§ˆä½ç½®æ ‡è®°ï¼ˆå¦‚æœå¯ç”¨ï¼‰
 #if WITH_EDITOR
         if (bEnableEditorPreview && !GetWorld()->IsGameWorld())
         {
             FVector PreviewPos = SplineComponent->GetLocationAtTime(EditorPreviewPosition, ESplineCoordinateSpace::World);
             DrawDebugSphere(GetWorld(), PreviewPos, 15.0f, 12, FColor::Cyan, false, -1.0f, 0);
             DrawDebugString(GetWorld(), PreviewPos + FVector(0, 0, 40),
-                *FString::Printf(TEXT("Ô¤ÀÀÎ»ÖÃ: %.2f"), EditorPreviewPosition),
+                *FString::Printf(TEXT("é¢„è§ˆä½ç½®: %.2f"), EditorPreviewPosition),
                 nullptr, FColor::Cyan, 0.0f, true);
         }
 #endif
@@ -115,13 +135,13 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
     FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-    // µ±±à¼­Æ÷Ô¤ÀÀÎ»ÖÃ¸Ä±äÊ±£¬Á¢¼´¸üĞÂ
+    // å½“ç¼–è¾‘å™¨é¢„è§ˆä½ç½®æ”¹å˜æ—¶ï¼Œç«‹å³æ›´æ–°
     if (PropertyName == GET_MEMBER_NAME_CHECKED(ADraggableSplineActor, EditorPreviewPosition))
     {
         UpdatePreviewPosition();
     }
 
-    // µ±ÆôÓÃ/½ûÓÃÔ¤ÀÀÊ±£¬ÖØÖÃÎ»ÖÃ
+    // å½“å¯ç”¨/ç¦ç”¨é¢„è§ˆæ—¶ï¼Œé‡ç½®ä½ç½®
     if (PropertyName == GET_MEMBER_NAME_CHECKED(ADraggableSplineActor, bEnableEditorPreview))
     {
         if (bEnableEditorPreview)
@@ -130,7 +150,7 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
         }
         else
         {
-            // »Ö¸´Ô­Ê¼Î»ÖÃ - ÖØÖÃÍø¸ñÌåÎ»ÖÃ
+            // æ¢å¤åŸå§‹ä½ç½® - é‡ç½®ç½‘æ ¼ä½“ä½ç½®
             MeshComponent->SetRelativeLocation(InitialMeshLocation);
             MeshComponent->SetRelativeRotation(InitialMeshRotation);
         }
@@ -140,14 +160,14 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 void ADraggableSplineActor::StartDragging()
 {
-    //È¡Ïû×Ô¶¯»Øµ¯
+    //å–æ¶ˆè‡ªåŠ¨å›å¼¹
     inAutoBack = false;
     bIsBeingDragged = true;
     MovementAlpha = 0.0f;
     SmoothedMovementDirection = FVector::ZeroVector;
     SetActorTickEnabled(true);
 
-    // Èç¹ûÆôÓÃÁË±à¼­Æ÷Ô¤ÀÀ£¬ÔİÊ±½ûÓÃËü
+    // å¦‚æœå¯ç”¨äº†ç¼–è¾‘å™¨é¢„è§ˆï¼Œæš‚æ—¶ç¦ç”¨å®ƒ
 #if WITH_EDITOR
     if (bEnableEditorPreview)
     {
@@ -172,11 +192,19 @@ void ADraggableSplineActor::StopDragging()
 
 void ADraggableSplineActor::StartAutoBack()
 {
+    //è‡ªåŠ¨å›å¼¹ç›¸å…³
+    LerpStartPosition = CurrentSplinePosition;
+    AutoBackTimer = 0.0f;
+
     inAutoBack = true;
 }
 
 void ADraggableSplineActor::StopAutoBack()
 {
+    //è‡ªåŠ¨å›å¼¹ç›¸å…³
+    LerpStartPosition = CurrentSplinePosition;
+    AutoBackTimer = 0.0f;
+
     inAutoBack = false;
     CurrentSplinePosition = DragStartPos;
     SmoothedMovementDirection = FVector::ZeroVector;
@@ -187,7 +215,7 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
 {
     if (!SplineComponent || !bIsBeingDragged) return;
 
-    // Æ½»¬ÒÆ¶¯·½Ïò
+    // å¹³æ»‘ç§»åŠ¨æ–¹å‘
     if (SmoothedMovementDirection.IsNearlyZero())
     {
         SmoothedMovementDirection = ViewDirection;
@@ -197,22 +225,22 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
         SmoothedMovementDirection = FMath::Lerp(SmoothedMovementDirection, ViewDirection, SmoothingFactor);
     }
 
-    // ¼ÆËã¹éÒ»»¯ÒÆ¶¯Á¿
+    // è®¡ç®—å½’ä¸€åŒ–ç§»åŠ¨é‡
     float MovementDelta = CalculateNormalizedMovement(SmoothedMovementDirection);
 
-    // Èç¹ûÒÆ¶¯Á¿ºÜĞ¡£¬ºöÂÔ
+    // å¦‚æœç§»åŠ¨é‡å¾ˆå°ï¼Œå¿½ç•¥
     if (FMath::Abs(MovementDelta) < 0.001f) return;
 
-    // ¸üĞÂÎ»ÖÃ
+    // æ›´æ–°ä½ç½®
     CurrentSplinePosition = FMath::Clamp(CurrentSplinePosition + MovementDelta, 0.0f, 1.0f);
 
-    // ¼ÆËãĞÂÎ»ÖÃºÍĞı×ª
+    // è®¡ç®—æ–°ä½ç½®å’Œæ—‹è½¬
     TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
     TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
 
     MovementAlpha = 0.0f;
 
-    // »æÖÆµ÷ÊÔ¿ÉÊÓ»¯
+    // ç»˜åˆ¶è°ƒè¯•å¯è§†åŒ–
     if (bShowDebugVisualization)
     {
         FVector SplineTangent = GetCurrentTangent();
@@ -233,7 +261,7 @@ FVector ADraggableSplineActor::GetCurrentTangent() const
 void ADraggableSplineActor::SetStartPosition()
 {
     CurrentSplinePosition = DragStartPos;
-    // ¼ÆËã³õÊ¼Î»ÖÃºÍĞı×ª
+    // è®¡ç®—åˆå§‹ä½ç½®å’Œæ—‹è½¬
     TargetLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     TargetRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     SetMeshPositionAndRotation(TargetLocation, TargetRotation);
@@ -243,22 +271,22 @@ float ADraggableSplineActor::CalculateNormalizedMovement(const FVector& ViewDire
 {
     if (!SplineComponent) return 0.0f;
 
-    // »ñÈ¡ÑùÌõÏßÔÚµ±Ç°µãµÄÇĞÏß·½Ïò
+    // è·å–æ ·æ¡çº¿åœ¨å½“å‰ç‚¹çš„åˆ‡çº¿æ–¹å‘
     FVector SplineTangent = GetCurrentTangent();
 
-    // ½«ÊÓ½ÇÒÆ¶¯·½ÏòÍ¶Ó°µ½ÑùÌõÏßÇĞÏßÉÏ
+    // å°†è§†è§’ç§»åŠ¨æ–¹å‘æŠ•å½±åˆ°æ ·æ¡çº¿åˆ‡çº¿ä¸Š
     float ProjectedMovement = FVector::DotProduct(ViewDirection, SplineTangent);
 
-    // Ó¦ÓÃËÀÇø - Ğ¡·ù¶ÈÒÆ¶¯²»ÏìÓ¦
+    // åº”ç”¨æ­»åŒº - å°å¹…åº¦ç§»åŠ¨ä¸å“åº”
     if (FMath::Abs(ProjectedMovement) < DeadZone)
     {
         return 0.0f;
     }
 
-    // Ó¦ÓÃÁéÃô¶È
+    // åº”ç”¨çµæ•åº¦
     float ScaledMovement = ProjectedMovement * DragSensitivity;
 
-    // ÏŞÖÆ×î´óËÙ¶È
+    // é™åˆ¶æœ€å¤§é€Ÿåº¦
     float ClampedMovement = FMath::Clamp(ScaledMovement, -MaxDragSpeed, MaxDragSpeed);
 
     return ClampedMovement;
@@ -269,21 +297,21 @@ void ADraggableSplineActor::DrawDebugVisualization(const FVector& ViewDirection,
     FVector CurrentLocation = MeshComponent->GetComponentLocation();
     FVector SplineTangent = GetCurrentTangent();
 
-    // 1. »æÖÆÑùÌõÏßÇĞÏß·½Ïò£¨ÂÌÉ«£©
+    // 1. ç»˜åˆ¶æ ·æ¡çº¿åˆ‡çº¿æ–¹å‘ï¼ˆç»¿è‰²ï¼‰
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + SplineTangent * DebugLineLength, DebugArrowSize, FColor::Green, false, 0.1f, 0, 3.0f);
 
-    // 2. »æÖÆÊÓ½ÇÒÆ¶¯·½Ïò£¨À¶É«£©
+    // 2. ç»˜åˆ¶è§†è§’ç§»åŠ¨æ–¹å‘ï¼ˆè“è‰²ï¼‰
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + ViewDirection * DebugLineLength, DebugArrowSize, FColor::Blue, false, 0.1f, 0, 3.0f);
 
-    // 3. »æÖÆÍ¶Ó°½á¹û£¨ºìÉ«£©
+    // 3. ç»˜åˆ¶æŠ•å½±ç»“æœï¼ˆçº¢è‰²ï¼‰
     FVector ProjectedVector = SplineTangent * ProjectedMovement * DebugLineLength;
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + ProjectedVector, DebugArrowSize, FColor::Red, false, 0.1f, 0, 4.0f);
 }
 
-// ±à¼­Æ÷Ô¤ÀÀº¯ÊıÊµÏÖ
+// ç¼–è¾‘å™¨é¢„è§ˆå‡½æ•°å®ç°
 void ADraggableSplineActor::UpdateEditorPreview()
 {
 #if WITH_EDITOR
@@ -306,7 +334,7 @@ void ADraggableSplineActor::ToggleEditorPreview()
         }
         else
         {
-            // ÖØÖÃÍø¸ñÌåÎ»ÖÃ
+            // é‡ç½®ç½‘æ ¼ä½“ä½ç½®
             MeshComponent->SetRelativeLocation(InitialMeshLocation);
             MeshComponent->SetRelativeRotation(InitialMeshRotation);
         }
@@ -335,7 +363,7 @@ void ADraggableSplineActor::UpdatePreviewPosition()
 
         SetMeshPositionAndRotation(NewLocation, NewRotation);
 
-        // ÔÚ±à¼­Æ÷ÖĞ±ê¼ÇÎªĞèÒªÖØ»æ
+        // åœ¨ç¼–è¾‘å™¨ä¸­æ ‡è®°ä¸ºéœ€è¦é‡ç»˜
         MarkComponentsRenderStateDirty();
     }
 #endif
@@ -345,7 +373,7 @@ void ADraggableSplineActor::SetMeshPositionAndRotation(const FVector& Location, 
 {
     if (MeshComponent)
     {
-        // ½«ÊÀ½ç×ø±ê×ª»»ÎªÏà¶ÔÓÚActorµÄ¾Ö²¿×ø±ê
+        // å°†ä¸–ç•Œåæ ‡è½¬æ¢ä¸ºç›¸å¯¹äºActorçš„å±€éƒ¨åæ ‡
         FVector LocalLocation = GetActorTransform().InverseTransformPosition(Location);
         MeshComponent->SetRelativeLocation(LocalLocation);
 

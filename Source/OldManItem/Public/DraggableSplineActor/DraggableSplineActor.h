@@ -1,4 +1,4 @@
-// DraggableSplineActor.h
+ï»¿// DraggableSplineActor.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -31,8 +31,10 @@ protected:
 
     UPROPERTY(BlueprintReadWrite, Category = "Drag")
     float CurrentSplinePosition;
+    //è‡ªåŠ¨å›å¼¹æ—¶ç”¨äºæ’å€¼è®¡ç®—çš„startå€¼
+    float LerpStartPosition;
 
-    // ÍÏ¶¯²ÎÊı
+    // æ‹–åŠ¨å‚æ•°
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float DragStartPos = 0.0f;
 
@@ -45,7 +47,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float DeadZone = 0.05f;
 
-    // Æ½»¬²ÎÊı
+    // å¹³æ»‘å‚æ•°
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float SmoothingFactor = 0.8f;
 
@@ -54,11 +56,16 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     bool IfHasAutoBack = true;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    //è‡ªåŠ¨å›å¼¹æ—¶æ˜¯å¦æ˜¯åŒ€é€Ÿ
+    bool IfAutoBackUniformSpeed = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    float AutoBackRate = 1.0f;
+    //æ›´æ”¹å˜é‡å ä¸æ˜¯åŒ€é€Ÿæ—¶ä¸ºé€Ÿç‡ åŒ€é€Ÿæ—¶ä¸ºæ—¶é—´
+    float AutoBackRateOrTime = 1.0f;
 
-    // µ÷ÊÔÏÔÊ¾
+    // è°ƒè¯•æ˜¾ç¤º
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     bool bShowDebugVisualization = true;
 
@@ -68,7 +75,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
     float DebugArrowSize = 50.0f;
 
-    // ±à¼­Æ÷Ô¤ÀÀ¹¦ÄÜ
+    // ç¼–è¾‘å™¨é¢„è§ˆåŠŸèƒ½
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor Preview",
         meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
     float EditorPreviewPosition = 0.0f;
@@ -76,17 +83,20 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor Preview")
     bool bEnableEditorPreview = false;
 
-    // ´æ´¢³õÊ¼Î»ÖÃºÍĞı×ª£¨ÓÃÓÚÖØÖÃ£©
+    // å­˜å‚¨åˆå§‹ä½ç½®å’Œæ—‹è½¬ï¼ˆç”¨äºé‡ç½®ï¼‰
     FVector InitialMeshLocation;
     FRotator InitialMeshRotation;
 
-    // Æ½»¬ÒÆ¶¯²åÖµ
+    // å¹³æ»‘ç§»åŠ¨æ’å€¼
     FVector TargetLocation;
     FRotator TargetRotation;
     float MovementAlpha;
 
-    // Æ½»¬ÒÆ¶¯ÏòÁ¿
+    // å¹³æ»‘ç§»åŠ¨å‘é‡
     FVector SmoothedMovementDirection;
+
+    //ç”¨äºè‡ªåŠ¨å›å¼¹æ—¶è®¡æ—¶
+    float AutoBackTimer;
 
 private:
     bool inAutoBack;
@@ -105,14 +115,14 @@ public:
     UFUNCTION(BlueprintCallable)
     void SetStartPosition();
 
-    // µ÷ÊÔÏÔÊ¾º¯Êı
+    // è°ƒè¯•æ˜¾ç¤ºå‡½æ•°
     UFUNCTION(BlueprintCallable)
     void SetDebugVisualization(bool bEnable) { bShowDebugVisualization = bEnable; }
 
     UFUNCTION(BlueprintCallable)
     void ToggleDebugVisualization() { bShowDebugVisualization = !bShowDebugVisualization; }
 
-    // ±à¼­Æ÷Ô¤ÀÀº¯Êı
+    // ç¼–è¾‘å™¨é¢„è§ˆå‡½æ•°
     UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor Preview")
     void UpdateEditorPreview();
 
@@ -126,15 +136,15 @@ protected:
     void StartAutoBack();
     void StopAutoBack();
 
-    // »æÖÆµ÷ÊÔÏÔÊ¾
+    // ç»˜åˆ¶è°ƒè¯•æ˜¾ç¤º
     void DrawDebugVisualization(const FVector& ViewDirection, float ProjectedMovement);
 
-    // ±à¼­Æ÷Ô¤ÀÀ¸üĞÂ
+    // ç¼–è¾‘å™¨é¢„è§ˆæ›´æ–°
     void UpdatePreviewPosition();
 
-    // ÉèÖÃÍø¸ñÎ»ÖÃºÍĞı×ª
+    // è®¾ç½®ç½‘æ ¼ä½ç½®å’Œæ—‹è½¬
     void SetMeshPositionAndRotation(const FVector& Location, const FRotator& Rotation);
 
-    // ¼ÆËã¹éÒ»»¯ÒÆ¶¯Á¿
+    // è®¡ç®—å½’ä¸€åŒ–ç§»åŠ¨é‡
     float CalculateNormalizedMovement(const FVector& ViewDirection);
 };

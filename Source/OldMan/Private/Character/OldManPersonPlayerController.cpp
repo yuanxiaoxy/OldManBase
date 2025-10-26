@@ -212,15 +212,13 @@ void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& V
 	if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
 		return;
 
-	CachedOldManCharacter->SetAttackInput(true);
+	CachedOldManCharacter->DectedActors();
 }
 
 void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Value)
 {
 	if (!bInputEnabled || !CachedOldManCharacter)
 		return;
-
-	CachedOldManCharacter->SetAttackInput(false);
 }
 
 void AOldManPersonPlayerController::HandleRightMouseStart(const FInputActionValue& Value)
@@ -336,7 +334,7 @@ void AOldManPersonPlayerController::ZoomCamera(float Delta)
 		return;
 
 	// 获取当前距离并应用增量
-	float CurrentDistance = CameraComp->CameraDistance;
+	float CurrentDistance = CameraComp->CurCameraDistance;
 	float NewDistance = FMath::Clamp(CurrentDistance + Delta, 100.0f, 1000.0f);
 	CameraComp->SetCameraDistance(NewDistance);
 }

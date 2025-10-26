@@ -1,10 +1,65 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "OldManCharacterAttributes.generated.h"
+
+USTRUCT(BlueprintType)
+struct FOldManCameraData
+{
+    GENERATED_BODY()
+
+    // ========== 属性 ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraDistance = 300.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    FVector CameraOffset = FVector(0.0f, 0.0f, 75.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraLagSpeed = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraRotationLagSpeed = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraPitchMin = -70.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraPitchMax = 70.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Camera")
+    bool bUseCameraSmoothing = true;
+
+    UPROPERTY(EditAnywhere, Category = "Camera")
+    float CameraRotationInterpSpeed = 10.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FOldManDetectionData
+{
+    GENERATED_BODY()
+
+    //检测属性
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float ConeLength = 500.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float ConeAngle = 80.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    bool DebugMode = false;
+
+    // 在头文件中添加
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    TArray<TEnumAsByte<ECollisionChannel>> DetectionChannels;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    FColor DebugColor = FColor::Green;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection Settings")
+    float DebugDuration = 5.0f;
+};
 
 UCLASS(BlueprintType, Blueprintable)
 class OLDMAN_API UOldManCharacterAttributes : public UDataAsset
@@ -52,13 +107,11 @@ public:
 
     // 相机属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraBoomLength = 300.0f;
+    FOldManCameraData OldManCameraData;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    float CameraBoomSocketOffsetZ = 75.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-    FRotator CameraRotationRate = FRotator(0.0f, 0.0f, 0.0f);
+    // 范围检测属性
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection")
+    FOldManDetectionData OldManDetectionData;
 
     // 鼠标灵敏度
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))

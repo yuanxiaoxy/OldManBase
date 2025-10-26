@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "ItemBase/OldManInterectItemBase.h"
 #include "ItemBase/OldManPullItemBase.h"
+#include "ItemBase/OldManCanBeAttackItemBase.h"
 #include "OldManCharacter.generated.h"
 
 class AOldManPullItemBase;
@@ -84,9 +85,6 @@ public:
     void SetJumpInput(bool bJumping);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void SetAttackInput(bool bAttacking);
-
-    UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetRunning(bool bRunning);
 
     // ========== 相机控制 ==========
@@ -156,6 +154,10 @@ public:
     // ========== 角色设置 ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
+
+    // ========== 物体检测 ==========
+    UFUNCTION(BlueprintCallable, Category = "Detected")
+    void DectedActors();
 
     // ========== 战斗系统 ==========
     UFUNCTION(BlueprintCallable, Category = "Combat")

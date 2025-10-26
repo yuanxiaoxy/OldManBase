@@ -4,7 +4,6 @@
 #include "PhoneNumberActor/PhoneNumberActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
-#include "GlobalTagName.h"
 #include "PhoneNumberActor/PhoneNumberManager.h"
 
 APhoneNumberActor::APhoneNumberActor()

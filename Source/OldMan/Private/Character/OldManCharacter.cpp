@@ -353,7 +353,7 @@ void AOldManCharacter::DectedActors()
     TArray<AActor*> OutActors;
     TArray<float> OutDistances;
     TArray<float> OutAngles;
-    CameraComponent->GetActorsInCone(CharacterAttributes->OldManDetectionData, UGlobalTagName::Tag_DetcedItem, OutActors, OutDistances, OutAngles);
+    CameraComponent->GetActorsInCone(CharacterAttributes->OldManDetectionData, UGlobalTagName::Tag_BeDetcedItem, OutActors, OutDistances, OutAngles);
 
     if (OutActors.Num() < 1 || OutActors.Num() != OutDistances.Num() || OutActors.Num() != OutAngles.Num())
     {

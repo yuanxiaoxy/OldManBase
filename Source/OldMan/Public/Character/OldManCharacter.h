@@ -5,6 +5,7 @@
 #include "OldManCharacterAttributes.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/OldManCameraComponent.h"
+#include "Character/OldManMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "ItemBase/OldManInterectItemBase.h"
@@ -22,7 +23,7 @@ class OLDMAN_API AOldManCharacter : public AXyCharacterBase, public IStateMachin
     GENERATED_BODY()
 
 public:
-    AOldManCharacter();
+    AOldManCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
     virtual void BeginPlay() override;
@@ -48,6 +49,10 @@ public:
     // 用于互动的碰撞组件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class UBoxComponent* InteractionBox;
+
+    //角色移动组件
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class UOldManMovementComponent* OldManMovementComponent;
 
     // ========== 相机组件 ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")

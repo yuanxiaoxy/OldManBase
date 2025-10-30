@@ -57,6 +57,7 @@ class XYFRAME_API AXyCharacterBase : public ACharacter
 
 public:
     AXyCharacterBase();
+    AXyCharacterBase(const FObjectInitializer& ObjectInitializer);
 
 protected:
     virtual void BeginPlay() override;

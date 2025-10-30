@@ -14,9 +14,13 @@
 #include "Components/BoxComponent.h"
 #include "GlobalTagName.h"
 
-AOldManCharacter::AOldManCharacter()
+AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
+    : Super(ObjectInitializer.SetDefaultSubobjectClass<UOldManMovementComponent>(AOldManCharacter::CharacterMovementComponentName))
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    //创建移动组件
+    OldManMovementComponent = Cast<UOldManMovementComponent>(Super::GetMovementComponent());
 
     // 创建碰撞组件
     InteractionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractionBox"));

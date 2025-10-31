@@ -27,6 +27,9 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     InteractionBox->SetupAttachment(RootComponent);
     InteractionBox->SetCollisionProfileName(TEXT("Player"));
 
+    bulletFirePos = CreateDefaultSubobject<USceneComponent>(TEXT("bulletFirePosition"));
+    bulletFirePos->SetupAttachment(GetMesh());
+
     // 创建弹簧臂组件
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
@@ -378,11 +381,15 @@ void AOldManCharacter::DectedActors()
         UE_LOG(LogTemp, Display, TEXT("%s"), *(OutActors[i]->GetFName().ToString()));
     }
 
-    //先这样用着， 到后面就是发射子弹就不用这个
-    if (AOldManCanBeAttackItemBase* attackItem = Cast<AOldManCanBeAttackItemBase>(OutActors[actorIndex]))
+    curAimAttackItem = Cast<AOldManCanBeAttackItemBase>(OutActors[actorIndex]);
+    if (curAimAttackItem)
     {
-        attackItem->BeAttacked();
+        if (!firstKindBullet) return;
+
+        FireBullet();
     }
+
+    curAimAttackItem = nullptr;
 }
 
 void AOldManCharacter::InitializeParam()
@@ -422,6 +429,23 @@ void AOldManCharacter::InitializeCameraComponent()
 #pragma endregion
 
 #pragma region Item Fun
+void AOldManCharacter::FireBullet()
+{
+    // 生成子弹
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+    SpawnParams.Instigator = GetInstigator();
+
+    AOldManBulletBase* Bullet = GetWorld()->SpawnActor<AOldManBulletBase>(firstKindBullet,
+        bulletFirePos->GetComponentLocation(), bulletFirePos->GetComponentRotation(), SpawnParams);
+
+    if (Bullet)
+    {
+        FVector bulletDir = curAimAttackItem->GetActorLocation() - bulletFirePos->GetComponentLocation();
+        Bullet->InitializeBullet(bulletDir.GetSafeNormal(), curAimAttackItem);
+    }
+}
+
 void AOldManCharacter::SetPullItemState(bool bPulling)
 {
     bInCanPullState = bPulling;

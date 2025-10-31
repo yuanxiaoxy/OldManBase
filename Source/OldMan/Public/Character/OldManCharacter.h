@@ -11,10 +11,12 @@
 #include "ItemBase/OldManInterectItemBase.h"
 #include "ItemBase/OldManPullItemBase.h"
 #include "ItemBase/OldManCanBeAttackItemBase.h"
+#include "ItemBase/OldManBulletBase.h"
 #include "OldManCharacter.generated.h"
 
 class AOldManPullItemBase;
 class AOldManInterectItemBase;
+class AOldManBulletBase;
 class AOldManPersonPlayerController;
 
 UCLASS()
@@ -207,6 +209,22 @@ private:
 #pragma endregion
 
 #pragma region Item Param
+//Bullet
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet")
+    USceneComponent* bulletFirePos;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet")
+    TSubclassOf<AOldManBulletBase> firstKindBullet;
+
+private:
+    UPROPERTY()
+    AOldManCanBeAttackItemBase* curAimAttackItem;
+
+public:
+    UFUNCTION(BlueprintCallable)
+    void FireBullet();
+
     // PullItem
 public:
     // Õœ∂Ø¡È√Ù∂»

@@ -9,7 +9,7 @@ AOldManCanBeAttackItemBase::AOldManCanBeAttackItemBase()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(RootComponent);
-	MeshComponent->SetCollisionProfileName(TEXT("CanBeAttackItem"));
+	MeshComponent->SetCollisionProfileName(TEXT("BeAttackItem"));
 
 	MeshComponent->OnComponentHit.AddDynamic(this, &AOldManCanBeAttackItemBase::OnHit);
 

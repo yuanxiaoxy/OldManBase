@@ -28,7 +28,7 @@ if "%UPROJECT_FILE%"=="" (
 echo Found project file: %UPROJECT_FILE%
 
 :: 查找 UE4/UE5 引擎路径
-set "ENGINE_PATH=D:\UE\UE5\UE_5.4\"
+set "ENGINE_PATH=E:\EPIC\UE\UE_5.4\"
 
 :: 方法1: 检查注册表 (UE4)
 for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\EpicGames\Unreal Engine" /v "INSTALLDIR" 2^>nul') do set "ENGINE_PATH=%%b"

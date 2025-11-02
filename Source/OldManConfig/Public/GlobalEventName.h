@@ -13,4 +13,6 @@ class OLDMANCONFIG_API UGlobalEventName : public UObject
 
 public:
 	static const FName Key_Player_OnDeath;
+
+	static const FName Key_Player_OnChangeGrivity;
 };

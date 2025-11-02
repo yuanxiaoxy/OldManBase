@@ -3,12 +3,11 @@
 #include "Character/States/OldManIdleState.h"
 #include "Character/States/OldManWalkingState.h"
 #include "Character/States/OldManRunningState.h"
-#include "Character/States/OldManDeadState.h"
 #include "Character/States/OldManFallingState.h"
 
 void UOldManAttackingState::Enter()
 {
-    UE_LOG(LogTemp, Log, TEXT("Entering Attacking State"));
+    Super::Enter();
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -28,44 +27,46 @@ void UOldManAttackingState::Enter()
 
 void UOldManAttackingState::Exit()
 {
-    UE_LOG(LogTemp, Log, TEXT("Exiting Attacking State"));
+    Super::Exit();
 }
 
 void UOldManAttackingState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
-    CheckStateTransitions();
 }
 
-void UOldManAttackingState::CheckStateTransitions()
+void UOldManAttackingState::SetupTransitionRules()
 {
-    if (CheckDeathCondition())
-    {
-        CheckTransition(UOldManDeadState::StaticClass());
-        return;
-    }
+    Super::SetupTransitionRules();
 
-    // 攻击动画结束后根据移动状态转换
-    float CurrentTime = GetWorld()->GetTimeSeconds();
-    if (CurrentTime - AttackStartTime >= AttackDuration)
-    {
-        if (CheckFallingCondition())
-        {
-            CheckTransition(UOldManFallingState::StaticClass());
-        }
-        else if (!HasMovementInput())
-        {
-            CheckTransition(UOldManIdleState::StaticClass());
-        }
-        else if (IsRunning())
-        {
-            CheckTransition(UOldManRunningState::StaticClass());
-        }
-        else
-        {
-            CheckTransition(UOldManWalkingState::StaticClass());
-        }
-    }
+    // 攻击动画结束后的转换规则
+    ADD_LAMBDA_TRANSITION(UOldManFallingState,
+        [this]() {
+            float CurrentTime = GetWorld()->GetTimeSeconds();
+            return CheckFallingCondition() && (CurrentTime - AttackStartTime >= AttackDuration);
+        },
+        "AttackEndFalling");
+
+    ADD_LAMBDA_TRANSITION(UOldManIdleState,
+        [this]() {
+            float CurrentTime = GetWorld()->GetTimeSeconds();
+            return !HasMovementInput() && (CurrentTime - AttackStartTime >= AttackDuration);
+        },
+        "AttackEndIdle");
+
+    ADD_LAMBDA_TRANSITION(UOldManRunningState,
+        [this]() {
+            float CurrentTime = GetWorld()->GetTimeSeconds();
+            return IsRunning() && (CurrentTime - AttackStartTime >= AttackDuration);
+        },
+        "AttackEndRunning");
+
+    ADD_LAMBDA_TRANSITION(UOldManWalkingState,
+        [this]() {
+            float CurrentTime = GetWorld()->GetTimeSeconds();
+            return HasMovementInput() && !IsRunning() && (CurrentTime - AttackStartTime >= AttackDuration);
+        },
+        "AttackEndWalking");
 }
 
 void UOldManAttackingState::PerformAttack(AOldManCharacter* Character)

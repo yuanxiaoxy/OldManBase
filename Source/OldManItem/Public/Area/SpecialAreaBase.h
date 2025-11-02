@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "EventManager/MyEventManager.h"
+#include "GlobalTagName.h"
+#include "GlobalEventName.h"
 #include "SpecialAreaBase.generated.h"
 
 UCLASS()

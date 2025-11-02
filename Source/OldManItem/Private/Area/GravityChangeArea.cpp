@@ -3,3 +3,17 @@
 
 #include "Area/GravityChangeArea.h"
 
+void AGravityChangeArea::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) > -1)
+	{
+		OnEnterTrigger(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+
+		UMyEventManager::GetInstance()->TriggerCppEvent(UGlobalEventName::Key_Player_OnChangeGrivity, GetInOrOutCustomGravityArea);
+	}
+}
+
+void AGravityChangeArea::OnOverlayEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+
+}

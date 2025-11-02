@@ -13,6 +13,7 @@
 #include "Components/InputComponent.h"
 #include "Components/BoxComponent.h"
 #include "GlobalTagName.h"
+#include "GlobalEventName.h"
 
 AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UOldManMovementComponent>(AOldManCharacter::CharacterMovementComponentName))
@@ -130,6 +131,11 @@ void AOldManCharacter::SetJumpInput(bool bJumping)
 void AOldManCharacter::SetRunning(bool bRunning)
 {
     bIsRunning = bRunning;
+}
+
+void AOldManCharacter::ChangeSlopeState(bool slopeState)
+{
+    bIsOnSlope = slopeState;
 }
 
 FVector AOldManCharacter::GetMovementDirectionFromCamera() const
@@ -425,6 +431,11 @@ void AOldManCharacter::InitializeCameraComponent()
         CameraComponent->InitializeCameraComponents(CameraBoom, FollowCamera, CharacterAttributes->OldManCameraData);
         CameraComponent->SetCameraTarget(this);
     }
+}
+
+void AOldManCharacter::InitializeEvent()
+{
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool>(UGlobalEventName::Key_Player_OnChangeGrivity, this, &AOldManCharacter::ChangeSlopeState);
 }
 #pragma endregion
 

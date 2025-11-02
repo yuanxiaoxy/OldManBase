@@ -94,6 +94,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetRunning(bool bRunning);
 
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void ChangeSlopeState(bool slopeState);
+
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetCameraDistance(float Distance);
@@ -190,6 +193,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     float LastAttackTime;
 
+    UPROPERTY(BlueprintReadWrite, Category = "State")
+    bool bIsOnSlope;
+
     // ========== 旋转控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
@@ -206,6 +212,7 @@ private:
     void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
+    void InitializeEvent();
 #pragma endregion
 
 #pragma region Item Param

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ItemBase/OldManBulletBase.h"
@@ -18,7 +18,7 @@ AOldManBulletBase::AOldManBulletBase()
 
 	MeshComponent->OnComponentHit.AddDynamic(this, &AOldManBulletBase::OnHit);
 
-	// ´´½¨Å×ÉäÎïÒÆ¶¯×é¼ş
+	// åˆ›å»ºæŠ›å°„ç‰©ç§»åŠ¨ç»„ä»¶
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	ProjectileMovement->UpdatedComponent = MeshComponent;
 	ProjectileMovement->InitialSpeed = bulletBaseParam.InitialSpeed;
@@ -33,11 +33,11 @@ AOldManBulletBase::AOldManBulletBase()
 void AOldManBulletBase::BeginPlay()
 {
 	Super::BeginPlay();
-	// ÉèÖÃÉúÃüÖÜÆÚ
+	// è®¾ç½®ç”Ÿå‘½å‘¨æœŸ
 	SetLifeSpan(bulletBaseParam.LifeSpan);
 }
 
-void AOldManBulletBase::Tick(float DeltaTime)
+void AOldManBulletBase::Tick(float DeltaTime)     
 {
 	Super::Tick(DeltaTime);
 }
@@ -50,6 +50,6 @@ void AOldManBulletBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 {
 	if (OtherActor->Tags.Find(UGlobalTagName::Tag_BeDetcedItem) > -1)
 	{
-		Attacked();
+		Attacked(OtherActor);
 	}
 }

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -18,7 +18,7 @@ struct FBulletBaseParam
 	float MaxSpeed = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BulletBaseParam")
-	float LifeSpan = 5.0f; // ×Óµ¯ÉúÃüÖÜÆÚ
+	float LifeSpan = 5.0f; // å­å¼¹ç”Ÿå‘½å‘¨æœŸ
 };
 
 UCLASS(Blueprintable)
@@ -34,22 +34,22 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	class UProjectileMovementComponent* ProjectileMovement;
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BulletParam")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BulletParam")
 	FBulletBaseParam bulletBaseParam;
 
 public:
-	// ³õÊ¼»¯×Óµ¯
+	// åˆå§‹åŒ–å­å¼¹
 	UFUNCTION(BlueprintCallable, Category = "InitializeBullet")
 	virtual void InitializeBullet(const FVector& direction, AActor* targetActor = nullptr);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "OnHitAttack")
-	void Attacked();
+	void Attacked(AActor* other);
 
-	// Åö×²¿ªÊ¼ÊÂ¼ş
+	// ç¢°æ’å¼€å§‹äº‹ä»¶
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		FVector NormalImpulse, const FHitResult& Hit);

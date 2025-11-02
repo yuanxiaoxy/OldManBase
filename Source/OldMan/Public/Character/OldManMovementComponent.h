@@ -12,6 +12,11 @@ class OLDMAN_API UOldManMovementComponent : public UCharacterMovementComponent
 public:
     UOldManMovementComponent();
 
+protected:
+    virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    virtual void PhysicsRotation(float DeltaTime) override;
+
+public:
     // 当前重力方向
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gravity")
     FVector CurrentGravityDirection;
@@ -32,22 +37,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gravity")
     float GravityTransitionSpeed;
 
-    // 当前站立表面的法线
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gravity")
-    FVector CurrentSurfaceNormal;
+    // 射线检测距离
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raycast")
+    float RaycastDistance;
 
-protected:
-    virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    // 射线检测通道
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Raycast")
+    TEnumAsByte<ECollisionChannel> RaycastChannel;
 
-    // 重写物理更新函数
-    virtual void PhysCustom(float deltaTime, int32 Iterations) override;
+    // 是否启用调试绘制
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+    bool bEnableDebugDrawing;
 
-    // 重写移动函数以检测表面法线
-    virtual void MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDown = nullptr) override;
-
-public:
-    // 使用不同的函数名避免与父类冲突
-    void SetCustomGravityDirection(FVector NewGravityDirection, bool bInstant = false);
+    // 使用射线检测设置重力方向
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    void SetGravityByRaycast(bool bInstant = false);
 
     // 基于表面法线设置重力
     UFUNCTION(BlueprintCallable, Category = "Gravity")
@@ -55,22 +59,24 @@ public:
 
     // 重置重力方向
     UFUNCTION(BlueprintCallable, Category = "Gravity")
-    void ResetCustomGravityDirection(bool bInstant = false);
-
-    // 应用自定义重力
-    void ApplyCustomGravity(float DeltaTime);
+    void ResetGravityDirection(bool bInstant = false);
 
     // 更新角色朝向
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
     void UpdateCharacterOrientation();
 
-    // 获取站立表面的法线
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    FVector GetSurfaceNormal() const { return CurrentSurfaceNormal; }
+    // 执行射线检测
+    UFUNCTION(BlueprintCallable, Category = "Raycast")
+    bool PerformRaycast(FVector& OutHitLocation, FVector& OutHitNormal);
 
 private:
     FVector TargetGravityDirection;
 
-    // 表面检测
-    void UpdateSurfaceNormal();
-    FVector FindSurfaceNormal() const;
+    // 射线检测结果
+    FVector LastHitLocation;
+    FVector LastHitNormal;
+    bool bLastRaycastHit;
+
+    // 应用自定义重力
+    void ApplyCustomGravity(float DeltaTime);
 };

@@ -68,6 +68,9 @@ void AOldManCharacter::BeginPlay()
     InitializeParam();
     InitializeCameraComponent();
     InitializeStateMachine();
+    InitializeEvent();
+
+    EnableCustomGravity(true);
 }
 
 void AOldManCharacter::Tick(float DeltaTime)
@@ -78,6 +81,17 @@ void AOldManCharacter::Tick(float DeltaTime)
     if (StateMachine && StateMachine->IsRunning())
     {
         StateMachine->Update(DeltaTime);
+    }
+
+    // 持续射线检测更新重力
+    if (bCustomGravityEnabled)
+    {
+        RaycastTimer += DeltaTime;
+        if (RaycastTimer >= 0.1f) // 每0.1秒检测一次
+        {
+            UpdateGravityByRaycast();
+            RaycastTimer = 0.0f;
+        }
     }
 }
 
@@ -138,6 +152,85 @@ void AOldManCharacter::ChangeSlopeState(bool slopeState)
     bIsOnSlope = slopeState;
 }
 
+void AOldManCharacter::UpdateGravityByRaycast()
+{
+    if (OldManMovementComponent && bCustomGravityEnabled)
+    {
+        OldManMovementComponent->SetGravityByRaycast(false);
+    }
+}
+
+void AOldManCharacter::EnableCustomGravity(bool bEnable)
+{
+    bCustomGravityEnabled = bEnable;
+    if (!bEnable && OldManMovementComponent)
+    {
+        OldManMovementComponent->ResetGravityDirection(true);
+    }
+}
+
+bool AOldManCharacter::IsUsingCustomGravity() const
+{
+    return OldManMovementComponent && OldManMovementComponent->bUseCustomGravity;
+}
+
+FVector AOldManCharacter::GetCurrentGravityDirection() const
+{
+    if (OldManMovementComponent)
+    {
+        return OldManMovementComponent->CurrentGravityDirection;
+    }
+    return FVector(0, 0, -1);
+}
+
+// 修改 UpdateCharacterRotation 以兼容自定义重力：
+void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection)
+{
+    if (DesiredDirection.IsNearlyZero())
+        return;
+
+    // 如果使用自定义重力，让重力系统处理角色朝向
+    if (OldManMovementComponent && OldManMovementComponent->bUseCustomGravity)
+    {
+        // 在自定义重力下，我们只调整Yaw，让重力系统处理角色的整体朝向
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator TargetRotation = DesiredDirection.Rotation();
+
+        // 只插值Yaw
+        float NewYaw = FMath::RInterpTo(
+            FRotator(0, CurrentRotation.Yaw, 0),
+            FRotator(0, TargetRotation.Yaw, 0),
+            DeltaTime,
+            CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
+        ).Yaw;
+
+        // 保持当前的Pitch和Roll（由重力系统控制）
+        FRotator NewRotation = CurrentRotation;
+        NewRotation.Yaw = NewYaw;
+
+        SetActorRotation(NewRotation);
+    }
+    else
+    {
+        // 正常重力下的旋转逻辑
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator TargetRotation = DesiredDirection.Rotation();
+
+        // 计算旋转差异，避免小角度的抖动
+        float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
+        if (YawDifference > 1.0f)
+        {
+            FRotator NewRotation = FMath::RInterpTo(
+                CurrentRotation,
+                TargetRotation,
+                DeltaTime,
+                CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
+            );
+            SetActorRotation(FRotator(0.0f, NewRotation.Yaw, 0.0f));
+        }
+    }
+}
+
 FVector AOldManCharacter::GetMovementDirectionFromCamera() const
 {
     if (CameraComponent && !MovementInputVector.IsNearlyZero())
@@ -148,28 +241,6 @@ FVector AOldManCharacter::GetMovementDirectionFromCamera() const
         return CameraRotation.RotateVector(MovementInputVector);
     }
     return MovementInputVector;
-}
-
-void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection)
-{
-    if (DesiredDirection.IsNearlyZero())
-        return;
-
-    FRotator CurrentRotation = GetActorRotation();
-    FRotator TargetRotation = DesiredDirection.Rotation();
-
-    // 计算旋转差异，避免小角度的抖动
-    float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
-    if (YawDifference > 1.0f)
-    {
-        FRotator NewRotation = FMath::RInterpTo(
-            CurrentRotation,
-            TargetRotation,
-            DeltaTime,
-            CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
-        );
-        SetActorRotation(FRotator(0.0f, NewRotation.Yaw, 0.0f));
-    }
 }
 
 // ========== 相机控制函数 ==========
@@ -408,6 +479,10 @@ void AOldManCharacter::InitializeParam()
     bHasJumpInput = false;
     bHasAttackInput = false;
     bInCanPullState = true;
+
+    // 重力系统设置
+    bCustomGravityEnabled = true; // 默认启用自定义重力
+    RaycastTimer = 0.0f;
 
     // 落地检测改进
     LastLandingTime = 0.0f;

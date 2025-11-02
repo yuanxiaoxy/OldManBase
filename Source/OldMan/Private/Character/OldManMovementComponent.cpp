@@ -2,29 +2,36 @@
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 UOldManMovementComponent::UOldManMovementComponent()
 {
     DefaultGravityDirection = FVector(0, 0, -1);
     CurrentGravityDirection = DefaultGravityDirection;
     TargetGravityDirection = DefaultGravityDirection;
-    CurrentSurfaceNormal = DefaultGravityDirection;
     GravityStrength = 980.0f;
     bUseCustomGravity = false;
     GravityTransitionSpeed = 5.0f;
+    RaycastDistance = 200.0f;
+    RaycastChannel = ECC_WorldStatic;
+    bEnableDebugDrawing = false;
 
-    SetMovementMode(MOVE_Custom, 0);
+    bLastRaycastHit = false;
+    LastHitLocation = FVector::ZeroVector;
+    LastHitNormal = FVector::ZeroVector;
+
+    // 启用行走模式支持各种角度
+    SetWalkableFloorZ(0.1f);
+
+    // 禁用自动旋转，由我们手动控制
+    bOrientRotationToMovement = false;
 }
 
 void UOldManMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+    // 在父类处理前更新重力方向
     if (bUseCustomGravity)
     {
-        // 更新表面法线
-        UpdateSurfaceNormal();
-
         // 平滑过渡重力方向
         if (!CurrentGravityDirection.Equals(TargetGravityDirection, 0.01f))
         {
@@ -32,182 +39,131 @@ void UOldManMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
             CurrentGravityDirection.Normalize();
         }
 
+        // 始终应用自定义重力，而不仅仅在下落时
+        ApplyCustomGravity(DeltaTime);
+
+        // 更新角色朝向
         UpdateCharacterOrientation();
     }
+
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UOldManMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
+void UOldManMovementComponent::PhysicsRotation(float DeltaTime)
 {
-    if (deltaTime < MIN_TICK_TIME)
+    // 在自定义重力下，我们手动处理旋转
+    if (bUseCustomGravity)
     {
+        // 不调用父类的旋转逻辑，避免冲突
         return;
     }
 
-    // 保存旧速度用于计算加速度
-    const FVector OldVelocity = Velocity;
-
-    // 应用重力
-    ApplyCustomGravity(deltaTime);
-
-    // 应用摩擦力
-    if (!Velocity.IsZero())
-    {
-        const float Friction = 0.2f;
-        Velocity = Velocity * (1 - Friction * deltaTime);
-
-        if (Velocity.Dot(OldVelocity) <= 0.0f)
-        {
-            Velocity = FVector::ZeroVector;
-        }
-    }
-
-    // 移动角色
-    FVector Delta = Velocity * deltaTime;
-    if (!Delta.IsNearlyZero())
-    {
-        FHitResult Hit;
-        SafeMoveUpdatedComponent(Delta, UpdatedComponent->GetComponentRotation(), true, Hit);
-
-        if (Hit.IsValidBlockingHit())
-        {
-            SlideAlongSurface(Delta, 1.f - Hit.Time, Hit.Normal, Hit, true);
-        }
-    }
-
-    // 更新加速度
-    Acceleration = (Velocity - OldVelocity) / deltaTime;
+    Super::PhysicsRotation(DeltaTime);
 }
 
-void UOldManMovementComponent::MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDown)
+void UOldManMovementComponent::ApplyCustomGravity(float DeltaTime)
 {
-    // 先调用父类实现
-    Super::MoveAlongFloor(InVelocity, DeltaSeconds, OutStepDown);
-
-    // 更新表面法线
-    UpdateSurfaceNormal();
-}
-
-void UOldManMovementComponent::UpdateSurfaceNormal()
-{
-    if (!CharacterOwner || !UpdatedComponent)
-    {
+    if (!bUseCustomGravity)
         return;
-    }
 
-    FVector NewSurfaceNormal = FindSurfaceNormal();
+    // 始终应用自定义重力，确保角色紧贴表面
+    FVector GravityVector = CurrentGravityDirection * GravityStrength * DeltaTime;
 
-    if (!NewSurfaceNormal.IsZero())
+    // 应用重力到速度
+    Velocity += GravityVector;
+
+    // 如果在地面上，添加额外的向下的力以确保紧贴表面
+    if (IsMovingOnGround())
     {
-        CurrentSurfaceNormal = NewSurfaceNormal;
+        // 添加额外的向下的力，确保角色紧贴斜面
+        FVector AdditionalForce = CurrentGravityDirection * GravityStrength * 0.5f * DeltaTime;
+        Velocity += AdditionalForce;
     }
 }
 
-FVector UOldManMovementComponent::FindSurfaceNormal() const
+bool UOldManMovementComponent::PerformRaycast(FVector& OutHitLocation, FVector& OutHitNormal)
 {
     if (!CharacterOwner || !UpdatedComponent)
     {
-        return FVector::ZeroVector;
+        return false;
     }
 
-    const float TraceDistance = 50.0f;
-    const FVector Start = UpdatedComponent->GetComponentLocation();
+    // 获取胶囊体信息
+    float CapsuleRadius, CapsuleHalfHeight;
+    CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
 
-    // 在重力方向上进行向下检测
-    FVector TraceDirection = bUseCustomGravity ? CurrentGravityDirection : DefaultGravityDirection;
-    FVector End = Start + TraceDirection * TraceDistance;
+    FVector RayStart = UpdatedComponent->GetComponentLocation();
+
+    // 使用当前重力方向作为射线方向
+    FVector RayDirection = bUseCustomGravity ? CurrentGravityDirection : DefaultGravityDirection;
+    FVector RayEnd = RayStart + RayDirection * RaycastDistance;
 
     FCollisionQueryParams CollisionParams;
     CollisionParams.AddIgnoredActor(CharacterOwner);
 
     FHitResult Hit;
-    if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams))
+    bool bHit = GetWorld()->SweepSingleByChannel(
+        Hit,
+        RayStart,
+        RayEnd,
+        FQuat::Identity,
+        RaycastChannel,
+        FCollisionShape::MakeSphere(CapsuleRadius * 0.8f),
+        CollisionParams
+    );
+
+    // 调试绘制
+    if (bEnableDebugDrawing && GetWorld()->IsGameWorld())
     {
-        return Hit.Normal;
+        FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+        DrawDebugLine(GetWorld(), RayStart, RayEnd, DebugColor, false, 0, 0, 2.0f);
+
+        if (bHit)
+        {
+            DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Yellow, false, 0, 0);
+            DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 50.0f, FColor::Blue, false, 0, 0, 2.0f);
+
+            // 绘制重力方向
+            DrawDebugLine(GetWorld(), RayStart, RayStart + CurrentGravityDirection * 100.0f, FColor::Magenta, false, 0, 0, 3.0f);
+        }
     }
 
-    // 如果没有命中，返回默认重力方向
-    return bUseCustomGravity ? CurrentGravityDirection : DefaultGravityDirection;
-}
-
-void UOldManMovementComponent::ApplyCustomGravity(float DeltaTime)
-{
-    if (bUseCustomGravity)
+    if (bHit)
     {
-        // 计算重力加速度
-        FVector GravityAcceleration = CurrentGravityDirection * GravityStrength;
-
-        // 应用重力到速度
-        Velocity += GravityAcceleration * DeltaTime;
-
-        // 地面检测和响应
-        FHitResult Hit;
-        FVector TraceStart = UpdatedComponent->GetComponentLocation();
-
-        // 修复：正确获取胶囊体半高
-        float CapsuleHalfHeight = 0.0f;
-        if (CharacterOwner && CharacterOwner->GetCapsuleComponent())
-        {
-            CapsuleHalfHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-        }
-        else
-        {
-            CapsuleHalfHeight = 88.0f; // 默认值
-        }
-
-        FVector TraceEnd = TraceStart + CurrentGravityDirection * (CapsuleHalfHeight + 2.0f);
-
-        FCollisionQueryParams CollisionParams;
-        CollisionParams.AddIgnoredActor(GetOwner());
-
-        if (GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, CollisionParams))
-        {
-            // 在地面上，防止穿过地面
-            float VerticalSpeed = FVector::DotProduct(Velocity, CurrentGravityDirection);
-            if (VerticalSpeed < 0)
-            {
-                Velocity -= CurrentGravityDirection * VerticalSpeed;
-            }
-        }
+        OutHitLocation = Hit.ImpactPoint;
+        OutHitNormal = Hit.ImpactNormal;
+        bLastRaycastHit = true;
+        LastHitLocation = Hit.ImpactPoint;
+        LastHitNormal = Hit.ImpactNormal;
     }
+    else
+    {
+        bLastRaycastHit = false;
+    }
+
+    return bHit;
 }
 
-void UOldManMovementComponent::UpdateCharacterOrientation()
+void UOldManMovementComponent::SetGravityByRaycast(bool bInstant)
 {
-    if (ACharacter* OwnerCharacter = GetCharacterOwner())
+    FVector HitLocation, HitNormal;
+    if (PerformRaycast(HitLocation, HitNormal))
     {
-        // 计算新的前方向（保持角色原本的前方向，但投影到新的平面上）
-        FVector CurrentForward = OwnerCharacter->GetActorForwardVector();
-        FVector NewUp = -CurrentGravityDirection;
-
-        // 将当前前方向投影到新的水平面
-        FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp);
-
-        // 如果投影后长度接近0，使用一个默认的前方向
-        if (NewForward.IsNearlyZero())
-        {
-            NewForward = FVector::VectorPlaneProject(FVector(1, 0, 0), NewUp);
-        }
-
-        NewForward.Normalize();
-
-        // 计算右方向
-        FVector NewRight = FVector::CrossProduct(NewUp, NewForward);
-        NewRight.Normalize();
-
-        // 确保正交
-        NewForward = FVector::CrossProduct(NewRight, NewUp);
-        NewForward.Normalize();
-
-        // 设置新的旋转
-        FRotator NewRotation = FRotationMatrix::MakeFromXY(NewForward, NewRight).Rotator();
-        OwnerCharacter->SetActorRotation(NewRotation);
+        SetGravityFromSurfaceNormal(HitNormal, bInstant);
+    }
+    else
+    {
+        // 如果没有检测到表面，保持当前重力方向
+        // 不重置为默认重力，因为可能是在空中
     }
 }
 
-// 由于父类有 SetGravityDirection，我们使用不同的函数名
-void UOldManMovementComponent::SetCustomGravityDirection(FVector NewGravityDirection, bool bInstant)
+void UOldManMovementComponent::SetGravityFromSurfaceNormal(FVector SurfaceNormal, bool bInstant)
 {
+    // 使用表面法线的反方向作为重力方向
+    FVector NewGravityDirection = -SurfaceNormal;
     NewGravityDirection.Normalize();
+
     TargetGravityDirection = NewGravityDirection;
     bUseCustomGravity = true;
 
@@ -218,14 +174,7 @@ void UOldManMovementComponent::SetCustomGravityDirection(FVector NewGravityDirec
     }
 }
 
-void UOldManMovementComponent::SetGravityFromSurfaceNormal(FVector SurfaceNormal, bool bInstant)
-{
-    // 使用表面法线的反方向作为重力方向
-    FVector NewGravityDirection = -SurfaceNormal;
-    SetCustomGravityDirection(NewGravityDirection, bInstant);
-}
-
-void UOldManMovementComponent::ResetCustomGravityDirection(bool bInstant)
+void UOldManMovementComponent::ResetGravityDirection(bool bInstant)
 {
     TargetGravityDirection = DefaultGravityDirection;
 
@@ -235,4 +184,47 @@ void UOldManMovementComponent::ResetCustomGravityDirection(bool bInstant)
         bUseCustomGravity = false;
         UpdateCharacterOrientation();
     }
+}
+
+void UOldManMovementComponent::UpdateCharacterOrientation()
+{
+    if (!CharacterOwner || !bUseCustomGravity)
+        return;
+
+    ACharacter* OwnerCharacter = GetCharacterOwner();
+    if (!OwnerCharacter)
+        return;
+
+    // 在自定义重力下，让角色始终"站立"在当前的表面上
+    FVector NewUp = -CurrentGravityDirection;
+
+    // 获取当前的前方向
+    FVector CurrentForward = OwnerCharacter->GetActorForwardVector();
+
+    // 将前方向投影到新的"地面"平面上
+    FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp).GetSafeNormal();
+
+    // 如果投影后长度为0，使用默认前方向
+    if (NewForward.IsNearlyZero())
+    {
+        // 尝试使用世界前方向
+        NewForward = FVector::VectorPlaneProject(FVector(1, 0, 0), NewUp).GetSafeNormal();
+        if (NewForward.IsNearlyZero())
+        {
+            // 如果还是零，使用世界右方向
+            NewForward = FVector::VectorPlaneProject(FVector(0, 1, 0), NewUp).GetSafeNormal();
+        }
+    }
+
+    // 计算右向量
+    FVector NewRight = FVector::CrossProduct(NewUp, NewForward).GetSafeNormal();
+
+    // 重新计算前向量以确保正交
+    NewForward = FVector::CrossProduct(NewRight, NewUp).GetSafeNormal();
+
+    // 构建旋转矩阵
+    FRotator NewRotation = FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
+
+    // 应用新的旋转
+    OwnerCharacter->SetActorRotation(NewRotation);
 }

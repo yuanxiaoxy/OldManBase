@@ -98,21 +98,11 @@ public:
     void ChangeSlopeState(bool slopeState);
 
     // ========== 重力控制 ==========
-    // 重力控制
-    bool bCustomGravityEnabled;
-    float RaycastTimer;
-
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    void UpdateGravityByRaycast();
-
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    void EnableCustomGravity(bool bEnable);
 
     UFUNCTION(BlueprintCallable, Category = "Gravity")
     bool IsUsingCustomGravity() const;
 
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    FVector GetCurrentGravityDirection() const;
+    FVector PerformGravityRaycast();
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")

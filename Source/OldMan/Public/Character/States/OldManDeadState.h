@@ -1,14 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StateMachine/StateMachineBase.h"
 #include "Character/States/OldManStateBase.h"
 #include "OldManDeadState.generated.h"
 
-/**
- * 死亡状态 - 角色死亡时的状态
- * 这是最终状态，不能转换到其他状态
- */
 UCLASS()
 class OLDMAN_API UOldManDeadState : public UOldManStateBase
 {

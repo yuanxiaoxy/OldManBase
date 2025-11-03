@@ -3,7 +3,7 @@
 
 void UOldManDeadState::Enter()
 {
-    UE_LOG(LogTemp, Log, TEXT("Entering Dead State"));
+    Super::Enter();
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -13,7 +13,7 @@ void UOldManDeadState::Enter()
 
 void UOldManDeadState::Exit()
 {
-    UE_LOG(LogTemp, Log, TEXT("Exiting Dead State"));
+    Super::Exit();
 }
 
 void UOldManDeadState::Update(float DeltaTime)

@@ -4,12 +4,10 @@
 #include "Character/States/OldManWalkingState.h"
 #include "Character/States/OldManJumpingState.h"
 #include "Character/States/OldManAttackingState.h"
-#include "Character/States/OldManDeadState.h"
-#include "Character/States/OldManFallingState.h"
 
 void UOldManRunningState::Enter()
 {
-    UE_LOG(LogTemp, Log, TEXT("Entering Running State"));
+    Super::Enter();
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -23,60 +21,27 @@ void UOldManRunningState::Enter()
 
 void UOldManRunningState::Exit()
 {
-    UE_LOG(LogTemp, Log, TEXT("Exiting Running State"));
+    Super::Exit();
 }
 
 void UOldManRunningState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
-
-    // 处理移动和旋转
     HandleMovement(DeltaTime);
-
-    // 更新动画
     UpdateAnimation();
-
-    // 检查状态转换
-    CheckStateTransitions();
 }
 
-void UOldManRunningState::CheckStateTransitions()
+void UOldManRunningState::SetupTransitionRules()
 {
-    if (CheckDeathCondition())
-    {
-        CheckTransition(UOldManDeadState::StaticClass());
-        return;
-    }
+    Super::SetupTransitionRules();
 
-    if (CheckFallingCondition())
-    {
-        CheckTransition(UOldManFallingState::StaticClass());
-        return;
-    }
-
-    if (CheckAttackCondition())
-    {
-        CheckTransition(UOldManAttackingState::StaticClass());
-        return;
-    }
-
-    if (CheckJumpCondition())
-    {
-        CheckTransition(UOldManJumpingState::StaticClass());
-        return;
-    }
-
-    if (!HasMovementInput())
-    {
-        CheckTransition(UOldManIdleState::StaticClass());
-        return;
-    }
-
-    if (!IsRunning())
-    {
-        CheckTransition(UOldManWalkingState::StaticClass());
-        return;
-    }
+    ADD_TRANSITION(UOldManJumpingState, CheckJumpCondition);
+    ADD_LAMBDA_TRANSITION(UOldManIdleState,
+        [this]() { return !HasMovementInput(); },
+        "NoMovementInput");
+    ADD_LAMBDA_TRANSITION(UOldManWalkingState,
+        [this]() { return !IsRunning(); },
+        "StopRunning");
 }
 
 void UOldManRunningState::UpdateAnimation()

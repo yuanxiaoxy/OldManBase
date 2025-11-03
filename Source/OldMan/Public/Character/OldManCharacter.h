@@ -5,15 +5,18 @@
 #include "OldManCharacterAttributes.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/OldManCameraComponent.h"
+#include "Character/OldManMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "ItemBase/OldManInterectItemBase.h"
 #include "ItemBase/OldManPullItemBase.h"
 #include "ItemBase/OldManCanBeAttackItemBase.h"
+#include "ItemBase/OldManBulletBase.h"
 #include "OldManCharacter.generated.h"
 
 class AOldManPullItemBase;
 class AOldManInterectItemBase;
+class AOldManBulletBase;
 class AOldManPersonPlayerController;
 
 UCLASS()
@@ -22,7 +25,7 @@ class OLDMAN_API AOldManCharacter : public AXyCharacterBase, public IStateMachin
     GENERATED_BODY()
 
 public:
-    AOldManCharacter();
+    AOldManCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
     virtual void BeginPlay() override;
@@ -48,6 +51,10 @@ public:
     // 用于互动的碰撞组件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class UBoxComponent* InteractionBox;
+
+    //角色移动组件
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class UOldManMovementComponent* OldManMovementComponent;
 
     // ========== 相机组件 ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -86,6 +93,26 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetRunning(bool bRunning);
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void ChangeSlopeState(bool slopeState);
+
+    // ========== 重力控制 ==========
+    // 重力控制
+    bool bCustomGravityEnabled;
+    float RaycastTimer;
+
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    void UpdateGravityByRaycast();
+
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    void EnableCustomGravity(bool bEnable);
+
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    bool IsUsingCustomGravity() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    FVector GetCurrentGravityDirection() const;
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -183,6 +210,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     float LastAttackTime;
 
+    UPROPERTY(BlueprintReadWrite, Category = "State")
+    bool bIsOnSlope;
+
     // ========== 旋转控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
@@ -199,9 +229,26 @@ private:
     void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
+    void InitializeEvent();
 #pragma endregion
 
 #pragma region Item Param
+    //Bullet
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet")
+    USceneComponent* bulletFirePos;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet")
+    TSubclassOf<AOldManBulletBase> firstKindBullet;
+
+private:
+    UPROPERTY()
+    AOldManCanBeAttackItemBase* curAimAttackItem;
+
+public:
+    UFUNCTION(BlueprintCallable)
+    void FireBullet();
+
     // PullItem
 public:
     // 拖动灵敏度

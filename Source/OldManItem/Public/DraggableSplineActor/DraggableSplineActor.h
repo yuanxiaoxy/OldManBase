@@ -31,8 +31,6 @@ protected:
 
     UPROPERTY(BlueprintReadWrite, Category = "Drag")
     float CurrentSplinePosition;
-    //自动回弹时用于插值计算的start值
-    float LerpStartPosition;
 
     // 拖动参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
@@ -56,14 +54,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     bool IfHasAutoBack = true;
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    //自动回弹时是否是匀速
-    bool IfAutoBackUniformSpeed = true;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
-    //更改变量名 不是匀速时为速率 匀速时为时间
-    float AutoBackRateOrTime = 1.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag", meta = (ClampMin = 0.1f, ClampMax = 10.0f))
+    float AutoBackRate = 1.0f;
 
     // 调试显示
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
@@ -95,11 +88,11 @@ protected:
     // 平滑移动向量
     FVector SmoothedMovementDirection;
 
-    //用于自动回弹时计时
-    float AutoBackTimer;
-
 private:
     bool inAutoBack;
+    //用于自动回弹时计时
+    float AutoBackTimer;
+    float LerpStartPosition;
 
 public:
     virtual void StartDragging() override;

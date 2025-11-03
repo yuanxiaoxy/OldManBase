@@ -36,9 +36,8 @@ void ADraggableSplineActor::BeginPlay()
     SetActorTickEnabled(false);
 
     // 存储网格体的初始位置和旋转
-    InitialMeshLocation = MeshComponent->GetRelativeLocation();
-    InitialMeshRotation = MeshComponent->GetRelativeRotation();
-
+    InitialMeshLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
+    InitialMeshRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     SetStartPosition();
 
     TargetLocation = MeshComponent->GetComponentLocation();
@@ -53,33 +52,18 @@ void ADraggableSplineActor::Tick(float DeltaTime)
     if (inAutoBack && IfHasAutoBack)
     {
         MovementAlpha = 0.0f;
-        //是否是匀速变化
-        if (IfAutoBackUniformSpeed)
-        {
-            AutoBackTimer += DeltaTime / AutoBackRateOrTime;
-            if (AutoBackTimer > 1.0f)
-            {
-                AutoBackTimer = 1.0f;
-            }
-            // 更新位置
-            CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
-        }
-        else
-        {
-            // 更新位置
-            CurrentSplinePosition = FMath::Lerp(CurrentSplinePosition, DragStartPos, DeltaTime * AutoBackRateOrTime);
-        }
+
+        AutoBackTimer = FMath::Min(AutoBackTimer + DeltaTime * AutoBackRate, 1.0f);
+        // 更新位置
+        CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
 
         // 计算新位置和旋转
         TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
         TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
 
-        if (FMath::IsNearlyEqual(FVector::Dist(MeshComponent->GetComponentLocation(),TargetLocation), DragStartPos, 1.0f))
+        if (FVector::Dist(MeshComponent->GetComponentLocation(), InitialMeshLocation) < 0.001f)
         {
-            CurrentSplinePosition = DragStartPos;
-            SetMeshPositionAndRotation(TargetLocation, TargetRotation);
             StopAutoBack();
-
         }
     }
 
@@ -202,9 +186,6 @@ void ADraggableSplineActor::StartAutoBack()
 void ADraggableSplineActor::StopAutoBack()
 {
     //自动回弹相关
-    LerpStartPosition = CurrentSplinePosition;
-    AutoBackTimer = 0.0f;
-
     inAutoBack = false;
     CurrentSplinePosition = DragStartPos;
     SmoothedMovementDirection = FVector::ZeroVector;

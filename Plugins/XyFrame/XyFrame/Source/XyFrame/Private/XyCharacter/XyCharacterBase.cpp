@@ -15,10 +15,6 @@ AXyCharacterBase::AXyCharacterBase()
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 }
 
-AXyCharacterBase::AXyCharacterBase(const FObjectInitializer& ObjectInitializer)
-{
-}
-
 void AXyCharacterBase::BeginPlay()
 {
     Super::BeginPlay();

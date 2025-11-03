@@ -1,12 +1,15 @@
 #include "Character/States/OldManWalkingState.h"
 #include "Character/OldManCharacter.h"
 #include "Character/States/OldManIdleState.h"
+#include "Character/States/OldManRunningState.h"
 #include "Character/States/OldManJumpingState.h"
 #include "Character/States/OldManAttackingState.h"
+#include "Character/States/OldManDeadState.h"
+#include "Character/States/OldManFallingState.h"
 
 void UOldManWalkingState::Enter()
 {
-    Super::Enter();
+    UE_LOG(LogTemp, Log, TEXT("Entering Walking State"));
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -21,24 +24,61 @@ void UOldManWalkingState::Enter()
 
 void UOldManWalkingState::Exit()
 {
-    Super::Exit();
+    UE_LOG(LogTemp, Log, TEXT("Exiting Walking State"));
 }
 
 void UOldManWalkingState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
+
+    // 处理移动和旋转
     HandleMovement(DeltaTime);
+
+    // 更新动画
     UpdateAnimation();
+
+    // 检查状态转换
+    CheckStateTransitions();
 }
 
-void UOldManWalkingState::SetupTransitionRules()
+void UOldManWalkingState::CheckStateTransitions()
 {
-    Super::SetupTransitionRules();
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-    ADD_TRANSITION(UOldManJumpingState, CheckJumpCondition);
-    ADD_LAMBDA_TRANSITION(UOldManIdleState,
-        [this]() { return !HasMovementInput(); },
-        "NoMovementInput");
+    if (CheckFallingCondition())
+    {
+        CheckTransition(UOldManFallingState::StaticClass());
+        return;
+    }
+
+    if (CheckAttackCondition())
+    {
+        CheckTransition(UOldManAttackingState::StaticClass());
+        return;
+    }
+
+    if (CheckJumpCondition())
+    {
+        CheckTransition(UOldManJumpingState::StaticClass());
+        return;
+    }
+
+    if (!HasMovementInput())
+    {
+        CheckTransition(UOldManIdleState::StaticClass());
+        return;
+    }
+
+    //暂时没有跑步
+    //if (IsRunning())
+    //{
+    //    CheckTransition(UOldManRunningState::StaticClass());
+    //    return;
+    //}
 }
 
 void UOldManWalkingState::UpdateAnimation()

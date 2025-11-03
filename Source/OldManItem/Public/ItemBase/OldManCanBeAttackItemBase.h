@@ -19,7 +19,7 @@ public:
 	AOldManCanBeAttackItemBase();
 
 public:
-	UFUNCTION(BlueprintImplementableEvent, Category = "OnBeHitAttack")
+	UFUNCTION(BlueprintImplementableEvent, Category = "OnHItAttack")
 	void BeAttacked();
 
 	// 碰撞开始事件

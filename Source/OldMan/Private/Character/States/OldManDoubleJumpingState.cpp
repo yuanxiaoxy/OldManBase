@@ -5,11 +5,11 @@
 
 void UOldManDoubleJumpingState::Enter()
 {
-    Super::Enter();
+    UE_LOG(LogTemp, Log, TEXT("Entering Double Jumping State"));
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
-        // 消耗二段跳
+        // 禁用二段跳
         Character->hasIntoDoubleJump = true;
 
         // 应用二段跳速度
@@ -29,23 +29,31 @@ void UOldManDoubleJumpingState::Enter()
 
 void UOldManDoubleJumpingState::Exit()
 {
-    Super::Exit();
+    UE_LOG(LogTemp, Log, TEXT("Exiting Double Jumping State"));
 }
 
 void UOldManDoubleJumpingState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
+
+    // 在空中也可以移动
     HandleMovementInAir(DeltaTime);
+
+    CheckStateTransitions();
 }
 
-void UOldManDoubleJumpingState::SetupTransitionRules()
+void UOldManDoubleJumpingState::CheckStateTransitions()
 {
-    ADD_TRANSITION(UOldManDeadState, CheckDeathCondition);
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
     // 检查是否开始下落
-    ADD_LAMBDA_TRANSITION(UOldManFallingState,
-        [this]() {
-            return GetCharacterMovement() && GetCharacterMovement()->Velocity.Z <= 0;
-        },
-        "StartFalling");
+    if (GetCharacterMovement() && GetCharacterMovement()->Velocity.Z <= 0)
+    {
+        CheckTransition(UOldManFallingState::StaticClass());
+        return;
+    }
 }

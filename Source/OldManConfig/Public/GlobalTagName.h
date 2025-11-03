@@ -15,6 +15,5 @@ class OLDMANCONFIG_API UGlobalTagName : public UObject
 public:
 	static const FName Tag_Player;
 	static const FName Tag_InterectItem;
-	static const FName Tag_BeDetcedItem;
 	static const FName Tag_DetcedItem;
 };

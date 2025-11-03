@@ -6,7 +6,7 @@
 
 void UOldManFallingState::Enter()
 {
-    Super::Enter();
+    UE_LOG(LogTemp, Log, TEXT("Entering Falling State"));
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -16,36 +16,49 @@ void UOldManFallingState::Enter()
 
 void UOldManFallingState::Exit()
 {
-    Super::Exit();
+    UE_LOG(LogTemp, Log, TEXT("Exiting Falling State"));
 }
 
 void UOldManFallingState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
+
+    // 在空中也可以移动
     HandleMovementInAir(DeltaTime);
+
+    CheckStateTransitions();
 }
 
-void UOldManFallingState::SetupTransitionRules()
+void UOldManFallingState::CheckStateTransitions()
 {
-    ADD_TRANSITION(UOldManDeadState, CheckDeathCondition);
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-    // 检查是否落地
-    ADD_LAMBDA_TRANSITION(UOldManLandState,
-        [this]() {
-            AOldManCharacter* Character = GetOldManCharacter();
-            if (!Character) return false;
+    AOldManCharacter* Character = GetOldManCharacter();
+    if (!Character) return;
 
-            bool bIsActuallyGrounded = Character->IsActuallyGrounded();
-            float TimeSinceLanding = Character->GetTimeSinceLastLanding();
+    // 使用更可靠的落地检测
+    bool bIsActuallyGrounded = Character->IsActuallyGrounded();
+    float TimeSinceLanding = Character->GetTimeSinceLastLanding();
 
-            return !CheckFallingCondition() && (bIsActuallyGrounded || TimeSinceLanding < 0.3f);
-        },
-        "Landing");
+    UE_LOG(LogTemp, VeryVerbose, TEXT("FallingState Check - IsGrounded: %d, TimeSinceLand: %.3f"),
+        bIsActuallyGrounded, TimeSinceLanding);
+
+    // 检查是否落地（使用更宽松的条件）
+    if (!CheckFallingCondition() && (bIsActuallyGrounded || TimeSinceLanding < 0.3f))
+    {
+        UE_LOG(LogTemp, Log, TEXT("Transitioning from Falling to Land state"));
+        CheckTransition(UOldManLandState::StaticClass());
+        return;
+    }
 
     // 检查二段跳输入
-    ADD_LAMBDA_TRANSITION(UOldManDoubleJumpingState,
-        [this]() {
-            return HasJumpInput() && GetOldManCharacter() && GetOldManCharacter()->CanDoubleJump();
-        },
-        "DoubleJump");
+    if (HasJumpInput() && Character->CanDoubleJump())
+    {
+        CheckTransition(UOldManDoubleJumpingState::StaticClass());
+        return;
+    }
 }

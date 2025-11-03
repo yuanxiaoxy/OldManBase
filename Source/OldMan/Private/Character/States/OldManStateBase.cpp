@@ -2,16 +2,11 @@
 #include "Character/OldManCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EventManager/MyEventManager.h"
-#include "Character/States/OldManDeadState.h"
-#include "Character/States/OldManFallingState.h"
-#include "Character/States/OldManOnSlopeState.h"
 
 void UOldManStateBase::Enter()
 {
     UE_LOG(LogTemp, Display, TEXT("%s : Enter"), *this->GetName());
 
-    // 设置转换规则
-    SetupTransitionRules();
     InPatchEvents();
 }
 
@@ -19,50 +14,15 @@ void UOldManStateBase::Exit()
 {
     UE_LOG(LogTemp, Display, TEXT("%s : Exit"), *this->GetName());
 
-    // 清除缓存和转换规则
+    // 清除缓存
     CachedOldManCharacter = nullptr;
-    TransitionRules.Empty();
 
     OutPatchEvents();
 }
 
 void UOldManStateBase::Update(float DeltaTime)
 {
-    CheckAllTransitions();
-}
-
-void UOldManStateBase::SetupTransitionRules()
-{
-    // 基类提供通用转换规则（死亡、斜坡、下落优先级最高）
-    ADD_TRANSITION(UOldManDeadState, CheckDeathCondition);
-    ADD_TRANSITION(UOldManOnSlopeState, CheckOnSlopeCondition);
-    ADD_TRANSITION(UOldManFallingState, CheckFallingCondition);
-}
-
-void UOldManStateBase::AddTransitionRule(TSubclassOf<UStateBase> TargetState, FStateTransitionCondition Condition, const FString& DebugName)
-{
-    FStateTransitionRule Rule;
-    Rule.TargetState = TargetState;
-    Rule.Condition = Condition;
-    Rule.DebugName = DebugName;
-    TransitionRules.Add(Rule);
-}
-
-void UOldManStateBase::CheckAllTransitions()
-{
-    for (const FStateTransitionRule& Rule : TransitionRules)
-    {
-        if (Rule.Condition.IsBound() && Rule.Condition.Execute())
-        {
-            UE_LOG(LogTemp, Verbose, TEXT("Transition from %s to %s by condition: %s"),
-                *GetName(),
-                *Rule.TargetState->GetName(),
-                *Rule.DebugName);
-
-            CheckTransition(Rule.TargetState);
-            return;
-        }
-    }
+    
 }
 
 void UOldManStateBase::HandleMovement(float DeltaTime)
@@ -74,7 +34,7 @@ void UOldManStateBase::HandleMovement(float DeltaTime)
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                // 取消z轴影响
+                //取消z轴影响
                 FVector tempVector = GetCharacterMovement()->Velocity;
                 tempVector.Z = 0.0f;
                 float Speed = FMath::Lerp(tempVector.Size(), targetSpeed,
@@ -98,7 +58,7 @@ void UOldManStateBase::HandleMovementInAir(float DeltaTime)
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                // 取消z轴影响
+                //取消z轴影响
                 FVector tempVector = GetCharacterMovement()->Velocity;
                 tempVector.Z = 0.0f;
                 float Speed = FMath::Lerp(tempVector.Size(), targetSpeed,
@@ -112,12 +72,13 @@ void UOldManStateBase::HandleMovementInAir(float DeltaTime)
         }
         else if (!HasMovementInput() && GetCharacterMovement())//在空中没有移动输入
         {
-            // 存储x，y值 插值运算
+            //存储x，y值 插值运算
             int x = FMath::Lerp(GetCharacterMovement()->Velocity.X, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);
             int y = FMath::Lerp(GetCharacterMovement()->Velocity.Y, 0, DeltaTime * Character->CharacterAttributes->SpeedChangeRateInAir);
 
             GetCharacterMovement()->Velocity.X = x;
             GetCharacterMovement()->Velocity.Y = y;
+            
         }
     }
 }
@@ -194,14 +155,8 @@ bool UOldManStateBase::CheckAttackCondition()
 
 bool UOldManStateBase::CheckPullItemStateCondition()
 {
-    AOldManCharacter* Character = GetOldManCharacter();
+    AOldManCharacter* Character = GetOldManCharacter();  
     return Character && Character->bInCanPullState;
-}
-
-bool UOldManStateBase::CheckOnSlopeCondition()
-{
-    AOldManCharacter* Character = GetOldManCharacter();
-    return Character && Character->bIsOnSlope;
 }
 
 void UOldManStateBase::ResetJumpInput(bool jumpInputActive)
@@ -259,10 +214,12 @@ bool UOldManStateBase::IsRunning()
 
 void UOldManStateBase::InPatchEvents()
 {
-    // 子类可以重写
+    //UMyEventManager::GetInstance()->RegisterCppEvent<>(Key_CheckJumpStatesTranisition, this, &UOldManStateBase::CheckJumpCondition);
+    //UMyEventManager::GetInstance()->RegisterCppEvent<>(Key_CheckAttackStatesTranisition, this, &UOldManStateBase::CheckAttackCondition);
 }
 
 void UOldManStateBase::OutPatchEvents()
 {
-    // 子类可以重写
+    //UMyEventManager::GetInstance()->RemoveCppEvent(Key_CheckJumpStatesTranisition);
+    //UMyEventManager::GetInstance()->RemoveCppEvent(Key_CheckAttackStatesTranisition);
 }

@@ -14,8 +14,7 @@ public class OldManItem : ModuleRules
             "CoreUObject", 
             "Engine",
             "OldManConfig",
-            "ProceduralMeshComponent",
-            "XyFrame"
+            "ProceduralMeshComponent"
         });
 
         //The path for the header files

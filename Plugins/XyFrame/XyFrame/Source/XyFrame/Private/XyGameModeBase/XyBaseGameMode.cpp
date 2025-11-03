@@ -145,8 +145,6 @@ void AXyBaseGameMode::ShutdownWorld()
     // ¹ã²¥ÊÂ¼þ
     OnWorldShutdown.Broadcast();
 
-    USingletonManager::GetInstance()->Shutdown();
-
     UE_LOG(LogTemp, Log, TEXT("World shutdown completed"));
 }
 

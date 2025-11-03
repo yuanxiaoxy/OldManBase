@@ -6,7 +6,7 @@
 
 void UOldManJumpingState::Enter()
 {
-    Super::Enter();
+    UE_LOG(LogTemp, Log, TEXT("Entering Jumping State"));
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -31,30 +31,39 @@ void UOldManJumpingState::Enter()
 
 void UOldManJumpingState::Exit()
 {
-    Super::Exit();
+    UE_LOG(LogTemp, Log, TEXT("Exiting Jumping State"));
 }
 
 void UOldManJumpingState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
+
+    // 在空中也可以移动
     HandleMovementInAir(DeltaTime);
+
+    CheckStateTransitions();
 }
 
-void UOldManJumpingState::SetupTransitionRules()
+
+void UOldManJumpingState::CheckStateTransitions()
 {
-    ADD_TRANSITION(UOldManDeadState, CheckDeathCondition);
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
     // 检查是否开始下落
-    ADD_LAMBDA_TRANSITION(UOldManFallingState,
-        [this]() {
-            return GetCharacterMovement() && GetCharacterMovement()->Velocity.Z <= 0;
-        },
-        "StartFalling");
+    if (GetCharacterMovement() && GetCharacterMovement()->Velocity.Z <= 0)
+    {
+        CheckTransition(UOldManFallingState::StaticClass());
+        return;
+    }
 
     // 检查二段跳输入
-    ADD_LAMBDA_TRANSITION(UOldManDoubleJumpingState,
-        [this]() {
-            return HasJumpInput() && GetOldManCharacter() && GetOldManCharacter()->CanDoubleJump();
-        },
-        "DoubleJump");
+    if (HasJumpInput() && GetOldManCharacter()->CanDoubleJump())
+    {
+        CheckTransition(UOldManDoubleJumpingState::StaticClass());
+        return;
+    }
 }

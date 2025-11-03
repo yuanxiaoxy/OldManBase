@@ -3,10 +3,12 @@
 #include "Character/States/OldManIdleState.h"
 #include "Character/States/OldManWalkingState.h"
 #include "Character/States/OldManRunningState.h"
+#include "Character/States/OldManDeadState.h"
+#include "Character/States/OldManAttackingState.h"
 
 void UOldManLandState::Enter()
 {
-    Super::Enter();
+    UE_LOG(LogTemp, Log, TEXT("Entering Land State"));
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
@@ -23,36 +25,42 @@ void UOldManLandState::Enter()
 
 void UOldManLandState::Exit()
 {
-    Super::Exit();
+    UE_LOG(LogTemp, Log, TEXT("Exiting Land State"));
 }
 
 void UOldManLandState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
+    CheckStateTransitions();
 }
 
-void UOldManLandState::SetupTransitionRules()
+void UOldManLandState::CheckStateTransitions()
 {
-    Super::SetupTransitionRules();
+    if (CheckDeathCondition())
+    {
+        CheckTransition(UOldManDeadState::StaticClass());
+        return;
+    }
 
-    ADD_LAMBDA_TRANSITION(UOldManIdleState,
-        [this]() {
-            float CurrentTime = GetWorld()->GetTimeSeconds();
-            return !HasMovementInput() && (CurrentTime - LandStartTime >= LandDuration);
-        },
-        "LandEndIdle");
-
-    ADD_LAMBDA_TRANSITION(UOldManRunningState,
-        [this]() {
-            float CurrentTime = GetWorld()->GetTimeSeconds();
-            return IsRunning() && (CurrentTime - LandStartTime >= LandDuration);
-        },
-        "LandEndRunning");
-
-    ADD_LAMBDA_TRANSITION(UOldManWalkingState,
-        [this]() {
-            float CurrentTime = GetWorld()->GetTimeSeconds();
-            return HasMovementInput() && !IsRunning() && (CurrentTime - LandStartTime >= LandDuration);
-        },
-        "LandEndWalking");
+    // 落地动画结束后根据移动状态转换
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+    if (CurrentTime - LandStartTime >= LandDuration)
+    {
+        if (CheckAttackCondition())
+        {
+            CheckTransition(UOldManAttackingState::StaticClass());
+        }
+        else if (!HasMovementInput())
+        {
+            CheckTransition(UOldManIdleState::StaticClass());
+        }
+        else if (IsRunning())
+        {
+            CheckTransition(UOldManRunningState::StaticClass());
+        }
+        else
+        {
+            CheckTransition(UOldManWalkingState::StaticClass());
+        }
+    }
 }

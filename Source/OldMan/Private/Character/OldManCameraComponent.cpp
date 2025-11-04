@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
 #include "Engine/OverlapResult.h"
+#include "Character/OldManCharacter.h"
 
 UOldManCameraComponent::UOldManCameraComponent()
 {
@@ -11,7 +12,7 @@ UOldManCameraComponent::UOldManCameraComponent()
     // 初始化变量
     CameraBoom = nullptr;
     FollowCamera = nullptr;
-    TargetActor = nullptr;
+    CachedOldManCharacter = nullptr;
     bIsShaking = false;
     CurrentCameraMode = TEXT("ThirdPerson");
 
@@ -22,6 +23,10 @@ UOldManCameraComponent::UOldManCameraComponent()
     CurrentTurnInput = 0.0f;
     SmoothedLookUpInput = 0.0f;
     SmoothedTurnInput = 0.0f;
+
+    // 初始化重力方向
+    CurrentGravityDirection = FVector::DownVector;
+    DesiredGravityDirection = FVector::DownVector;
 }
 
 void UOldManCameraComponent::BeginPlay()
@@ -36,6 +41,9 @@ void UOldManCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
     // 处理输入平滑
     UpdateInputSmoothing(DeltaTime);
+
+    // 更新重力对齐
+    UpdateGravityAlignment(DeltaTime);
 
     // 更新相机旋转
     UpdateCameraRotation(DeltaTime);
@@ -57,17 +65,57 @@ void UOldManCameraComponent::UpdateInputSmoothing(float DeltaTime)
 
 void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
 {
-    if (!TargetActor || !CameraBoom || !FollowCamera)
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
         return;
 
-    // 应用当前帧的视角输入（不累加）
+    // 应用当前帧的视角输入
     if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
     {
-        DesiredCameraRotation.Yaw += CurrentTurnInput * DeltaTime * 60.0f; // 乘以DeltaTime和帧率系数
-        DesiredCameraRotation.Pitch += CurrentLookUpInput * DeltaTime * 60.0f;
+        // 修复鼠标输入方向：将上下输入反转
+        float YawInput = CurrentTurnInput * DeltaTime * 60.0f;
+        float PitchInput = -CurrentLookUpInput * DeltaTime * 60.0f;
 
-        // 限制相机俯仰角度
-        DesiredCameraRotation.Pitch = FMath::Clamp(DesiredCameraRotation.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
+        // 获取当前重力上方向
+        FVector GravityUp = -CurrentGravityDirection;
+
+        // 获取当前相机旋转
+        FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
+
+        // 将当前旋转分解为重力对齐的局部旋转
+        // 1. 首先找到将世界坐标系对齐到重力坐标系的旋转
+        FQuat GravityAlignment = FQuat::FindBetweenNormals(FVector::UpVector, GravityUp);
+
+        // 2. 将当前旋转转换为重力局部空间
+        FQuat LocalQuat = GravityAlignment.Inverse() * CurrentQuat;
+        FRotator LocalRot = LocalQuat.Rotator();
+
+        // 3. 在重力局部空间中应用输入
+        LocalRot.Yaw += YawInput;
+        LocalRot.Pitch -= PitchInput;
+
+        // 4. 限制俯仰角度
+        LocalRot.Pitch = FMath::Clamp(LocalRot.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
+
+        // 5. 转换回世界空间
+        FQuat NewLocalQuat = LocalRot.Quaternion();
+        FQuat NewWorldQuat = GravityAlignment * NewLocalQuat;
+
+        DesiredCameraRotation = NewWorldQuat.Rotator();
+    }
+    else
+    {
+        // 即使没有输入，也要确保相机与重力方向对齐
+        FVector GravityUp = -CurrentGravityDirection;
+        FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
+        FVector CurrentUp = CurrentQuat.GetUpVector();
+
+        // 如果相机的上方向与重力上方向不匹配，进行调整
+        if (!CurrentUp.Equals(GravityUp, 0.01f))
+        {
+            FQuat Adjustment = FQuat::FindBetweenNormals(CurrentUp, GravityUp);
+            FQuat NewQuat = Adjustment * CurrentQuat;
+            DesiredCameraRotation = NewQuat.Rotator();
+        }
     }
 
     // 平滑插值相机旋转
@@ -97,9 +145,10 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
     }
 }
 
+
 void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
 {
-    if (!TargetActor || !CameraBoom || !FollowCamera)
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
         return;
 
     // 处理相机震动
@@ -125,6 +174,56 @@ void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
     }
 }
 
+// 新增：重力对齐更新
+void UOldManCameraComponent::UpdateGravityAlignment(float DeltaTime)
+{
+    if (!CachedOldManCharacter)
+        return;
+
+    // 获取角色的重力方向
+    if (CachedOldManCharacter)
+    {
+        DesiredGravityDirection = CachedOldManCharacter->GetGravityDirection();
+    }
+    else
+    {
+        DesiredGravityDirection = FVector::DownVector;
+    }
+
+    // 平滑过渡重力方向
+    CurrentGravityDirection = FMath::VInterpTo(
+        CurrentGravityDirection,
+        DesiredGravityDirection,
+        DeltaTime,
+        GravityRotationInterpSpeed
+    );
+}
+
+// 新增：从重力方向获取基础旋转
+FRotator UOldManCameraComponent::GetRotationFromGravityDirection(const FVector& GravityDir) const
+{
+    if (!CachedOldManCharacter)
+        return FRotator::ZeroRotator;
+
+    // 使用角色的前方向作为参考
+    FVector CharacterForward = CachedOldManCharacter->GetActorForwardVector();
+    return MakeRotationFromGravity(CharacterForward, GravityDir);
+}
+
+FRotator UOldManCameraComponent::MakeRotationFromGravity(const FVector& Forward, const FVector& GravityDir) const
+{
+    FVector NewUp = -GravityDir;
+    FVector NewForward = FVector::VectorPlaneProject(Forward, NewUp).GetSafeNormal();
+
+    // 如果投影结果为零，使用默认前方向
+    if (NewForward.IsNearlyZero())
+    {
+        NewForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewUp).GetSafeNormal();
+    }
+
+    return FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
+}
+
 void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
 {
     MyCameraData = CameraData;
@@ -142,9 +241,9 @@ void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InC
     }
 }
 
-void UOldManCameraComponent::SetCameraTarget(AActor* targetActor)
+void UOldManCameraComponent::SetCameraTarget(AOldManCharacter* targetActor)
 {
-    this->TargetActor = targetActor;
+    CachedOldManCharacter = targetActor;
 }
 
 void UOldManCameraComponent::SetCameraOffset(const FVector& Offset)

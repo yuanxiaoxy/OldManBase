@@ -47,7 +47,8 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     // 创建跟随相机组件
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-    FollowCamera->bUsePawnControlRotation = false;
+    //FollowCamera->bUsePawnControlRotation = false;
+    FollowCamera->bUsePawnControlRotation = true;
 
     // 创建相机控制组件
     CameraComponent = CreateDefaultSubobject<UOldManCameraComponent>(TEXT("CameraComponent"));
@@ -247,6 +248,8 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
 
         // 构建旋转矩阵
         gravityRotation = FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
+        TargetRotation.Pitch = gravityRotation.Pitch;
+        TargetRotation.Roll = gravityRotation.Roll;
     }
 
     if (YawDifference > 1.0f)
@@ -257,7 +260,7 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
             DeltaTime,
             CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
         );
-        SetActorRotation(FRotator(gravityRotation.Pitch, NewRotation.Yaw, gravityRotation.Roll));
+        SetActorRotation(NewRotation);
     }
 }
 

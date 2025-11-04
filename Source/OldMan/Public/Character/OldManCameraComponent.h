@@ -9,9 +9,7 @@
 #include "OldManCharacterAttributes.h"
 #include "OldManCameraComponent.generated.h"
 
-/**
- * 老人相机组件 - 相机控制系统
- */
+class AOldManCharacter;
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class OLDMAN_API UOldManCameraComponent : public UActorComponent
 {
@@ -34,7 +32,7 @@ public:
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetCameraTarget(AActor* TargetActor);
+    void SetCameraTarget(AOldManCharacter* TargetActor);
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetCameraOffset(const FVector& Offset);
@@ -91,9 +89,8 @@ private:
     UPROPERTY()
     UCameraComponent* FollowCamera;
 
-    // 目标角色
     UPROPERTY()
-    AActor* TargetActor;
+    AOldManCharacter* CachedOldManCharacter;
 
     UPROPERTY()
     FOldManCameraData MyCameraData;
@@ -117,6 +114,18 @@ private:
     UPROPERTY(EditAnywhere, Category = "Camera|Input")
     float InputSmoothingInterpSpeed = 12.0f;
 
+    // 重力方向处理
+    UPROPERTY()
+    FVector CurrentGravityDirection;
+
+    UPROPERTY()
+    FVector DesiredGravityDirection;
+
+    // 重力方向平滑参数
+    UPROPERTY(EditAnywhere, Category = "Camera|Gravity")
+    float GravityRotationInterpSpeed = 8.0f;
+
+
     // 震动相关变量
     bool bIsShaking;
     float ShakeIntensity;
@@ -133,4 +142,9 @@ private:
     void UpdateInputSmoothing(float DeltaTime);
     void UpdateCameraRotation(float DeltaTime);
     void UpdateCameraPosition(float DeltaTime);
+    void UpdateGravityAlignment(float DeltaTime); // 新增：重力对齐
+
+    // 新增：重力方向辅助函数
+    FRotator GetRotationFromGravityDirection(const FVector& GravityDir) const;
+    FRotator MakeRotationFromGravity(const FVector& Forward, const FVector& GravityDir) const;
 };

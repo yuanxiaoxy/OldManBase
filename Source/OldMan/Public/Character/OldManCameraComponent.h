@@ -110,6 +110,11 @@ private:
     float SmoothedLookUpInput;
     float SmoothedTurnInput;
 
+    bool bHasRecentInput;
+
+    // 重力对齐标记
+    bool bNeedsGravityAlignment;
+
     // 输入平滑参数
     UPROPERTY(EditAnywhere, Category = "Camera|Input")
     float InputSmoothingInterpSpeed = 12.0f;

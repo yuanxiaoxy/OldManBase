@@ -101,21 +101,86 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
         FQuat NewWorldQuat = GravityAlignment * NewLocalQuat;
 
         DesiredCameraRotation = NewWorldQuat.Rotator();
+
+        // 标记有输入时已经处理过旋转
+        bHasRecentInput = true;
+        bNeedsGravityAlignment = false; // 有输入时不需要重力对齐
     }
     else
     {
-        // 即使没有输入，也要确保相机与重力方向对齐
+        // 只在重力方向发生变化且没有用户输入时进行对齐
         FVector GravityUp = -CurrentGravityDirection;
         FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
         FVector CurrentUp = CurrentQuat.GetUpVector();
 
-        // 如果相机的上方向与重力上方向不匹配，进行调整
-        if (!CurrentUp.Equals(GravityUp, 0.01f))
+        // 检查是否需要重力对齐
+        bool bShouldAlignGravity = false;
+
+        // 如果重力方向发生了变化，需要对齐
+        static FVector LastGravityDirection = FVector::DownVector;
+        bool bGravityChanged = !CurrentGravityDirection.Equals(LastGravityDirection, 0.01f);
+        if (bGravityChanged)
         {
-            FQuat Adjustment = FQuat::FindBetweenNormals(CurrentUp, GravityUp);
-            FQuat NewQuat = Adjustment * CurrentQuat;
-            DesiredCameraRotation = NewQuat.Rotator();
+            bNeedsGravityAlignment = true;
+            LastGravityDirection = CurrentGravityDirection;
         }
+
+        // 如果相机上方向与重力上方向偏差过大，需要对齐
+        if (!CurrentUp.Equals(GravityUp, 0.2f) && !bHasRecentInput)
+        {
+            bNeedsGravityAlignment = true;
+        }
+
+        // 执行重力对齐
+        if (bNeedsGravityAlignment)
+        {
+            // 使用更精确的重力对齐方法
+            // 保持相机的水平方向，只调整上下方向
+            FVector CurrentRight = CurrentQuat.GetRightVector();
+            FVector CurrentForward = CurrentQuat.GetForwardVector();
+
+            // 重新计算正确的上方向
+            FVector NewUp = -CurrentGravityDirection;
+
+            // 确保前方向与上方向垂直
+            FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp).GetSafeNormal();
+            if (NewForward.IsNearlyZero())
+            {
+                // 如果投影结果为零，使用默认前方向
+                NewForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewUp).GetSafeNormal();
+            }
+
+            // 重新计算右方向
+            FVector NewRight = FVector::CrossProduct(NewUp, NewForward).GetSafeNormal();
+
+            // 重新计算前方向，确保正交
+            NewForward = FVector::CrossProduct(NewRight, NewUp).GetSafeNormal();
+
+            // 创建新的旋转
+            FQuat NewQuat = FRotationMatrix::MakeFromXZ(NewForward, NewUp).ToQuat();
+
+            // 平滑过渡到新的旋转
+            if (MyCameraData.bUseCameraSmoothing)
+            {
+                FQuat ResultQuat = FQuat::Slerp(CurrentQuat, NewQuat, DeltaTime * GravityRotationInterpSpeed);
+                DesiredCameraRotation = ResultQuat.Rotator();
+
+                // 检查是否已经对齐完成
+                FVector ResultUp = ResultQuat.GetUpVector();
+                if (ResultUp.Equals(NewUp, 0.01f))
+                {
+                    bNeedsGravityAlignment = false;
+                }
+            }
+            else
+            {
+                DesiredCameraRotation = NewQuat.Rotator();
+                bNeedsGravityAlignment = false;
+            }
+        }
+
+        // 重置输入标记
+        bHasRecentInput = false;
     }
 
     // 平滑插值相机旋转

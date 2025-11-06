@@ -115,10 +115,10 @@ public:
     void SetThirdPersonMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFirstPersonMode();
+    void SetPersonInSlopeMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFreeLookMode();
+    void SetHitchcockLookMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void ShakeCamera(float Intensity, float Duration);
@@ -168,6 +168,9 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayLandAnimation();
 
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
+    void PlayOnSlopeAnimation();
+
     // ========== 角色设置 ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
@@ -206,6 +209,9 @@ public:
     // ========== 旋转控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void UpdateCharacterRotationByGravity(float DeltaTime, const FVector& DesiredDirection);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     FVector GetMovementDirectionFromCamera() const;

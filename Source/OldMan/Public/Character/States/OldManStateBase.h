@@ -54,10 +54,10 @@ protected:
 
     // 移动相关方法
     virtual void HandleMovement(float DeltaTime);
-    void HandleRotation(float DeltaTime);
+    virtual void HandleRotation(float DeltaTime);
+    void HandleMovementInAir(float DeltaTime);
     void ApplyMovement(const FVector& Direction, float Speed);
     void Jump();
-    void HandleMovementInAir(float DeltaTime);
 
     // 状态检查方法
     bool CheckDeathCondition();

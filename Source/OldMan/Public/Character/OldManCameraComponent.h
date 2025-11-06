@@ -54,10 +54,11 @@ public:
     void SetThirdPersonMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFirstPersonMode();
+    void SetPersonInSlopeMode();
 
+    //希区柯克变焦
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFreeLookMode();
+    void SetHitchcockLookMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void GetActorsInCone(
@@ -146,10 +147,10 @@ private:
     // 更新函数
     void UpdateInputSmoothing(float DeltaTime);
     void UpdateCameraRotation(float DeltaTime);
+    void UpdateCameraRotationInGravity(float DeltaTime);
     void UpdateCameraPosition(float DeltaTime);
     void UpdateGravityAlignment(float DeltaTime); // 新增：重力对齐
 
-    // 新增：重力方向辅助函数
-    FRotator GetRotationFromGravityDirection(const FVector& GravityDir) const;
-    FRotator MakeRotationFromGravity(const FVector& Forward, const FVector& GravityDir) const;
+    //辅助函数
+    void SmoothCameraRotate(float DeltaTime);
 };

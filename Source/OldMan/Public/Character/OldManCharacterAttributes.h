@@ -105,6 +105,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float RotationRate = 10.0f;
 
+    //滑坡属性
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveSpeedInSlope = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float RotatorSpeedInSlope = 10.0f;
+
     // 相机属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     FOldManCameraData OldManCameraData;

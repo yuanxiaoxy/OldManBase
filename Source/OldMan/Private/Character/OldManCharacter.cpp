@@ -214,6 +214,28 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
 
     // 计算旋转差异，避免小角度的抖动
     float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
+
+    if (YawDifference > 1.0f)
+    {
+        FRotator NewRotation = FMath::RInterpTo(
+            CurrentRotation,
+            TargetRotation,
+            DeltaTime,
+            CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
+        );
+        SetActorRotation(NewRotation);
+    }
+}
+
+void AOldManCharacter::UpdateCharacterRotationByGravity(float DeltaTime, const FVector& DesiredDirection)
+{
+    if (DesiredDirection.IsNearlyZero())
+        return;
+
+    //// 正常重力下的旋转逻辑
+    FRotator CurrentRotation = GetActorRotation();
+
+
     FRotator gravityRotation = GetActorRotation();
 
     // 如果使用自定义重力，让重力系统处理角色朝向
@@ -248,20 +270,15 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
 
         // 构建旋转矩阵
         gravityRotation = FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
-        TargetRotation.Pitch = gravityRotation.Pitch;
-        TargetRotation.Roll = gravityRotation.Roll;
     }
 
-    if (YawDifference > 1.0f)
-    {
-        FRotator NewRotation = FMath::RInterpTo(
-            CurrentRotation,
-            TargetRotation,
-            DeltaTime,
-            CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
-        );
-        SetActorRotation(NewRotation);
-    }
+     FRotator NewRotation = FMath::RInterpTo(
+         CurrentRotation,
+         gravityRotation,
+         DeltaTime,
+         CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
+     );
+     SetActorRotation(NewRotation);
 }
 
 FVector AOldManCharacter::GetMovementDirectionFromCamera() const
@@ -302,19 +319,19 @@ void AOldManCharacter::SetThirdPersonMode()
     }
 }
 
-void AOldManCharacter::SetFirstPersonMode()
+void AOldManCharacter::SetPersonInSlopeMode()
 {
     if (CameraComponent)
     {
-        CameraComponent->SetFirstPersonMode();
+        CameraComponent->SetPersonInSlopeMode();
     }
 }
 
-void AOldManCharacter::SetFreeLookMode()
+void AOldManCharacter::SetHitchcockLookMode()
 {
     if (CameraComponent)
     {
-        CameraComponent->SetFreeLookMode();
+        CameraComponent->SetHitchcockLookMode();
     }
 }
 

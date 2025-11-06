@@ -42,9 +42,6 @@ void UOldManCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     // 处理输入平滑
     UpdateInputSmoothing(DeltaTime);
 
-    // 更新重力对齐
-    UpdateGravityAlignment(DeltaTime);
-
     // 更新相机旋转
     UpdateCameraRotation(DeltaTime);
 
@@ -68,18 +65,39 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
     if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
         return;
 
+    // 应用当前帧的视角输入（不累加）
+    if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
+    {
+        DesiredCameraRotation.Yaw += CurrentTurnInput * DeltaTime * 60.0f; // 乘以DeltaTime和帧率系数
+        DesiredCameraRotation.Pitch += CurrentLookUpInput * DeltaTime * 60.0f;
+
+        // 限制相机俯仰角度
+        DesiredCameraRotation.Pitch = FMath::Clamp(DesiredCameraRotation.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
+    }
+
+    SmoothCameraRotate(DeltaTime);
+}
+
+void UOldManCameraComponent::UpdateCameraRotationInGravity(float DeltaTime)
+{
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
+        return;
+
+    // 更新重力对齐
+    UpdateGravityAlignment(DeltaTime);
+
+    // 获取当前重力上方向
+    FVector GravityUp = -CurrentGravityDirection;
+
+    // 获取当前相机旋转
+    FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
+
     // 应用当前帧的视角输入
     if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
     {
         // 修复鼠标输入方向：将上下输入反转
         float YawInput = CurrentTurnInput * DeltaTime * 60.0f;
         float PitchInput = -CurrentLookUpInput * DeltaTime * 60.0f;
-
-        // 获取当前重力上方向
-        FVector GravityUp = -CurrentGravityDirection;
-
-        // 获取当前相机旋转
-        FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
 
         // 将当前旋转分解为重力对齐的局部旋转
         // 1. 首先找到将世界坐标系对齐到重力坐标系的旋转
@@ -108,9 +126,6 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
     }
     else
     {
-        // 只在重力方向发生变化且没有用户输入时进行对齐
-        FVector GravityUp = -CurrentGravityDirection;
-        FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
         FVector CurrentUp = CurrentQuat.GetUpVector();
 
         // 检查是否需要重力对齐
@@ -183,33 +198,8 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
         bHasRecentInput = false;
     }
 
-    // 平滑插值相机旋转
-    if (MyCameraData.bUseCameraSmoothing)
-    {
-        CurrentCameraRotation = FMath::RInterpTo(
-            CurrentCameraRotation,
-            DesiredCameraRotation,
-            DeltaTime,
-            MyCameraData.CameraRotationInterpSpeed
-        );
-    }
-    else
-    {
-        CurrentCameraRotation = DesiredCameraRotation;
-    }
-
-    // 应用相机旋转到控制器和弹簧臂
-    if (APlayerController* PlayerController = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
-    {
-        PlayerController->SetControlRotation(CurrentCameraRotation);
-    }
-
-    if (CameraBoom)
-    {
-        CameraBoom->SetWorldRotation(CurrentCameraRotation);
-    }
+    SmoothCameraRotate(DeltaTime);
 }
-
 
 void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
 {
@@ -264,29 +254,33 @@ void UOldManCameraComponent::UpdateGravityAlignment(float DeltaTime)
     );
 }
 
-// 新增：从重力方向获取基础旋转
-FRotator UOldManCameraComponent::GetRotationFromGravityDirection(const FVector& GravityDir) const
+void UOldManCameraComponent::SmoothCameraRotate(float DeltaTime)
 {
-    if (!CachedOldManCharacter)
-        return FRotator::ZeroRotator;
-
-    // 使用角色的前方向作为参考
-    FVector CharacterForward = CachedOldManCharacter->GetActorForwardVector();
-    return MakeRotationFromGravity(CharacterForward, GravityDir);
-}
-
-FRotator UOldManCameraComponent::MakeRotationFromGravity(const FVector& Forward, const FVector& GravityDir) const
-{
-    FVector NewUp = -GravityDir;
-    FVector NewForward = FVector::VectorPlaneProject(Forward, NewUp).GetSafeNormal();
-
-    // 如果投影结果为零，使用默认前方向
-    if (NewForward.IsNearlyZero())
+    // 平滑插值相机旋转
+    if (MyCameraData.bUseCameraSmoothing)
     {
-        NewForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewUp).GetSafeNormal();
+        CurrentCameraRotation = FMath::RInterpTo(
+            CurrentCameraRotation,
+            DesiredCameraRotation,
+            DeltaTime,
+            MyCameraData.CameraRotationInterpSpeed
+        );
+    }
+    else
+    {
+        CurrentCameraRotation = DesiredCameraRotation;
     }
 
-    return FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
+    // 应用相机旋转到控制器和弹簧臂
+    if (APlayerController* PlayerController = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+    {
+        PlayerController->SetControlRotation(CurrentCameraRotation);
+    }
+
+    if (CameraBoom)
+    {
+        CameraBoom->SetWorldRotation(CurrentCameraRotation);
+    }
 }
 
 void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
@@ -362,7 +356,7 @@ void UOldManCameraComponent::SetThirdPersonMode()
     }
 }
 
-void UOldManCameraComponent::SetFirstPersonMode()
+void UOldManCameraComponent::SetPersonInSlopeMode()
 {
     CurrentCameraMode = TEXT("FirstPerson");
     if (CameraBoom && FollowCamera)
@@ -375,7 +369,7 @@ void UOldManCameraComponent::SetFirstPersonMode()
     }
 }
 
-void UOldManCameraComponent::SetFreeLookMode()
+void UOldManCameraComponent::SetHitchcockLookMode()
 {
     CurrentCameraMode = TEXT("FreeLook");
     if (CameraBoom && FollowCamera)

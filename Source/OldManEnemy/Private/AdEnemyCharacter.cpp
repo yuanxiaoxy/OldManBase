@@ -16,6 +16,7 @@ void AAdEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
     CurrentState = EAdMonsterState::Patrol;
+    _currentPoint = StartPoint;
 }
 
 void AAdEnemyCharacter::Tick(float DeltaTime)
@@ -44,7 +45,13 @@ void AAdEnemyCharacter::PerformLaserAttack()
     // 实现激光攻击逻辑
 }
 
-
+void AAdEnemyCharacter::SetNextPatrolPosition()
+{
+    /*if (_currentPoint != nullptr)
+    {
+        _currentPoint = StartPoint.
+    }*/
+}
 
 
 void AAdEnemyCharacter::TakeDamage(int32 DamageAmount)

@@ -1,21 +1,15 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-
+#include "AdEnemyStateTypes.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AdEnemyCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class EAdMonsterState : uint8
-{
-    Patrol         UMETA(DisplayName = "巡逻"),
-    Tracking       UMETA(DisplayName = "追踪"),
-    AttackPreparation UMETA(DisplayName = "攻击准备"),
-    Attacking      UMETA(DisplayName = "攻击"),
-    Hurt           UMETA(DisplayName = "受伤"),
-    Dead           UMETA(DisplayName = "死亡")
-};
+
+
+// 前向声明放在这里
+class UBehaviorTree;
 
 
 UCLASS(Blueprintable)
@@ -35,7 +29,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	
 
     // 状态变量
     UPROPERTY(BlueprintReadWrite, Category = "AI|State")
@@ -48,6 +41,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 AttackPower = 1;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Patrol")
+    AActor* StartPoint;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
     float AttackRange = 500.0f;
 
@@ -55,21 +51,27 @@ public:
     float MoveSpeed = 300.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-    class UBehaviorTree* BehaviorTree;
+    UBehaviorTree* BehaviorTree;
 
     // 核心功能函数
     UFUNCTION(BlueprintCallable, Category = "AI")
     void ChangeState(EAdMonsterState NewState);
 
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void SetNextPatrolPosition();
+    // 圆锥攻击检测
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    bool PerformConeAttack();  // 圆锥攻击检测
-
+    bool PerformConeAttack();  
+    // 激光攻击
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    void PerformLaserAttack();  // 激光攻击
-
+    void PerformLaserAttack();  
+    // 受到多少伤害
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void TakeDamage(int32 DamageAmount);
 
+
+private:
+    AActor* _currentPoint;
 };
 
 

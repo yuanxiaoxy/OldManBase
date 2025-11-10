@@ -54,7 +54,8 @@ public:
     UBehaviorTree* BehaviorTree;
 
     // 核心功能函数
-    UFUNCTION(BlueprintCallable, Category = "AI")
+    /*UFUNCTION(BlueprintCallable, Category = "AI")*/
+    UFUNCTION()
     void ChangeState(EAdMonsterState NewState);
 
     UFUNCTION(BlueprintCallable, Category = "AI")

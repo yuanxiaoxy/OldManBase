@@ -9,6 +9,11 @@
 /**
  * 
  */
+class UBehaviorTreeComponent;
+class UBlackboardComponent;
+class AAdEnemyCharacter;
+
+
 UCLASS(Blueprintable)
 class OLDMANENEMY_API AAdEnemyAIController : public AAIController
 {
@@ -23,10 +28,13 @@ protected:
 
     // AI组件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    class UBehaviorTreeComponent* BehaviorTreeComponent;
+    UBehaviorTreeComponent* BehaviorTreeComponent;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    class UBlackboardComponent* BlackboardComponent;
+    UBlackboardComponent* BlackboardComponent;
+
+    UPROPERTY()
+    AAdEnemyCharacter* EnemyCharacter;
 
 public:
     // 获取Blackboard
@@ -40,7 +48,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI")
     void NotifyOtherMonsters(AActor* SpottedPlayer);
 
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    bool IsPlayerDetected(float radius);
 	
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void ChangeState(EAdMonsterState state);
+
 };
 
 

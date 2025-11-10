@@ -31,6 +31,11 @@ UOldManCameraComponent::UOldManCameraComponent()
     // 初始化重力方向
     CurrentGravityDirection = FVector::DownVector;
     DesiredGravityDirection = FVector::DownVector;
+
+    // 初始化时间线回调
+    FadeInHitchcockTimeLineFloat.BindUFunction(this, FName("FadeInHitchcock"));
+    FadeOutHitchcockTimeLineFloat.BindUFunction(this, FName("FadeOutHitchcock"));
+    OnHitchcockTimelineFinished.BindUFunction(this, FName("OnHitchcockTimelineFinishedCallback"));
 }
 
 void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
@@ -56,6 +61,14 @@ void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InC
 void UOldManCameraComponent::BeginPlay()
 {
     Super::BeginPlay();
+
+    // 确保时间线组件正确注册
+    if (FadeHitchcockZoomTimeline)
+    {
+        // 绑定时间线完成事件
+        FadeHitchcockZoomTimeline->SetTimelineFinishedFunc(OnHitchcockTimelineFinished);
+    }
+
     SetThirdPersonMode();
 }
 
@@ -396,7 +409,13 @@ void UOldManCameraComponent::SetPersonInSlopeMode()
 
 void UOldManCameraComponent::FadeInHitchcock(float Alpha)
 {
-    if (!FollowCamera) return;
+    if (!FollowCamera)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FadeInHitchcock: FollowCamera is null"));
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("FadeInHitchcock called with Alpha: %f"), Alpha);
 
     // 使用平滑插值
     float SmoothAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
@@ -408,11 +427,19 @@ void UOldManCameraComponent::FadeInHitchcock(float Alpha)
     // 插值相机距离
     CurCameraDistance = FMath::Lerp(OriginalCameraDistance, TargetCameraDistance, SmoothAlpha);
     SetCameraDistance(CurCameraDistance);
+
+    UE_LOG(LogTemp, Log, TEXT("FadeInHitchcock: FOV=%f, Distance=%f"), CurCameraFOV, CurCameraDistance);
 }
 
 void UOldManCameraComponent::FadeOutHitchcock(float Alpha)
 {
-    if (!FollowCamera) return;
+    if (!FollowCamera)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FadeOutHitchcock: FollowCamera is null"));
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("FadeOutHitchcock called with Alpha: %f"), Alpha);
 
     // 使用平滑插值
     float SmoothAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
@@ -424,6 +451,8 @@ void UOldManCameraComponent::FadeOutHitchcock(float Alpha)
     // 插值相机距离
     CurCameraDistance = FMath::Lerp(TargetCameraDistance, OriginalCameraDistance, SmoothAlpha);
     SetCameraDistance(CurCameraDistance);
+
+    UE_LOG(LogTemp, Log, TEXT("FadeOutHitchcock: FOV=%f, Distance=%f"), CurCameraFOV, CurCameraDistance);
 }
 
 void UOldManCameraComponent::SetCameraInHitchcock(float TargetFOV, float TargetDistance)
@@ -431,23 +460,40 @@ void UOldManCameraComponent::SetCameraInHitchcock(float TargetFOV, float TargetD
     if (FMath::IsNearlyEqual(CurCameraFOV, TargetCameraFOV, 0.1f) &&
         FMath::IsNearlyEqual(CurCameraDistance, TargetCameraDistance, 0.1f))
     {
+        UE_LOG(LogTemp, Warning, TEXT("SetCameraInHitchcock: Already at target values"));
         return;
     }
 
     NotToControlCameraDisState = true;
     TargetCameraFOV = TargetFOV;
-    TargetCameraDistance = TargetCameraDistance;
+    TargetCameraDistance = TargetDistance; // 修复这里，应该是 TargetDistance
 
-    if (FadeHitchcockZoomTimeline && 
-        CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeInHitchcockCurve)
+    if (FadeHitchcockZoomTimeline && CachedOldManCharacter && CachedOldManCharacter->CharacterAttributes)
     {
-        auto fadeInCurve = CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeInHitchcockCurve;
-        FadeInHitchcockTimeLineFloat.BindUFunction(this, FName("FadeInHitchcock"));
-        FadeHitchcockZoomTimeline->AddInterpFloat(
-            fadeInCurve, FadeInHitchcockTimeLineFloat);
-        FadeHitchcockZoomTimeline->Play();
-    }
+        // 清除之前的时间线轨道
+        FadeHitchcockZoomTimeline->Stop();
+        FadeHitchcockZoomTimeline->SetPlaybackPosition(0.0f, false);
+        FadeHitchcockZoomTimeline->SetFloatCurve(nullptr, FName("FadeInHitchcock"));
 
+        auto fadeInCurve = CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeInHitchcockCurve;
+        if (fadeInCurve)
+        {
+            FadeHitchcockZoomTimeline->AddInterpFloat(fadeInCurve, FadeInHitchcockTimeLineFloat, FName("FadeInHitchcock"));
+            FadeHitchcockZoomTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+            FadeHitchcockZoomTimeline->SetPlayRate(1.0f);
+            FadeHitchcockZoomTimeline->PlayFromStart();
+
+            UE_LOG(LogTemp, Warning, TEXT("Hitchcock Fade In Timeline Started"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("FadeInHitchcockCurve is null!"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to start Hitchcock fade in - missing components"));
+    }
 }
 
 void UOldManCameraComponent::SetCameraOutHitchcock()
@@ -455,20 +501,44 @@ void UOldManCameraComponent::SetCameraOutHitchcock()
     if (FMath::IsNearlyEqual(CurCameraFOV, OriginalCameraFOV, 0.1f) &&
         FMath::IsNearlyEqual(CurCameraDistance, OriginalCameraDistance, 0.1f))
     {
+        UE_LOG(LogTemp, Warning, TEXT("SetCameraOutHitchcock: Already at original values"));
         return;
     }
 
     NotToControlCameraDisState = false;
 
-    if (FadeHitchcockZoomTimeline &&
-        CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeOutHitchcockCurve)
+    if (FadeHitchcockZoomTimeline && CachedOldManCharacter && CachedOldManCharacter->CharacterAttributes)
     {
+        // 清除之前的时间线轨道
+        FadeHitchcockZoomTimeline->Stop();
+        FadeHitchcockZoomTimeline->SetPlaybackPosition(0.0f, false);
+        FadeHitchcockZoomTimeline->SetFloatCurve(nullptr, FName("FadeOutHitchcock"));
+
         auto fadeOutCurve = CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeOutHitchcockCurve;
-        FadeOutHitchcockTimeLineFloat.BindUFunction(this, FName("FadeOutHitchcock"));
-        FadeHitchcockZoomTimeline->AddInterpFloat(
-            fadeOutCurve, FadeOutHitchcockTimeLineFloat, FName("FadeOutHitchcock"), FName("FadeOutHitchcock"));
-        FadeHitchcockZoomTimeline->Play();
+        if (fadeOutCurve)
+        {
+            FadeHitchcockZoomTimeline->AddInterpFloat(fadeOutCurve, FadeOutHitchcockTimeLineFloat, FName("FadeOutHitchcock"));
+            FadeHitchcockZoomTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+            FadeHitchcockZoomTimeline->SetPlayRate(1.0f);
+            FadeHitchcockZoomTimeline->PlayFromStart();
+
+            UE_LOG(LogTemp, Warning, TEXT("Hitchcock Fade Out Timeline Started"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("FadeOutHitchcockCurve is null!"));
+        }
     }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to start Hitchcock fade out - missing components"));
+    }
+}
+
+void UOldManCameraComponent::OnHitchcockTimelineFinishedCallback()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Hitchcock Timeline Finished"));
+    // 这里可以添加时间线完成后的清理逻辑
 }
 
 void UOldManCameraComponent::GetActorsInCone(
@@ -654,4 +724,3 @@ void UOldManCameraComponent::DrawConeVisualization(
         GEngine->AddOnScreenDebugMessage(-1, Duration, Color, DebugText);
     }
 }
-

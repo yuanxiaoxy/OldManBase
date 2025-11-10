@@ -79,7 +79,6 @@ public:
         TArray<float>& OutAngles
     );
 
-
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void DrawConeVisualization(
         UWorld* World,
@@ -149,7 +148,7 @@ private:
     float ShakeIntensity;
     float ShakeDuration;
     float ShakeElapsed;
-    
+
     bool NotToControlCameraDisState;
 
     //希区柯克相关
@@ -161,6 +160,9 @@ private:
 
     FOnTimelineFloat FadeInHitchcockTimeLineFloat;
     FOnTimelineFloat FadeOutHitchcockTimeLineFloat;
+
+    // 时间线完成事件
+    FOnTimelineEvent OnHitchcockTimelineFinished;
 
     // 当前相机模式
     ECameraMode CurrentCameraMode;
@@ -180,6 +182,12 @@ private:
     //辅助函数
     void SmoothCameraRotate(float DeltaTime);
 
+    UFUNCTION()
     void FadeInHitchcock(float Alpha);
+
+    UFUNCTION()
     void FadeOutHitchcock(float Alpha);
+
+    UFUNCTION()
+    void OnHitchcockTimelineFinishedCallback();
 };

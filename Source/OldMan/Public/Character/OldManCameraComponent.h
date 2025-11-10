@@ -7,7 +7,15 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "OldManCharacterAttributes.h"
+#include "Components/TimelineComponent.h"
 #include "OldManCameraComponent.generated.h"
+
+UENUM(BlueprintType)
+enum class ECameraMode : uint8
+{
+    ThirdPersonMode UMETA(DisplayName = "ThirdPersonMode"),
+    ControlByGravityMode UMETA(DisplayName = "ControlByGravityMode"),
+};
 
 class AOldManCharacter;
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -22,8 +30,8 @@ protected:
     virtual void BeginPlay() override;
 
 public:
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-    float CurCameraDistance = 0.0f;
+    UPROPERTY()
+    float CurCameraDistance;
 
 public:
     // ========== 相机初始化 ==========
@@ -58,7 +66,9 @@ public:
 
     //希区柯克变焦
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetHitchcockLookMode();
+    void SetCameraInHitchcock(float TargetFOV, float TargetDistance);
+    UFUNCTION(BlueprintCallable, Category = "Camera")
+    void SetCameraOutHitchcock();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void GetActorsInCone(
@@ -85,6 +95,9 @@ private:
     // 弹簧臂组件引用
     UPROPERTY()
     USpringArmComponent* CameraBoom;
+
+    UPROPERTY()
+    UTimelineComponent* FadeHitchcockZoomTimeline;
 
     // 跟随相机组件引用
     UPROPERTY()
@@ -131,20 +144,33 @@ private:
     UPROPERTY(EditAnywhere, Category = "Camera|Gravity")
     float GravityRotationInterpSpeed = 8.0f;
 
-
     // 震动相关变量
     bool bIsShaking;
     float ShakeIntensity;
     float ShakeDuration;
     float ShakeElapsed;
+    
+    bool NotToControlCameraDisState;
+
+    //希区柯克相关
+    float OriginalCameraFOV;
+    float OriginalCameraDistance;
+    float TargetCameraFOV;
+    float TargetCameraDistance;
+    float CurCameraFOV;
+
+    FOnTimelineFloat FadeInHitchcockTimeLineFloat;
+    FOnTimelineFloat FadeOutHitchcockTimeLineFloat;
 
     // 当前相机模式
-    FName CurrentCameraMode;
+    ECameraMode CurrentCameraMode;
 
     // 每帧更新
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
     // 更新函数
+    void UpdateCamera(float DeltaTime);
+
     void UpdateInputSmoothing(float DeltaTime);
     void UpdateCameraRotation(float DeltaTime);
     void UpdateCameraRotationInGravity(float DeltaTime);
@@ -153,4 +179,7 @@ private:
 
     //辅助函数
     void SmoothCameraRotate(float DeltaTime);
+
+    void FadeInHitchcock(float Alpha);
+    void FadeOutHitchcock(float Alpha);
 };

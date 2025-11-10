@@ -100,7 +100,10 @@ public:
     // ========== 重力控制 ==========
 
     UFUNCTION(BlueprintCallable, Category = "Gravity")
-    bool IsUsingCustomGravity() const;
+    void SetUseCustomGravity(bool CustomGravityOnEnable);
+
+    UFUNCTION(BlueprintCallable, Category = "Gravity")
+    void SetGravityDirection();
 
     FVector PerformGravityRaycast();
 
@@ -112,13 +115,10 @@ public:
     void SetCameraOffset(const FVector& Offset);
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetThirdPersonMode();
+    void SetCameraThirdPersonMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetPersonInSlopeMode();
-
-    UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetHitchcockLookMode();
+    void SetCameraInSlopeMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void ShakeCamera(float Intensity, float Duration);
@@ -168,8 +168,23 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayLandAnimation();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
-    void PlayOnSlopeAnimation();
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeMoveAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeJumpAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeDoubleJumpAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeFallAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayFadeInSlopeAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayFadeOutSlopeAnimation();
 
     // ========== 角色设置 ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
@@ -211,7 +226,7 @@ public:
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
-    void UpdateCharacterRotationByGravity(float DeltaTime, const FVector& DesiredDirection);
+    void UpdateCharacterRotationByGravity(float DeltaTime);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     FVector GetMovementDirectionFromCamera() const;

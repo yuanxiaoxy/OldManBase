@@ -83,10 +83,6 @@ void AOldManCharacter::Tick(float DeltaTime)
     {
         StateMachine->Update(DeltaTime);
     }
-
-    //后面改
-    OldManMovementComponent->bUseCustomGravity = true;
-    OldManMovementComponent->SetGravityDirection(PerformGravityRaycast());
 }
 
 #pragma region Control Param
@@ -146,9 +142,26 @@ void AOldManCharacter::ChangeSlopeState(bool slopeState)
     bIsOnSlope = slopeState;
 }
 
-bool AOldManCharacter::IsUsingCustomGravity() const
+void AOldManCharacter::SetUseCustomGravity(bool CustomGravityOnEnable)
 {
-    return OldManMovementComponent && OldManMovementComponent->bUseCustomGravity;
+    if (CustomGravityOnEnable)
+    {
+        SetCameraInSlopeMode();
+        CameraComponent->SetCameraInHitchcock(CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetFOV,
+            CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetDistance);
+        UMonoManager::GetInstance()->SetInterval<AOldManCharacter>(0.1f, "PerformGravityRaycast", this,  &AOldManCharacter::SetGravityDirection);
+    }
+    else
+    {
+        SetCameraThirdPersonMode();
+        CameraComponent->SetCameraOutHitchcock();
+        UMonoManager::GetInstance()->ClearTimer("PerformGravityRaycast");
+    }
+}
+
+void AOldManCharacter::SetGravityDirection()
+{
+    OldManMovementComponent->SetGravityDirection(PerformGravityRaycast());
 }
 
 FVector AOldManCharacter::PerformGravityRaycast()
@@ -227,19 +240,14 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
     }
 }
 
-void AOldManCharacter::UpdateCharacterRotationByGravity(float DeltaTime, const FVector& DesiredDirection)
+void AOldManCharacter::UpdateCharacterRotationByGravity(float DeltaTime)
 {
-    if (DesiredDirection.IsNearlyZero())
-        return;
-
     //// 正常重力下的旋转逻辑
     FRotator CurrentRotation = GetActorRotation();
-
-
-    FRotator gravityRotation = GetActorRotation();
+    FRotator gravityRotation = CurrentRotation;
 
     // 如果使用自定义重力，让重力系统处理角色朝向
-    if (OldManMovementComponent && OldManMovementComponent->bUseCustomGravity)
+    if (OldManMovementComponent)
     {
         // 在自定义重力下，让角色始终"站立"在当前的表面上
         FVector NewUp = -OldManMovementComponent->GetGravityDirection();
@@ -311,7 +319,7 @@ void AOldManCharacter::SetCameraOffset(const FVector& Offset)
     }
 }
 
-void AOldManCharacter::SetThirdPersonMode()
+void AOldManCharacter::SetCameraThirdPersonMode()
 {
     if (CameraComponent)
     {
@@ -319,19 +327,13 @@ void AOldManCharacter::SetThirdPersonMode()
     }
 }
 
-void AOldManCharacter::SetPersonInSlopeMode()
+void AOldManCharacter::SetCameraInSlopeMode()
 {
+    auto a = CameraComponent;
+
     if (CameraComponent)
     {
         CameraComponent->SetPersonInSlopeMode();
-    }
-}
-
-void AOldManCharacter::SetHitchcockLookMode()
-{
-    if (CameraComponent)
-    {
-        CameraComponent->SetHitchcockLookMode();
     }
 }
 

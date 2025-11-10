@@ -3,17 +3,22 @@
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
 #include "Engine/OverlapResult.h"
+#include "Character/OldManCharacter.h"
+#include "Curves/CurveFloat.h"
 
 UOldManCameraComponent::UOldManCameraComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
 
+    // 创建TimelineComponent
+    FadeHitchcockZoomTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("HitchcockZoomTimeline"));
+
     // 初始化变量
     CameraBoom = nullptr;
     FollowCamera = nullptr;
-    TargetActor = nullptr;
+    CachedOldManCharacter = nullptr;
     bIsShaking = false;
-    CurrentCameraMode = TEXT("ThirdPerson");
+    CurrentCameraMode = ECameraMode::ThirdPersonMode;
 
     // 修改后的变量初始化
     CurrentCameraRotation = FRotator::ZeroRotator;
@@ -22,6 +27,30 @@ UOldManCameraComponent::UOldManCameraComponent()
     CurrentTurnInput = 0.0f;
     SmoothedLookUpInput = 0.0f;
     SmoothedTurnInput = 0.0f;
+
+    // 初始化重力方向
+    CurrentGravityDirection = FVector::DownVector;
+    DesiredGravityDirection = FVector::DownVector;
+}
+
+void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
+{
+    MyCameraData = CameraData;
+
+    CameraBoom = InCameraBoom;
+    FollowCamera = InFollowCamera;
+    OriginalCameraDistance = MyCameraData.CameraDistance;
+    OriginalCameraFOV = MyCameraData.CameraFOV;
+    CurCameraDistance = MyCameraData.CameraDistance;
+    CurCameraFOV = MyCameraData.CameraFOV;
+
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
+        CameraBoom->SocketOffset = MyCameraData.CameraOffset;
+        CameraBoom->CameraLagSpeed = MyCameraData.CameraLagSpeed;
+        CameraBoom->CameraRotationLagSpeed = MyCameraData.CameraRotationLagSpeed;
+    }
 }
 
 void UOldManCameraComponent::BeginPlay()
@@ -34,18 +63,36 @@ void UOldManCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // 处理输入平滑
-    UpdateInputSmoothing(DeltaTime);
-
-    // 更新相机旋转
-    UpdateCameraRotation(DeltaTime);
-
-    // 更新相机位置
-    UpdateCameraPosition(DeltaTime);
+    UpdateCamera(DeltaTime);
 
     // 每帧重置输入值，确保没有输入时值为0
     CurrentLookUpInput = 0.0f;
     CurrentTurnInput = 0.0f;
+}
+
+void UOldManCameraComponent::UpdateCamera(float DeltaTime)
+{
+    switch (CurrentCameraMode)
+    {
+    case ECameraMode::ThirdPersonMode:
+        // 处理输入平滑
+        UpdateInputSmoothing(DeltaTime);
+        // 更新相机旋转
+        UpdateCameraRotation(DeltaTime);
+        // 更新相机位置
+        UpdateCameraPosition(DeltaTime);
+        break;
+    case ECameraMode::ControlByGravityMode:
+        // 处理输入平滑
+        UpdateInputSmoothing(DeltaTime);
+        // 更新相机旋转
+        UpdateCameraRotationInGravity(DeltaTime);
+        // 更新相机位置
+        UpdateCameraPosition(DeltaTime);
+        break;
+    default:
+        break;
+    }
 }
 
 void UOldManCameraComponent::UpdateInputSmoothing(float DeltaTime)
@@ -57,7 +104,7 @@ void UOldManCameraComponent::UpdateInputSmoothing(float DeltaTime)
 
 void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
 {
-    if (!TargetActor || !CameraBoom || !FollowCamera)
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
         return;
 
     // 应用当前帧的视角输入（不累加）
@@ -70,6 +117,187 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
         DesiredCameraRotation.Pitch = FMath::Clamp(DesiredCameraRotation.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
     }
 
+    SmoothCameraRotate(DeltaTime);
+}
+
+void UOldManCameraComponent::UpdateCameraRotationInGravity(float DeltaTime)
+{
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
+        return;
+
+    // 更新重力对齐
+    UpdateGravityAlignment(DeltaTime);
+
+    // 获取当前重力上方向
+    FVector GravityUp = -CurrentGravityDirection;
+
+    // 获取当前相机旋转
+    FQuat CurrentQuat = DesiredCameraRotation.Quaternion();
+
+    // 应用当前帧的视角输入
+    if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
+    {
+        // 修复鼠标输入方向：将上下输入反转
+        float YawInput = CurrentTurnInput * DeltaTime * 60.0f;
+        float PitchInput = -CurrentLookUpInput * DeltaTime * 60.0f;
+
+        // 将当前旋转分解为重力对齐的局部旋转
+        // 1. 首先找到将世界坐标系对齐到重力坐标系的旋转
+        FQuat GravityAlignment = FQuat::FindBetweenNormals(FVector::UpVector, GravityUp);
+
+        // 2. 将当前旋转转换为重力局部空间
+        FQuat LocalQuat = GravityAlignment.Inverse() * CurrentQuat;
+        FRotator LocalRot = LocalQuat.Rotator();
+
+        // 3. 在重力局部空间中应用输入
+        LocalRot.Yaw += YawInput;
+        LocalRot.Pitch -= PitchInput;
+
+        // 4. 限制俯仰角度
+        LocalRot.Pitch = FMath::Clamp(LocalRot.Pitch, MyCameraData.CameraPitchMin, MyCameraData.CameraPitchMax);
+
+        // 5. 转换回世界空间
+        FQuat NewLocalQuat = LocalRot.Quaternion();
+        FQuat NewWorldQuat = GravityAlignment * NewLocalQuat;
+
+        DesiredCameraRotation = NewWorldQuat.Rotator();
+
+        // 标记有输入时已经处理过旋转
+        bHasRecentInput = true;
+        bNeedsGravityAlignment = false; // 有输入时不需要重力对齐
+    }
+    else
+    {
+        FVector CurrentUp = CurrentQuat.GetUpVector();
+
+        // 检查是否需要重力对齐
+        bool bShouldAlignGravity = false;
+
+        // 如果重力方向发生了变化，需要对齐
+        static FVector LastGravityDirection = FVector::DownVector;
+        bool bGravityChanged = !CurrentGravityDirection.Equals(LastGravityDirection, 0.01f);
+        if (bGravityChanged)
+        {
+            bNeedsGravityAlignment = true;
+            LastGravityDirection = CurrentGravityDirection;
+        }
+
+        // 如果相机上方向与重力上方向偏差过大，需要对齐
+        if (!CurrentUp.Equals(GravityUp, 0.2f) && !bHasRecentInput)
+        {
+            bNeedsGravityAlignment = true;
+        }
+
+        // 执行重力对齐
+        if (bNeedsGravityAlignment)
+        {
+            // 使用更精确的重力对齐方法
+            // 保持相机的水平方向，只调整上下方向
+            FVector CurrentRight = CurrentQuat.GetRightVector();
+            FVector CurrentForward = CurrentQuat.GetForwardVector();
+
+            // 重新计算正确的上方向
+            FVector NewUp = -CurrentGravityDirection;
+
+            // 确保前方向与上方向垂直
+            FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp).GetSafeNormal();
+            if (NewForward.IsNearlyZero())
+            {
+                // 如果投影结果为零，使用默认前方向
+                NewForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewUp).GetSafeNormal();
+            }
+
+            // 重新计算右方向
+            FVector NewRight = FVector::CrossProduct(NewUp, NewForward).GetSafeNormal();
+
+            // 重新计算前方向，确保正交
+            NewForward = FVector::CrossProduct(NewRight, NewUp).GetSafeNormal();
+
+            // 创建新的旋转
+            FQuat NewQuat = FRotationMatrix::MakeFromXZ(NewForward, NewUp).ToQuat();
+
+            // 平滑过渡到新的旋转
+            if (MyCameraData.bUseCameraSmoothing)
+            {
+                FQuat ResultQuat = FQuat::Slerp(CurrentQuat, NewQuat, DeltaTime * GravityRotationInterpSpeed);
+                DesiredCameraRotation = ResultQuat.Rotator();
+
+                // 检查是否已经对齐完成
+                FVector ResultUp = ResultQuat.GetUpVector();
+                if (ResultUp.Equals(NewUp, 0.01f))
+                {
+                    bNeedsGravityAlignment = false;
+                }
+            }
+            else
+            {
+                DesiredCameraRotation = NewQuat.Rotator();
+                bNeedsGravityAlignment = false;
+            }
+        }
+
+        // 重置输入标记
+        bHasRecentInput = false;
+    }
+
+    SmoothCameraRotate(DeltaTime);
+}
+
+void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
+{
+    if (!CachedOldManCharacter || !CameraBoom || !FollowCamera)
+        return;
+
+    // 处理相机震动
+    if (bIsShaking)
+    {
+        ShakeElapsed += DeltaTime;
+
+        if (ShakeElapsed < ShakeDuration)
+        {
+            float Time = GetWorld()->GetTimeSeconds();
+            FVector ShakeOffset = FVector(
+                FMath::Sin(Time * 50.0f) * ShakeIntensity,
+                FMath::Cos(Time * 45.0f) * ShakeIntensity,
+                FMath::Sin(Time * 55.0f) * ShakeIntensity
+            );
+
+            FollowCamera->AddLocalOffset(ShakeOffset);
+        }
+        else
+        {
+            bIsShaking = false;
+        }
+    }
+}
+
+// 新增：重力对齐更新
+void UOldManCameraComponent::UpdateGravityAlignment(float DeltaTime)
+{
+    if (!CachedOldManCharacter)
+        return;
+
+    // 获取角色的重力方向
+    if (CachedOldManCharacter)
+    {
+        DesiredGravityDirection = CachedOldManCharacter->GetGravityDirection();
+    }
+    else
+    {
+        DesiredGravityDirection = FVector::DownVector;
+    }
+
+    // 平滑过渡重力方向
+    CurrentGravityDirection = FMath::VInterpTo(
+        CurrentGravityDirection,
+        DesiredGravityDirection,
+        DeltaTime,
+        GravityRotationInterpSpeed
+    );
+}
+
+void UOldManCameraComponent::SmoothCameraRotate(float DeltaTime)
+{
     // 平滑插值相机旋转
     if (MyCameraData.bUseCameraSmoothing)
     {
@@ -97,54 +325,9 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
     }
 }
 
-void UOldManCameraComponent::UpdateCameraPosition(float DeltaTime)
+void UOldManCameraComponent::SetCameraTarget(AOldManCharacter* targetActor)
 {
-    if (!TargetActor || !CameraBoom || !FollowCamera)
-        return;
-
-    // 处理相机震动
-    if (bIsShaking)
-    {
-        ShakeElapsed += DeltaTime;
-
-        if (ShakeElapsed < ShakeDuration)
-        {
-            float Time = GetWorld()->GetTimeSeconds();
-            FVector ShakeOffset = FVector(
-                FMath::Sin(Time * 50.0f) * ShakeIntensity,
-                FMath::Cos(Time * 45.0f) * ShakeIntensity,
-                FMath::Sin(Time * 55.0f) * ShakeIntensity
-            );
-
-            FollowCamera->AddLocalOffset(ShakeOffset);
-        }
-        else
-        {
-            bIsShaking = false;
-        }
-    }
-}
-
-void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData)
-{
-    MyCameraData = CameraData;
-
-    CameraBoom = InCameraBoom;
-    FollowCamera = InFollowCamera;
-    CurCameraDistance = MyCameraData.CameraDistance;
-
-    if (CameraBoom)
-    {
-        CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
-        CameraBoom->SocketOffset = MyCameraData.CameraOffset;
-        CameraBoom->CameraLagSpeed = MyCameraData.CameraLagSpeed;
-        CameraBoom->CameraRotationLagSpeed = MyCameraData.CameraRotationLagSpeed;
-    }
-}
-
-void UOldManCameraComponent::SetCameraTarget(AActor* targetActor)
-{
-    this->TargetActor = targetActor;
+    CachedOldManCharacter = targetActor;
 }
 
 void UOldManCameraComponent::SetCameraOffset(const FVector& Offset)
@@ -159,7 +342,7 @@ void UOldManCameraComponent::SetCameraOffset(const FVector& Offset)
 void UOldManCameraComponent::SetCameraDistance(float Distance)
 {
     CurCameraDistance = Distance;
-    if (CameraBoom)
+    if (CameraBoom && NotToControlCameraDisState)
     {
         CameraBoom->TargetArmLength = CurCameraDistance;
     }
@@ -187,7 +370,7 @@ void UOldManCameraComponent::ShakeCamera(float Intensity, float Duration)
 
 void UOldManCameraComponent::SetThirdPersonMode()
 {
-    CurrentCameraMode = TEXT("ThirdPerson");
+    CurrentCameraMode = ECameraMode::ThirdPersonMode;
     if (CameraBoom && FollowCamera)
     {
         CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
@@ -198,22 +381,9 @@ void UOldManCameraComponent::SetThirdPersonMode()
     }
 }
 
-void UOldManCameraComponent::SetFirstPersonMode()
+void UOldManCameraComponent::SetPersonInSlopeMode()
 {
-    CurrentCameraMode = TEXT("FirstPerson");
-    if (CameraBoom && FollowCamera)
-    {
-        CameraBoom->TargetArmLength = 0.0f;
-        CameraBoom->bUsePawnControlRotation = true;
-        CameraBoom->bEnableCameraLag = false;
-        CameraBoom->bEnableCameraRotationLag = false;
-        FollowCamera->bUsePawnControlRotation = true;
-    }
-}
-
-void UOldManCameraComponent::SetFreeLookMode()
-{
-    CurrentCameraMode = TEXT("FreeLook");
+    CurrentCameraMode = ECameraMode::ControlByGravityMode;
     if (CameraBoom && FollowCamera)
     {
         CameraBoom->TargetArmLength = MyCameraData.CameraDistance;
@@ -221,6 +391,83 @@ void UOldManCameraComponent::SetFreeLookMode()
         CameraBoom->bEnableCameraLag = true;
         CameraBoom->bEnableCameraRotationLag = true;
         FollowCamera->bUsePawnControlRotation = false;
+    }
+}
+
+void UOldManCameraComponent::FadeInHitchcock(float Alpha)
+{
+    if (!FollowCamera) return;
+
+    // 使用平滑插值
+    float SmoothAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+
+    // 插值FOV
+    CurCameraFOV = FMath::Lerp(OriginalCameraFOV, TargetCameraFOV, SmoothAlpha);
+    FollowCamera->SetFieldOfView(CurCameraFOV);
+
+    // 插值相机距离
+    CurCameraDistance = FMath::Lerp(OriginalCameraDistance, TargetCameraDistance, SmoothAlpha);
+    SetCameraDistance(CurCameraDistance);
+}
+
+void UOldManCameraComponent::FadeOutHitchcock(float Alpha)
+{
+    if (!FollowCamera) return;
+
+    // 使用平滑插值
+    float SmoothAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+
+    // 插值FOV
+    CurCameraFOV = FMath::Lerp(TargetCameraFOV, OriginalCameraFOV, SmoothAlpha);
+    FollowCamera->SetFieldOfView(CurCameraFOV);
+
+    // 插值相机距离
+    CurCameraDistance = FMath::Lerp(TargetCameraDistance, OriginalCameraDistance, SmoothAlpha);
+    SetCameraDistance(CurCameraDistance);
+}
+
+void UOldManCameraComponent::SetCameraInHitchcock(float TargetFOV, float TargetDistance)
+{
+    if (FMath::IsNearlyEqual(CurCameraFOV, TargetCameraFOV, 0.1f) &&
+        FMath::IsNearlyEqual(CurCameraDistance, TargetCameraDistance, 0.1f))
+    {
+        return;
+    }
+
+    NotToControlCameraDisState = true;
+    TargetCameraFOV = TargetFOV;
+    TargetCameraDistance = TargetCameraDistance;
+
+    if (FadeHitchcockZoomTimeline && 
+        CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeInHitchcockCurve)
+    {
+        auto fadeInCurve = CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeInHitchcockCurve;
+        FadeInHitchcockTimeLineFloat.BindUFunction(this, FName("FadeInHitchcock"));
+        FadeHitchcockZoomTimeline->AddInterpFloat(
+            fadeInCurve, FadeInHitchcockTimeLineFloat);
+        FadeHitchcockZoomTimeline->Play();
+    }
+
+}
+
+void UOldManCameraComponent::SetCameraOutHitchcock()
+{
+    if (FMath::IsNearlyEqual(CurCameraFOV, OriginalCameraFOV, 0.1f) &&
+        FMath::IsNearlyEqual(CurCameraDistance, OriginalCameraDistance, 0.1f))
+    {
+        return;
+    }
+
+    NotToControlCameraDisState = false;
+
+    if (FadeHitchcockZoomTimeline &&
+        CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeOutHitchcockCurve)
+    {
+        auto fadeOutCurve = CachedOldManCharacter->CharacterAttributes->OldManCameraHitchcockData.FadeOutHitchcockCurve;
+        FadeOutHitchcockTimeLineFloat.BindUFunction(this, FName("FadeOutHitchcock"));
+        FadeHitchcockZoomTimeline->AddInterpFloat(
+            fadeOutCurve, FadeOutHitchcockTimeLineFloat, FName("FadeOutHitchcock"), FName("FadeOutHitchcock"));
+        FadeHitchcockZoomTimeline->Play();
     }
 }
 

@@ -94,10 +94,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	UOldManCameraComponent* GetCameraComponent() const;
 
-	// 设置相机模式
-	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void SetCameraMode(FName NewMode);
-
 	// 相机缩放
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	void ZoomCamera(float Delta);

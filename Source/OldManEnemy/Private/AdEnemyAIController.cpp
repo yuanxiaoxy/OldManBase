@@ -4,6 +4,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "AdEnemyCharacter.h"
+#include "OldManEnemyManager.h"
+
 
 
 AAdEnemyAIController::AAdEnemyAIController()
@@ -21,26 +23,43 @@ void AAdEnemyAIController::BeginPlay()
 void AAdEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
-	AAdEnemyCharacter* EnemyCharacter = Cast<AAdEnemyCharacter>(InPawn);
-	if (EnemyCharacter && EnemyCharacter->BehaviorTree && EnemyCharacter->BehaviorTree->BlackboardAsset)
+	UE_LOG(LogTemp, Warning, TEXT("AAdEnemyAIController.OnProssess is called."));
+	AAdEnemyCharacter* PossessedEnemy = Cast<AAdEnemyCharacter>(InPawn);
+	if (!PossessedEnemy)
 	{
-		BlackboardComponent->InitializeBlackboard(*(EnemyCharacter->BehaviorTree->BlackboardAsset));
-		BehaviorTreeComponent->StartTree(*EnemyCharacter->BehaviorTree);
+		UE_LOG(LogTemp, Error, TEXT("Failed to possess pawn as AAdEnemyCharacter!"));
+		return;
+	}
+
+
+	if (PossessedEnemy->BehaviorTree && PossessedEnemy->BehaviorTree->BlackboardAsset)
+	{
+		// 初始化黑板组件
+		if (BlackboardComponent && BlackboardComponent->InitializeBlackboard(*(PossessedEnemy->BehaviorTree->BlackboardAsset)))
+		{
+			// 启动行为树
+			RunBehaviorTree(PossessedEnemy->BehaviorTree);
+			UE_LOG(LogTemp, Warning, TEXT("Behavior Tree started successfully for %s!"), *PossessedEnemy->GetName());
+		}
+	}
+	
+}
+void AAdEnemyAIController::Tick(float DeltaTime)
+{
+	if (EnemyCharacter->DectectPlayer()) 
+	{
+		ChangeState(EAdMonsterState::Tracking);
 	}
 }
 
-void AAdEnemyAIController::SetTargetPlayer(AActor* PlayerActor)
+EAdMonsterState AAdEnemyAIController::GetCurrentState()
 {
-	if (BlackboardComponent)
-	{
-		BlackboardComponent->SetValueAsObject("TargetPlayer", PlayerActor);
-	}
+	return EnemyCharacter->CurrentState;
 }
 
-void AAdEnemyAIController::NotifyOtherMonsters(AActor* SpottedPlayer)
+void AAdEnemyAIController::NotifyOtherMonsters()
 {
-	// 实现通知逻辑
+	TSingleton<UOldManEnemyManager>::GetInstance()->NotifyMonstersTracking();
 }
 
 void AAdEnemyAIController::ChangeState(EAdMonsterState state) 
@@ -62,33 +81,3 @@ void AAdEnemyAIController::ChangeState(EAdMonsterState state)
 }
 
 
-bool AAdEnemyAIController::IsPlayerDetected(float radius)
-{
-	// 1. 先检查所有必要的指针是否有效
-	if (!BlackboardComponent || !GetPawn())
-	{
-		return false;
-	}
-
-	AActor* PlayerActor = Cast<AActor>(BlackboardComponent->GetValueAsObject("TargetPlayer"));
-
-	// 2. 添加更严格的空指针检查
-	if (!PlayerActor || !EnemyCharacter)
-	{
-		return false;
-	}
-
-	// 3. 计算XY平面距离
-	float DistanceToPlayer = FVector::DistXY(EnemyCharacter->GetActorLocation(),
-		PlayerActor->GetActorLocation());
-
-	// 4. 距离检测
-	if (DistanceToPlayer <= radius)
-	{
-		// 5. 改变状态并返回true
-		ChangeState(EAdMonsterState::Tracking);
-		return true;
-	}
-
-	return false;
-}

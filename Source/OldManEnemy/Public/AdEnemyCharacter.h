@@ -10,7 +10,7 @@
 
 // 前向声明放在这里
 class UBehaviorTree;
-
+class AOldManCharacter;
 
 UCLASS(Blueprintable)
 class OLDMANENEMY_API AAdEnemyCharacter : public ACharacter
@@ -41,14 +41,20 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 AttackPower = 1;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Patrol")
-    AActor* StartPoint;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    AOldManCharacter* Player;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
     float AttackRange = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
     float MoveSpeed = 300.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+    float DetectRadius = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+    float AttackRadius = 5.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
     UBehaviorTree* BehaviorTree;
@@ -58,11 +64,9 @@ public:
     UFUNCTION()
     void ChangeState(EAdMonsterState NewState);
 
-    UFUNCTION(BlueprintCallable, Category = "AI")
-    void SetNextPatrolPosition();
     // 圆锥攻击检测
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    bool PerformConeAttack();  
+    bool DectectPlayer();  
     // 激光攻击
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void PerformLaserAttack();  
@@ -71,8 +75,6 @@ public:
     void TakeDamage(int32 DamageAmount);
 
 
-private:
-    AActor* _currentPoint;
 };
 
 

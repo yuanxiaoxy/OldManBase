@@ -25,6 +25,8 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void OnPossess(APawn* InPawn) override;
+    virtual void Tick(float DeltaTime) override;
+
 
     // AI组件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -40,17 +42,12 @@ public:
     // 获取Blackboard
     UBlackboardComponent* GetBlackboard() const { return BlackboardComponent; }
 
-    // 设置目标玩家
-    UFUNCTION(BlueprintCallable, Category = "AI")
-    void SetTargetPlayer(AActor* PlayerActor);
+    EAdMonsterState GetCurrentState();
 
     // 通知其他怪物
     UFUNCTION(BlueprintCallable, Category = "AI")
-    void NotifyOtherMonsters(AActor* SpottedPlayer);
+    void NotifyOtherMonsters();
 
-    UFUNCTION(BlueprintCallable, Category = "AI")
-    bool IsPlayerDetected(float radius);
-	
     UFUNCTION(BlueprintCallable, Category = "AI")
     void ChangeState(EAdMonsterState state);
 

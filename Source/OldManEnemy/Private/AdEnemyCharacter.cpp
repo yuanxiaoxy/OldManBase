@@ -3,6 +3,10 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h" // 添加这一行！
 #include "BehaviorTree/BehaviorTree.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/DamageEvents.h"
+#include "Character/OldManCharacter.h"
+
 
 AAdEnemyCharacter::AAdEnemyCharacter()
 {
@@ -10,13 +14,15 @@ AAdEnemyCharacter::AAdEnemyCharacter()
 
     // 设置移动速度
     GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    Player = Cast<AOldManCharacter>( UGameplayStatics::GetPlayerCharacter(this, 0));
+
 }
 
 void AAdEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
     CurrentState = EAdMonsterState::Patrol;
-    _currentPoint = StartPoint;
+   
 }
 
 void AAdEnemyCharacter::Tick(float DeltaTime)
@@ -33,25 +39,41 @@ void AAdEnemyCharacter::ChangeState(EAdMonsterState NewState)
     UE_LOG(LogTemp, Warning, TEXT("State changed from %d to %d"), (int32)PreviousState, (int32)NewState);
 }
 
-bool AAdEnemyCharacter::PerformConeAttack()
+bool AAdEnemyCharacter::DectectPlayer()
 {
-    // 实现圆锥检测逻辑
-    // 返回是否击中玩家
-    return false; // 暂时返回false
+        // 2. 添加更严格的空指针检查
+        if (!Player)
+        {
+            return false;
+        }
+
+        // 3. 计算XY平面距离
+        float DistanceToPlayer = FVector::DistXY(GetActorLocation(),
+            Player->GetActorLocation());
+
+        // 4. 距离检测
+        if (DistanceToPlayer <= DetectRadius)
+        {
+            return true;
+        }
+
+        return false;
+    
 }
 
 void AAdEnemyCharacter::PerformLaserAttack()
 {
-    // 实现激光攻击逻辑
+    if (!Player) return;
+
+    float DistanceToPlayer = FVector::DistXY(GetActorLocation(), Player->GetActorLocation());
+    if (DistanceToPlayer <= AttackRadius)
+    {     
+        FDamageEvent DamageEvent;
+        Player->TakeDamage(AttackPower, DamageEvent, GetController(), this);
+    }
 }
 
-void AAdEnemyCharacter::SetNextPatrolPosition()
-{
-    /*if (_currentPoint != nullptr)
-    {
-        _currentPoint = StartPoint.
-    }*/
-}
+
 
 
 void AAdEnemyCharacter::TakeDamage(int32 DamageAmount)
@@ -64,6 +86,6 @@ void AAdEnemyCharacter::TakeDamage(int32 DamageAmount)
     }
     else
     {
-        ChangeState(EAdMonsterState::Hurt);
+        /*ChangeState(EAdMonsterState::Hurt);*/
     }
 }

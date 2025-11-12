@@ -18,6 +18,7 @@ void AAdEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
 	EnemyCharacter = Cast<AAdEnemyCharacter>(GetPawn());
+	TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Add(this);
 }
 
 void AAdEnemyAIController::OnPossess(APawn* InPawn)
@@ -46,10 +47,7 @@ void AAdEnemyAIController::OnPossess(APawn* InPawn)
 }
 void AAdEnemyAIController::Tick(float DeltaTime)
 {
-	if (EnemyCharacter->DectectPlayer()) 
-	{
-		ChangeState(EAdMonsterState::Tracking);
-	}
+	
 }
 
 EAdMonsterState AAdEnemyAIController::GetCurrentState()
@@ -59,6 +57,8 @@ EAdMonsterState AAdEnemyAIController::GetCurrentState()
 
 void AAdEnemyAIController::NotifyOtherMonsters()
 {
+	if (hasTracked)
+		return;
 	TSingleton<UOldManEnemyManager>::GetInstance()->NotifyMonstersTracking();
 }
 
@@ -77,7 +77,7 @@ void AAdEnemyAIController::ChangeState(EAdMonsterState state)
 	BlackboardComponent->SetValueAsEnum("CurrentState", static_cast<uint8>(state));
 
 	// 可选：添加调试输出
-	UE_LOG(LogTemp, Warning, TEXT("Enemy state changed to: %d"), static_cast<uint8>(state));
+	//UE_LOG(LogTemp, Warning, TEXT("Enemy state changed to: %d"), static_cast<uint8>(state));
 }
 
 

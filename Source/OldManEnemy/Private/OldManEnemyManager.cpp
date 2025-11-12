@@ -20,12 +20,15 @@ void UOldManEnemyManager::InitializeSingleton()
 {
 
 }
+
+
 void UOldManEnemyManager::NotifyMonstersTracking()
 {
     for (AAdEnemyAIController* enemy : Enemys)
     {
-        if (enemy != nullptr && enemy->GetCurrentState() != EAdMonsterState::Tracking) // 重要的空指针检查！
+        if (enemy != nullptr && !enemy->hasTracked) // 重要的空指针检查！
         {
+            enemy->hasTracked = true;
             enemy->ChangeState(EAdMonsterState::Tracking);
         }
     }

@@ -35,6 +35,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UBlackboardComponent* BlackboardComponent;
 
+    
+
+
     UPROPERTY()
     AAdEnemyCharacter* EnemyCharacter;
 
@@ -43,6 +46,9 @@ public:
     UBlackboardComponent* GetBlackboard() const { return BlackboardComponent; }
 
     EAdMonsterState GetCurrentState();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool hasTracked = false;
 
     // 通知其他怪物
     UFUNCTION(BlueprintCallable, Category = "AI")

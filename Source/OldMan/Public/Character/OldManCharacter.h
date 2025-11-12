@@ -98,21 +98,14 @@ public:
     void ChangeSlopeState(bool slopeState);
 
     // ========== 重力控制 ==========
-    // 重力控制
-    bool bCustomGravityEnabled;
-    float RaycastTimer;
 
     UFUNCTION(BlueprintCallable, Category = "Gravity")
-    void UpdateGravityByRaycast();
+    void SetUseCustomGravity(bool CustomGravityOnEnable);
 
     UFUNCTION(BlueprintCallable, Category = "Gravity")
-    void EnableCustomGravity(bool bEnable);
+    void SetGravityDirection();
 
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    bool IsUsingCustomGravity() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Gravity")
-    FVector GetCurrentGravityDirection() const;
+    FVector PerformGravityRaycast();
 
     // ========== 相机控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -122,13 +115,10 @@ public:
     void SetCameraOffset(const FVector& Offset);
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetThirdPersonMode();
+    void SetCameraThirdPersonMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFirstPersonMode();
-
-    UFUNCTION(BlueprintCallable, Category = "Camera")
-    void SetFreeLookMode();
+    void SetCameraInSlopeMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void ShakeCamera(float Intensity, float Duration);
@@ -178,6 +168,24 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayLandAnimation();
 
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeMoveAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeJumpAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeDoubleJumpAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayOnSlopeFallAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayFadeInSlopeAnimation();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
+    void PlayFadeOutSlopeAnimation();
+
     // ========== 角色设置 ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
@@ -216,6 +224,9 @@ public:
     // ========== 旋转控制 ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
+
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void UpdateCharacterRotationByGravity(float DeltaTime);
 
     UFUNCTION(BlueprintCallable, Category = "Movement")
     FVector GetMovementDirectionFromCamera() const;

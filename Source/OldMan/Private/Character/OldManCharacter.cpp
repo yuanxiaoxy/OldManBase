@@ -12,6 +12,7 @@
 #include "Character/States/OldManDeadState.h"
 #include "Components/InputComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GlobalTagName.h"
 #include "GlobalEventName.h"
 
@@ -46,7 +47,8 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     // 创建跟随相机组件
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-    FollowCamera->bUsePawnControlRotation = false;
+    //FollowCamera->bUsePawnControlRotation = false;
+    FollowCamera->bUsePawnControlRotation = true;
 
     // 创建相机控制组件
     CameraComponent = CreateDefaultSubobject<UOldManCameraComponent>(TEXT("CameraComponent"));
@@ -70,7 +72,6 @@ void AOldManCharacter::BeginPlay()
     InitializeStateMachine();
     InitializeEvent();
 
-    EnableCustomGravity(true);
 }
 
 void AOldManCharacter::Tick(float DeltaTime)
@@ -81,17 +82,6 @@ void AOldManCharacter::Tick(float DeltaTime)
     if (StateMachine && StateMachine->IsRunning())
     {
         StateMachine->Update(DeltaTime);
-    }
-
-    // 持续射线检测更新重力
-    if (bCustomGravityEnabled)
-    {
-        RaycastTimer += DeltaTime;
-        if (RaycastTimer >= 0.1f) // 每0.1秒检测一次
-        {
-            UpdateGravityByRaycast();
-            RaycastTimer = 0.0f;
-        }
     }
 }
 
@@ -152,35 +142,77 @@ void AOldManCharacter::ChangeSlopeState(bool slopeState)
     bIsOnSlope = slopeState;
 }
 
-void AOldManCharacter::UpdateGravityByRaycast()
+void AOldManCharacter::SetUseCustomGravity(bool CustomGravityOnEnable)
 {
-    if (OldManMovementComponent && bCustomGravityEnabled)
+    if (CustomGravityOnEnable)
     {
-        OldManMovementComponent->SetGravityByRaycast(false);
+        SetCameraInSlopeMode();
+        CameraComponent->SetCameraInHitchcock(CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetFOV,
+            CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetDistance);
+        UMonoManager::GetInstance()->SetInterval<AOldManCharacter>(0.1f, "PerformGravityRaycast", this,  &AOldManCharacter::SetGravityDirection);
+    }
+    else
+    {
+        SetCameraThirdPersonMode();
+        CameraComponent->SetCameraOutHitchcock();
+        UMonoManager::GetInstance()->ClearTimer("PerformGravityRaycast");
     }
 }
 
-void AOldManCharacter::EnableCustomGravity(bool bEnable)
+void AOldManCharacter::SetGravityDirection()
 {
-    bCustomGravityEnabled = bEnable;
-    if (!bEnable && OldManMovementComponent)
-    {
-        OldManMovementComponent->ResetGravityDirection(true);
-    }
+    OldManMovementComponent->SetGravityDirection(PerformGravityRaycast());
 }
 
-bool AOldManCharacter::IsUsingCustomGravity() const
+FVector AOldManCharacter::PerformGravityRaycast()
 {
-    return OldManMovementComponent && OldManMovementComponent->bUseCustomGravity;
-}
+    if (!GetCapsuleComponent())
+        return GetGravityDirection();
 
-FVector AOldManCharacter::GetCurrentGravityDirection() const
-{
-    if (OldManMovementComponent)
+    // 获取胶囊体信息
+    float CapsuleRadius, CapsuleHalfHeight;
+    GetCapsuleComponent()->GetScaledCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
+
+    FVector RayStart = GetActorLocation();
+
+    // 使用当前重力方向作为射线方向
+    FVector CurrentGravityDir = GetGravityDirection();
+    FVector RayDirection = CurrentGravityDir;
+    FVector RayEnd = RayStart + RayDirection * 200.0f; // 使用固定距离200
+
+    FCollisionQueryParams CollisionParams;
+    CollisionParams.AddIgnoredActor(this);
+
+    FHitResult Hit;
+    bool bHit = GetWorld()->SweepSingleByChannel(
+        Hit,
+        RayStart,
+        RayEnd,
+        FQuat::Identity,
+        ECC_WorldStatic,
+        FCollisionShape::MakeSphere(CapsuleRadius * 0.8f),
+        CollisionParams
+    );
+
+    // 调试绘制
+    if (true) // 可以添加调试开关
     {
-        return OldManMovementComponent->CurrentGravityDirection;
+        FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+        DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() - GetGravityDirection() * 100.0f, DebugColor, false, 0.1f, 0, 2.0f);
+
+        if (bHit)
+        {
+            DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Yellow, false, 0.1f, 0);
+            DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 50.0f, FColor::Blue, false, 0.1f, 0, 2.0f);
+        }
     }
-    return FVector(0, 0, -1);
+
+    if (bHit)
+    {
+        return -Hit.ImpactNormal;
+    }
+
+    return GetGravityDirection();
 }
 
 // 修改 UpdateCharacterRotation 以兼容自定义重力：
@@ -189,46 +221,72 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
     if (DesiredDirection.IsNearlyZero())
         return;
 
-    // 如果使用自定义重力，让重力系统处理角色朝向
-    if (OldManMovementComponent && OldManMovementComponent->bUseCustomGravity)
-    {
-        // 在自定义重力下，我们只调整Yaw，让重力系统处理角色的整体朝向
-        FRotator CurrentRotation = GetActorRotation();
-        FRotator TargetRotation = DesiredDirection.Rotation();
+    // 正常重力下的旋转逻辑
+    FRotator CurrentRotation = GetActorRotation();
+    FRotator TargetRotation = DesiredDirection.Rotation();
 
-        // 只插值Yaw
-        float NewYaw = FMath::RInterpTo(
-            FRotator(0, CurrentRotation.Yaw, 0),
-            FRotator(0, TargetRotation.Yaw, 0),
+    // 计算旋转差异，避免小角度的抖动
+    float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
+
+    if (YawDifference > 1.0f)
+    {
+        FRotator NewRotation = FMath::RInterpTo(
+            CurrentRotation,
+            TargetRotation,
             DeltaTime,
             CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
-        ).Yaw;
-
-        // 保持当前的Pitch和Roll（由重力系统控制）
-        FRotator NewRotation = CurrentRotation;
-        NewRotation.Yaw = NewYaw;
-
+        );
         SetActorRotation(NewRotation);
     }
-    else
-    {
-        // 正常重力下的旋转逻辑
-        FRotator CurrentRotation = GetActorRotation();
-        FRotator TargetRotation = DesiredDirection.Rotation();
+}
 
-        // 计算旋转差异，避免小角度的抖动
-        float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
-        if (YawDifference > 1.0f)
+void AOldManCharacter::UpdateCharacterRotationByGravity(float DeltaTime)
+{
+    //// 正常重力下的旋转逻辑
+    FRotator CurrentRotation = GetActorRotation();
+    FRotator gravityRotation = CurrentRotation;
+
+    // 如果使用自定义重力，让重力系统处理角色朝向
+    if (OldManMovementComponent)
+    {
+        // 在自定义重力下，让角色始终"站立"在当前的表面上
+        FVector NewUp = -OldManMovementComponent->GetGravityDirection();
+
+        // 获取当前的前方向
+        FVector CurrentForward = GetActorForwardVector();
+
+        // 将前方向投影到新的"地面"平面上
+        FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp).GetSafeNormal();
+
+        // 如果投影后长度为0，使用默认前方向
+        if (NewForward.IsNearlyZero())
         {
-            FRotator NewRotation = FMath::RInterpTo(
-                CurrentRotation,
-                TargetRotation,
-                DeltaTime,
-                CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
-            );
-            SetActorRotation(FRotator(0.0f, NewRotation.Yaw, 0.0f));
+            // 尝试使用世界前方向
+            NewForward = FVector::VectorPlaneProject(FVector(1, 0, 0), NewUp).GetSafeNormal();
+            if (NewForward.IsNearlyZero())
+            {
+                // 如果还是零，使用世界右方向
+                NewForward = FVector::VectorPlaneProject(FVector(0, 1, 0), NewUp).GetSafeNormal();
+            }
         }
+
+        // 计算右向量
+        FVector NewRight = FVector::CrossProduct(NewUp, NewForward).GetSafeNormal();
+
+        // 重新计算前向量以确保正交
+        NewForward = FVector::CrossProduct(NewRight, NewUp).GetSafeNormal();
+
+        // 构建旋转矩阵
+        gravityRotation = FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
     }
+
+     FRotator NewRotation = FMath::RInterpTo(
+         CurrentRotation,
+         gravityRotation,
+         DeltaTime,
+         CharacterAttributes ? CharacterAttributes->RotationBlendInterpSpeed : 8.0f
+     );
+     SetActorRotation(NewRotation);
 }
 
 FVector AOldManCharacter::GetMovementDirectionFromCamera() const
@@ -261,7 +319,7 @@ void AOldManCharacter::SetCameraOffset(const FVector& Offset)
     }
 }
 
-void AOldManCharacter::SetThirdPersonMode()
+void AOldManCharacter::SetCameraThirdPersonMode()
 {
     if (CameraComponent)
     {
@@ -269,19 +327,13 @@ void AOldManCharacter::SetThirdPersonMode()
     }
 }
 
-void AOldManCharacter::SetFirstPersonMode()
+void AOldManCharacter::SetCameraInSlopeMode()
 {
-    if (CameraComponent)
-    {
-        CameraComponent->SetFirstPersonMode();
-    }
-}
+    auto a = CameraComponent;
 
-void AOldManCharacter::SetFreeLookMode()
-{
     if (CameraComponent)
     {
-        CameraComponent->SetFreeLookMode();
+        CameraComponent->SetPersonInSlopeMode();
     }
 }
 
@@ -479,10 +531,6 @@ void AOldManCharacter::InitializeParam()
     bHasJumpInput = false;
     bHasAttackInput = false;
     bInCanPullState = true;
-
-    // 重力系统设置
-    bCustomGravityEnabled = true; // 默认启用自定义重力
-    RaycastTimer = 0.0f;
 
     // 落地检测改进
     LastLandingTime = 0.0f;

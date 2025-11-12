@@ -302,31 +302,6 @@ UOldManCameraComponent* AOldManPersonPlayerController::GetCameraComponent() cons
 	return nullptr;
 }
 
-void AOldManPersonPlayerController::SetCameraMode(FName NewMode)
-{
-	CurrentCameraMode = NewMode;
-
-	UOldManCameraComponent* CameraComp = GetCameraComponent();
-	if (!CameraComp)
-		return;
-
-	if (NewMode == TEXT("ThirdPerson"))
-	{
-		CameraComp->SetThirdPersonMode();
-		UE_LOG(LogTemp, Log, TEXT("Camera mode switched to Third Person"));
-	}
-	else if (NewMode == TEXT("FirstPerson"))
-	{
-		CameraComp->SetFirstPersonMode();
-		UE_LOG(LogTemp, Log, TEXT("Camera mode switched to First Person"));
-	}
-	else if (NewMode == TEXT("FreeLook"))
-	{
-		CameraComp->SetFreeLookMode();
-		UE_LOG(LogTemp, Log, TEXT("Camera mode switched to Free Look"));
-	}
-}
-
 void AOldManPersonPlayerController::ZoomCamera(float Delta)
 {
 	UOldManCameraComponent* CameraComp = GetCameraComponent();

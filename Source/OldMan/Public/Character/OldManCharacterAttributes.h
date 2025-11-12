@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Curves/CurveFloat.h"
 #include "OldManCharacterAttributes.generated.h"
 
 USTRUCT(BlueprintType)
@@ -10,6 +11,9 @@ struct FOldManCameraData
     GENERATED_BODY()
 
     // ========== 属性 ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+    float CameraFOV = 90.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     float CameraDistance = 300.0f;
 
@@ -61,6 +65,25 @@ struct FOldManDetectionData
     float DebugDuration = 5.0f;
 };
 
+USTRUCT(BlueprintType)
+struct FOldManCameraHitchcockData
+{
+    GENERATED_BODY()
+
+    // ========== 属性 ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Hitchcock")
+    UCurveFloat* FadeInHitchcockCurve;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Hitchcock")
+    UCurveFloat* FadeOutHitchcockCurve;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Hitchcock")
+    float HitchcockZoomTargetFOV;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Hitchcock")
+    float HitchcockZoomTargetDistance;
+};
+
 UCLASS(BlueprintType, Blueprintable)
 class OLDMAN_API UOldManCharacterAttributes : public UDataAsset
 {
@@ -105,9 +128,38 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float RotationRate = 10.0f;
 
+    //滑坡属性
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float MoveSpeedInSlope = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope", meta = (ClampMin = 1.0f, ClampMax = 2.0f))
+    float MoveSpeedMultiInSlope = 1.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope", meta = (ClampMin = 1.0f, ClampMax = 10.0f))
+    float RotatorSpeedMultiInSlope = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float MoveSpeedInJumpInSlope = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float MoveSpeedInDoubleJumpInSlope = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float MoveSpeedInAirInSlope = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float FadeInSlopeStateTime = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")
+    float FadeOutSlopeStateTime = 0.1f;
+
     // 相机属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     FOldManCameraData OldManCameraData;
+
+    // 相机属性
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Hitchcock")
+    FOldManCameraHitchcockData OldManCameraHitchcockData;
 
     // 范围检测属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Detection")

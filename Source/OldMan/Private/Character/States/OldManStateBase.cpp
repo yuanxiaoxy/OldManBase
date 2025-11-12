@@ -4,7 +4,7 @@
 #include "EventManager/MyEventManager.h"
 #include "Character/States/OldManDeadState.h"
 #include "Character/States/OldManFallingState.h"
-#include "Character/States/OldManOnSlopeState.h"
+#include "Character/States/SlopeState/OldManFadeInSlopeState.h"
 
 void UOldManStateBase::Enter()
 {
@@ -35,7 +35,7 @@ void UOldManStateBase::SetupTransitionRules()
 {
     // 基类提供通用转换规则（死亡、斜坡、下落优先级最高）
     ADD_TRANSITION(UOldManDeadState, CheckDeathCondition);
-    ADD_TRANSITION(UOldManOnSlopeState, CheckOnSlopeCondition);
+    ADD_TRANSITION(UOldManFadeInSlopeState, CheckOnSlopeCondition);
     ADD_TRANSITION(UOldManFallingState, CheckFallingCondition);
 }
 

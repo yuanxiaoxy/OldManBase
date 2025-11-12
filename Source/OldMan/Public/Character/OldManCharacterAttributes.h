@@ -101,6 +101,9 @@ public:
     float MoveSpeedInDoubleJump = 600.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveSpeedInCable = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float MoveSpeedInAir = 600.0f;
 
     //暂时没有跑步

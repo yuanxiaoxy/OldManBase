@@ -14,10 +14,17 @@ public class OldManEnemy : ModuleRules
             "CoreUObject", 
             "Engine",
             "OldManConfig",
+            "OldMan",
+            "XyFrame",
         });
 
         //The path for the header files
-        PublicIncludePaths.AddRange(new string[] { "OldManEnemy/Public", "XyFrame/Public", "OldManConfig/Public" });
+        PublicIncludePaths.AddRange(new string[] { 
+            "OldManEnemy/Public",
+            "XyFrame/Public",
+            "OldManConfig/Public",
+            "OldMan/Public",
+        });
 
         //The path for the source files
         PrivateIncludePaths.AddRange(new string[] { "OldManEnemy/Private", "XyFrame/Private"});

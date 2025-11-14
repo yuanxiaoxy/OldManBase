@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "Engine/Engine.h"
 #include "SingletonManager.generated.h"
 
 // 前向声明
@@ -25,6 +26,10 @@ public:
     // 初始化管理器
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     static void Initialize();
+
+    // 设置世界上下文（用于Actor单例）
+    UFUNCTION(BlueprintCallable, Category = "SingletonManager")
+    static void SetWorldContext(UWorld* World);
 
     // 关闭管理器
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
@@ -65,4 +70,7 @@ private:
 
     // 管理器实例
     static USingletonManager* ManagerInstance;
+
+    // 世界上下文
+    static UWorld* CurrentWorldContext;
 };

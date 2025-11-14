@@ -368,6 +368,15 @@ void UOldManCameraComponent::SetCameraInput(float rawLookUpInput, float rawTurnI
     CurrentTurnInput = rawTurnInput;
 }
 
+FVector UOldManCameraComponent::GetCameraLocation() const
+{
+    if (FollowCamera)
+    {
+        return FollowCamera->GetComponentLocation();
+    }
+    return FVector::ZeroVector;
+}
+
 FRotator UOldManCameraComponent::GetCameraRotation()
 {
     return CurrentCameraRotation;

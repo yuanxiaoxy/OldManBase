@@ -1,4 +1,4 @@
-#include "Character/OldManCharacter.h"
+ï»¿#include "Character/OldManCharacter.h"
 #include "Character/OldManPersonPlayerController.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/States/OldManIdleState.h"
@@ -21,10 +21,10 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    //´´½¨ÒÆ¶¯×é¼ş
+    //åˆ›å»ºç§»åŠ¨ç»„ä»¶
     OldManMovementComponent = Cast<UOldManMovementComponent>(Super::GetMovementComponent());
 
-    // ´´½¨Åö×²×é¼ş
+    // åˆ›å»ºç¢°æ’ç»„ä»¶
     InteractionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractionBox"));
     InteractionBox->SetupAttachment(RootComponent);
     InteractionBox->SetCollisionProfileName(TEXT("Player"));
@@ -32,7 +32,7 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     bulletFirePos = CreateDefaultSubobject<USceneComponent>(TEXT("bulletFirePosition"));
     bulletFirePos->SetupAttachment(GetMesh());
 
-    // ´´½¨µ¯»É±Û×é¼ş
+    // åˆ›å»ºå¼¹ç°§è‡‚ç»„ä»¶
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
     CameraBoom->TargetArmLength = CameraDistance;
@@ -44,16 +44,17 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     CameraBoom->CameraRotationLagSpeed = 10.0f;
     CameraBoom->bDoCollisionTest = true;
 
-    // ´´½¨¸úËæÏà»ú×é¼ş
+    // åˆ›å»ºè·Ÿéšç›¸æœºç»„ä»¶
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     //FollowCamera->bUsePawnControlRotation = false;
     FollowCamera->bUsePawnControlRotation = true;
 
-    // ´´½¨Ïà»ú¿ØÖÆ×é¼ş
+    // åˆ›å»ºç›¸æœºæ§åˆ¶ç»„ä»¶
     CameraComponent = CreateDefaultSubobject<UOldManCameraComponent>(TEXT("CameraComponent"));
+    CameraAnimationComponent = CreateDefaultSubobject<UOldManCameraAnimationComponent>(TEXT("CameraAnimationComponent"));
 
-    // È·±£½ÇÉ«²»×Ô¶¯³¯ÏòÒÆ¶¯·½Ïò£¬ÓÉÎÒÃÇÊÖ¶¯¿ØÖÆ
+    // ç¡®ä¿è§’è‰²ä¸è‡ªåŠ¨æœå‘ç§»åŠ¨æ–¹å‘ï¼Œç”±æˆ‘ä»¬æ‰‹åŠ¨æ§åˆ¶
     bUseControllerRotationYaw = false;
     if (GetCharacterMovement())
     {
@@ -69,16 +70,16 @@ void AOldManCharacter::BeginPlay()
     Super::BeginPlay();
     InitializeParam();
     InitializeCameraComponent();
+    InitializeAnimationCameraComponent();
     InitializeStateMachine();
     InitializeEvent();
-
 }
 
 void AOldManCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // ¸üĞÂ×´Ì¬»ú
+    // æ›´æ–°çŠ¶æ€æœº
     if (StateMachine && StateMachine->IsRunning())
     {
         StateMachine->Update(DeltaTime);
@@ -92,7 +93,7 @@ void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
 
     EMovementMode NewMovementMode = GetCharacterMovement()->MovementMode;
 
-    // ¼ì²â´ÓÏÂÂä×´Ì¬ÇĞ»»µ½ĞĞ×ß×´Ì¬£¨±íÊ¾ÂäµØ£©
+    // æ£€æµ‹ä»ä¸‹è½çŠ¶æ€åˆ‡æ¢åˆ°è¡Œèµ°çŠ¶æ€ï¼ˆè¡¨ç¤ºè½åœ°ï¼‰
     if (PrevMovementMode == MOVE_Falling && NewMovementMode == MOVE_Walking)
     {
         LastLandingTime = GetWorld()->GetTimeSeconds();
@@ -100,7 +101,7 @@ void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
 
         UE_LOG(LogTemp, Log, TEXT("Character landed successfully"));
     }
-    // ¼ì²â¿ªÊ¼ÏÂÂä
+    // æ£€æµ‹å¼€å§‹ä¸‹è½
     else if (NewMovementMode == MOVE_Falling)
     {
         bWasFalling = true;
@@ -169,16 +170,16 @@ FVector AOldManCharacter::PerformGravityRaycast()
     if (!GetCapsuleComponent())
         return GetGravityDirection();
 
-    // »ñÈ¡½ºÄÒÌåĞÅÏ¢
+    // è·å–èƒ¶å›Šä½“ä¿¡æ¯
     float CapsuleRadius, CapsuleHalfHeight;
     GetCapsuleComponent()->GetScaledCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
 
     FVector RayStart = GetActorLocation();
 
-    // Ê¹ÓÃµ±Ç°ÖØÁ¦·½Ïò×÷ÎªÉäÏß·½Ïò
+    // ä½¿ç”¨å½“å‰é‡åŠ›æ–¹å‘ä½œä¸ºå°„çº¿æ–¹å‘
     FVector CurrentGravityDir = GetGravityDirection();
     FVector RayDirection = CurrentGravityDir;
-    FVector RayEnd = RayStart + RayDirection * 200.0f; // Ê¹ÓÃ¹Ì¶¨¾àÀë200
+    FVector RayEnd = RayStart + RayDirection * 200.0f; // ä½¿ç”¨å›ºå®šè·ç¦»200
 
     FCollisionQueryParams CollisionParams;
     CollisionParams.AddIgnoredActor(this);
@@ -194,8 +195,8 @@ FVector AOldManCharacter::PerformGravityRaycast()
         CollisionParams
     );
 
-    // µ÷ÊÔ»æÖÆ
-    if (true) // ¿ÉÒÔÌí¼Óµ÷ÊÔ¿ª¹Ø
+    // è°ƒè¯•ç»˜åˆ¶
+    if (true) // å¯ä»¥æ·»åŠ è°ƒè¯•å¼€å…³
     {
         FColor DebugColor = bHit ? FColor::Green : FColor::Red;
         DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() - GetGravityDirection() * 100.0f, DebugColor, false, 0.1f, 0, 2.0f);
@@ -215,17 +216,17 @@ FVector AOldManCharacter::PerformGravityRaycast()
     return GetGravityDirection();
 }
 
-// ĞŞ¸Ä UpdateCharacterRotation ÒÔ¼æÈİ×Ô¶¨ÒåÖØÁ¦£º
+// ä¿®æ”¹ UpdateCharacterRotation ä»¥å…¼å®¹è‡ªå®šä¹‰é‡åŠ›ï¼š
 void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection)
 {
     if (DesiredDirection.IsNearlyZero())
         return;
 
-    // Õı³£ÖØÁ¦ÏÂµÄĞı×ªÂß¼­
+    // æ­£å¸¸é‡åŠ›ä¸‹çš„æ—‹è½¬é€»è¾‘
     FRotator CurrentRotation = GetActorRotation();
     FRotator TargetRotation = DesiredDirection.Rotation();
 
-    // ¼ÆËãĞı×ª²îÒì£¬±ÜÃâĞ¡½Ç¶ÈµÄ¶¶¶¯
+    // è®¡ç®—æ—‹è½¬å·®å¼‚ï¼Œé¿å…å°è§’åº¦çš„æŠ–åŠ¨
     float YawDifference = FMath::Abs(CurrentRotation.Yaw - TargetRotation.Yaw);
 
     if (YawDifference > 1.0f)
@@ -242,41 +243,41 @@ void AOldManCharacter::UpdateCharacterRotation(float DeltaTime, const FVector& D
 
 void AOldManCharacter::UpdateCharacterRotationByGravity(float DeltaTime)
 {
-    //// Õı³£ÖØÁ¦ÏÂµÄĞı×ªÂß¼­
+    //// æ­£å¸¸é‡åŠ›ä¸‹çš„æ—‹è½¬é€»è¾‘
     FRotator CurrentRotation = GetActorRotation();
     FRotator gravityRotation = CurrentRotation;
 
-    // Èç¹ûÊ¹ÓÃ×Ô¶¨ÒåÖØÁ¦£¬ÈÃÖØÁ¦ÏµÍ³´¦Àí½ÇÉ«³¯Ïò
+    // å¦‚æœä½¿ç”¨è‡ªå®šä¹‰é‡åŠ›ï¼Œè®©é‡åŠ›ç³»ç»Ÿå¤„ç†è§’è‰²æœå‘
     if (OldManMovementComponent)
     {
-        // ÔÚ×Ô¶¨ÒåÖØÁ¦ÏÂ£¬ÈÃ½ÇÉ«Ê¼ÖÕ"Õ¾Á¢"ÔÚµ±Ç°µÄ±íÃæÉÏ
+        // åœ¨è‡ªå®šä¹‰é‡åŠ›ä¸‹ï¼Œè®©è§’è‰²å§‹ç»ˆ"ç«™ç«‹"åœ¨å½“å‰çš„è¡¨é¢ä¸Š
         FVector NewUp = -OldManMovementComponent->GetGravityDirection();
 
-        // »ñÈ¡µ±Ç°µÄÇ°·½Ïò
+        // è·å–å½“å‰çš„å‰æ–¹å‘
         FVector CurrentForward = GetActorForwardVector();
 
-        // ½«Ç°·½ÏòÍ¶Ó°µ½ĞÂµÄ"µØÃæ"Æ½ÃæÉÏ
+        // å°†å‰æ–¹å‘æŠ•å½±åˆ°æ–°çš„"åœ°é¢"å¹³é¢ä¸Š
         FVector NewForward = FVector::VectorPlaneProject(CurrentForward, NewUp).GetSafeNormal();
 
-        // Èç¹ûÍ¶Ó°ºó³¤¶ÈÎª0£¬Ê¹ÓÃÄ¬ÈÏÇ°·½Ïò
+        // å¦‚æœæŠ•å½±åé•¿åº¦ä¸º0ï¼Œä½¿ç”¨é»˜è®¤å‰æ–¹å‘
         if (NewForward.IsNearlyZero())
         {
-            // ³¢ÊÔÊ¹ÓÃÊÀ½çÇ°·½Ïò
+            // å°è¯•ä½¿ç”¨ä¸–ç•Œå‰æ–¹å‘
             NewForward = FVector::VectorPlaneProject(FVector(1, 0, 0), NewUp).GetSafeNormal();
             if (NewForward.IsNearlyZero())
             {
-                // Èç¹û»¹ÊÇÁã£¬Ê¹ÓÃÊÀ½çÓÒ·½Ïò
+                // å¦‚æœè¿˜æ˜¯é›¶ï¼Œä½¿ç”¨ä¸–ç•Œå³æ–¹å‘
                 NewForward = FVector::VectorPlaneProject(FVector(0, 1, 0), NewUp).GetSafeNormal();
             }
         }
 
-        // ¼ÆËãÓÒÏòÁ¿
+        // è®¡ç®—å³å‘é‡
         FVector NewRight = FVector::CrossProduct(NewUp, NewForward).GetSafeNormal();
 
-        // ÖØĞÂ¼ÆËãÇ°ÏòÁ¿ÒÔÈ·±£Õı½»
+        // é‡æ–°è®¡ç®—å‰å‘é‡ä»¥ç¡®ä¿æ­£äº¤
         NewForward = FVector::CrossProduct(NewRight, NewUp).GetSafeNormal();
 
-        // ¹¹½¨Ğı×ª¾ØÕó
+        // æ„å»ºæ—‹è½¬çŸ©é˜µ
         gravityRotation = FRotationMatrix::MakeFromXZ(NewForward, NewUp).Rotator();
     }
 
@@ -301,7 +302,7 @@ FVector AOldManCharacter::GetMovementDirectionFromCamera() const
     return MovementInputVector;
 }
 
-// ========== Ïà»ú¿ØÖÆº¯Êı ==========
+// ========== ç›¸æœºæ§åˆ¶å‡½æ•° ==========
 
 void AOldManCharacter::SetCameraDistance(float Distance)
 {
@@ -345,6 +346,22 @@ void AOldManCharacter::ShakeCamera(float Intensity, float Duration)
     }
 }
 
+void AOldManCharacter::PlayCameraAnimation(const FOldManCameraAnimationData& AnimationData)
+{
+    if (CameraAnimationComponent)
+    {
+        CameraAnimationComponent->StartCameraAnimation(AnimationData);
+    }
+}
+
+void AOldManCharacter::StopCameraAnimation()
+{
+    if (CameraAnimationComponent)
+    {
+        CameraAnimationComponent->StopCameraAnimation();
+    }
+}
+
 bool AOldManCharacter::IsMoving() const
 {
     return GetVelocity().SizeSquared() > 0.1f;
@@ -352,18 +369,18 @@ bool AOldManCharacter::IsMoving() const
 
 bool AOldManCharacter::IsFalling() const
 {
-    // Ê¹ÓÃ¸ü¿É¿¿µÄ¼ì²â·½·¨
+    // ä½¿ç”¨æ›´å¯é çš„æ£€æµ‹æ–¹æ³•
     if (!GetCharacterMovement())
         return false;
 
-    // Èç¹ûÒÆ¶¯×é¼şËµÔÚÏÂÂä£¬²¢ÇÒÃ»ÓĞ¸ÕÂäµØ£¬ÔòÈÏÎªÔÚÏÂÂä
+    // å¦‚æœç§»åŠ¨ç»„ä»¶è¯´åœ¨ä¸‹è½ï¼Œå¹¶ä¸”æ²¡æœ‰åˆšè½åœ°ï¼Œåˆ™è®¤ä¸ºåœ¨ä¸‹è½
     bool bMovementFalling = GetCharacterMovement()->IsFalling();
     float CurrentTime = GetWorld()->GetTimeSeconds();
 
-    // ·ÀÖ¹¸ÕÂäµØÊ±ÈÔÈ»·µ»Øtrue
+    // é˜²æ­¢åˆšè½åœ°æ—¶ä»ç„¶è¿”å›true
     if (!bMovementFalling && (CurrentTime - LastLandingTime < 0.1f))
     {
-        return false; // ¸ÕÂäµØ£¬²»ËãÏÂÂä
+        return false; // åˆšè½åœ°ï¼Œä¸ç®—ä¸‹è½
     }
 
     return bMovementFalling;
@@ -371,7 +388,7 @@ bool AOldManCharacter::IsFalling() const
 
 bool AOldManCharacter::CanDoubleJump() const
 {
-    //ÅĞ¶ÏÊÇ·ñ½øÈë¹ı
+    //åˆ¤æ–­æ˜¯å¦è¿›å…¥è¿‡
     return !hasIntoDoubleJump;
 }
 
@@ -392,12 +409,12 @@ bool AOldManCharacter::IsActuallyGrounded() const
     if (!GetCharacterMovement())
         return false;
 
-    // Ê¹ÓÃ¶àÖÖÌõ¼şÅĞ¶ÏÊÇ·ñÕæµÄÔÚµØÃæ
+    // ä½¿ç”¨å¤šç§æ¡ä»¶åˆ¤æ–­æ˜¯å¦çœŸçš„åœ¨åœ°é¢
     bool bIsOnGround = GetCharacterMovement()->IsMovingOnGround();
     bool bIsFalling = GetCharacterMovement()->IsFalling();
     float CurrentTime = GetWorld()->GetTimeSeconds();
 
-    // Èç¹ûÒÆ¶¯×é¼şËµÔÚµØÃæ£¬²¢ÇÒ×î½üÓĞÂäµØÊÂ¼ş£¬ÔòÈÏÎªÕæµÄÔÚµØÃæ
+    // å¦‚æœç§»åŠ¨ç»„ä»¶è¯´åœ¨åœ°é¢ï¼Œå¹¶ä¸”æœ€è¿‘æœ‰è½åœ°äº‹ä»¶ï¼Œåˆ™è®¤ä¸ºçœŸçš„åœ¨åœ°é¢
     return bIsOnGround && !bIsFalling && (CurrentTime - LastLandingTime < 0.5f);
 }
 
@@ -433,12 +450,12 @@ void AOldManCharacter::PerformAttackDetection()
 {
     if (!CharacterAttributes) return;
 
-    // ¹¥»÷¼ì²âÂß¼­
+    // æ”»å‡»æ£€æµ‹é€»è¾‘
     FVector StartLocation = GetActorLocation();
     FVector ForwardVector = GetActorForwardVector();
     FVector EndLocation = StartLocation + ForwardVector * CharacterAttributes->AttackRange;
 
-    // ÇòĞÎ¼ì²â
+    // çƒå½¢æ£€æµ‹
     TArray<FHitResult> HitResults;
     FCollisionShape Sphere = FCollisionShape::MakeSphere(50.0f);
     FCollisionQueryParams Params;
@@ -461,7 +478,7 @@ void AOldManCharacter::PerformAttackDetection()
             AActor* HitActor = Hit.GetActor();
             if (HitActor && HitActor != this)
             {
-                // Ó¦ÓÃÉËº¦»ò´¥·¢ÊÂ¼ş
+                // åº”ç”¨ä¼¤å®³æˆ–è§¦å‘äº‹ä»¶
                 OnAttackHit(HitActor);
                 UE_LOG(LogTemp, Log, TEXT("Hit actor: %s"), *HitActor->GetName());
             }
@@ -523,7 +540,7 @@ void AOldManCharacter::DectedActors()
 
 void AOldManCharacter::InitializeParam()
 {
-    // ³õÊ¼»¯±äÁ¿
+    // åˆå§‹åŒ–å˜é‡
     bIsRunning = false;
     hasIntoDoubleJump = false;
     LastAttackTime = 0.0f;
@@ -532,7 +549,7 @@ void AOldManCharacter::InitializeParam()
     bHasAttackInput = false;
     bInCanPullState = true;
 
-    // ÂäµØ¼ì²â¸Ä½ø
+    // è½åœ°æ£€æµ‹æ”¹è¿›
     LastLandingTime = 0.0f;
     bWasFalling = false;
 }
@@ -556,6 +573,15 @@ void AOldManCharacter::InitializeCameraComponent()
     }
 }
 
+void AOldManCharacter::InitializeAnimationCameraComponent()
+{
+    // åˆå§‹åŒ–ç›¸æœºåŠ¨ç”»ç»„ä»¶
+    if (CameraAnimationComponent && CameraComponent)
+    {
+        CameraAnimationComponent->InitializeCameraAnimation(CameraComponent, this);
+    }
+}
+
 void AOldManCharacter::InitializeEvent()
 {
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool>(UGlobalEventName::Key_Player_OnChangeGrivity, this, &AOldManCharacter::ChangeSlopeState);
@@ -565,7 +591,7 @@ void AOldManCharacter::InitializeEvent()
 #pragma region Item Fun
 void AOldManCharacter::FireBullet()
 {
-    // Éú³É×Óµ¯
+    // ç”Ÿæˆå­å¼¹
     FActorSpawnParameters SpawnParams;
     SpawnParams.Owner = this;
     SpawnParams.Instigator = GetInstigator();
@@ -585,7 +611,7 @@ void AOldManCharacter::SetPullItemState(bool bPulling)
     bInCanPullState = bPulling;
 }
 
-//Ê¹ÓÃÉäÏßÓëTagÅĞ¶Ïµ±Ç°ÊÇ·ñÓĞ¿ÉÍÏ¶¯ÎïÆ·ÄÜ¿ØÖÆ
+//ä½¿ç”¨å°„çº¿ä¸Tagåˆ¤æ–­å½“å‰æ˜¯å¦æœ‰å¯æ‹–åŠ¨ç‰©å“èƒ½æ§åˆ¶
 void AOldManCharacter::StartRightMousePull()
 {
     if (!GetOldManController() || !GetOldManController()->PlayerCameraManager) return;
@@ -604,7 +630,7 @@ void AOldManCharacter::StartRightMousePull()
 
     FVector TraceEnd = CameraLocation + CameraDirection * 10000.0f;
 
-    // µ÷ÊÔ»æÖÆ
+    // è°ƒè¯•ç»˜åˆ¶
     DrawDebugLine(GetWorld(), CameraLocation, TraceEnd, FColor::Cyan, false, 5.0f, 0, 2.0f);
 
     if (GetWorld()->LineTraceSingleByChannel(HitResult, CameraLocation, TraceEnd, ECC_Visibility, QueryParams))
@@ -616,7 +642,7 @@ void AOldManCharacter::StartRightMousePull()
             HitActor->StartDragging();
             curOldManPullItem = HitActor;
 
-            // »æÖÆÃüÖĞµã
+            // ç»˜åˆ¶å‘½ä¸­ç‚¹
             DrawDebugSphere(GetWorld(), HitResult.Location, 15.0f, 12, FColor::Magenta, false, 5.0f, 0, 3.0f);
         }
     }
@@ -634,11 +660,11 @@ void AOldManCharacter::StopRightMousePull()
 
 void AOldManCharacter::HandleMouseLook(FVector2D mouseDelta)
 {
-    // Êó±êÊäÈë
+    // é¼ æ ‡è¾“å…¥
     float MouseXInput = mouseDelta.X;
     float MouseYInput = mouseDelta.Y;
 
-    // ´¦ÀíÍÏ¶¯
+    // å¤„ç†æ‹–åŠ¨
     if (curOldManPullItem && bInCanPullState)
     {
         APlayerCameraManager* CameraManager = GetOldManController()->PlayerCameraManager;
@@ -647,21 +673,21 @@ void AOldManCharacter::HandleMouseLook(FVector2D mouseDelta)
             FVector CameraLocation = CameraManager->GetCameraLocation();
             FRotator CameraRotation = CameraManager->GetCameraRotation();
 
-            // »ñÈ¡Ïà»úµÄ·½ÏòÏòÁ¿
+            // è·å–ç›¸æœºçš„æ–¹å‘å‘é‡
             FVector CameraForward = CameraRotation.Vector();
             FVector CameraRight = FRotationMatrix(CameraRotation).GetScaledAxis(EAxis::Y);
             FVector CameraUp = FRotationMatrix(CameraRotation).GetScaledAxis(EAxis::Z);
 
-            // »ùÓÚÊó±êÊäÈë¹¹½¨ÒÆ¶¯·½Ïò
+            // åŸºäºé¼ æ ‡è¾“å…¥æ„å»ºç§»åŠ¨æ–¹å‘
             FVector ViewMovementDirection = (CameraRight * MouseXInput + CameraUp * MouseYInput).GetSafeNormal();
 
-            // ¼ÆËãÒÆ¶¯Ç¿¶È
+            // è®¡ç®—ç§»åŠ¨å¼ºåº¦
             float MovementIntensity = FVector2D(MouseXInput, MouseYInput).Size() * DragSensitivity;
 
-            // Ó¦ÓÃÒÆ¶¯
+            // åº”ç”¨ç§»åŠ¨
             curOldManPullItem->HandleMouseData(ViewMovementDirection, MovementIntensity);
 
-            // ÖØÖÃÊó±êÊäÈë
+            // é‡ç½®é¼ æ ‡è¾“å…¥
             MouseXInput = 0.0f;
             MouseYInput = 0.0f;
         }

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "XyCharacter/XyCharacterBase.h"
@@ -12,6 +12,8 @@
 #include "ItemBase/OldManPullItemBase.h"
 #include "ItemBase/OldManCanBeAttackItemBase.h"
 #include "ItemBase/OldManBulletBase.h"
+#include "CameraAnimation/OldManCameraAnimationAsset.h"
+#include "CameraAnimation/OldManCameraAnimationComponent.h"
 #include "OldManCharacter.generated.h"
 
 class AOldManPullItemBase;
@@ -34,29 +36,29 @@ protected:
     virtual bool CanJumpInternal_Implementation() const override;
 
 private:
-    // Íæ¼Ò¿ØÖÆÆ÷ÒıÓÃ
+    // ç©å®¶æ§åˆ¶å™¨å¼•ç”¨
     UPROPERTY()
     AOldManPersonPlayerController* OldManController;
 
-    // »ñÈ¡Íæ¼Ò¿ØÖÆÆ÷
+    // è·å–ç©å®¶æ§åˆ¶å™¨
     UFUNCTION(BlueprintCallable, Category = "Controller")
     AOldManPersonPlayerController* GetOldManController();
 
-    // Êó±êÊäÈë´¦Àí
+    // é¼ æ ‡è¾“å…¥å¤„ç†
     void OnMouseX(float Value);
     void OnMouseY(float Value);
 
 #pragma region Control Param
 public:
-    // ÓÃÓÚ»¥¶¯µÄÅö×²×é¼ş
+    // ç”¨äºäº’åŠ¨çš„ç¢°æ’ç»„ä»¶
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class UBoxComponent* InteractionBox;
 
-    //½ÇÉ«ÒÆ¶¯×é¼ş
+    //è§’è‰²ç§»åŠ¨ç»„ä»¶
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class UOldManMovementComponent* OldManMovementComponent;
 
-    // ========== Ïà»ú×é¼ş ==========
+    // ========== ç›¸æœºç»„ä»¶ ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     USpringArmComponent* CameraBoom;
 
@@ -66,15 +68,15 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UOldManCameraComponent* CameraComponent;
 
-    // ========== ×´Ì¬»ú ==========
+    // ========== çŠ¶æ€æœº ==========
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State Machine")
     UStateMachineBase* StateMachine;
 
-    // ========== ½ÇÉ«ÊôĞÔ ==========
+    // ========== è§’è‰²å±æ€§ ==========
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
     UOldManCharacterAttributes* CharacterAttributes;
 
-    // ========== ÊäÈë¿ØÖÆ ==========
+    // ========== è¾“å…¥æ§åˆ¶ ==========
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     FVector MovementInputVector;
 
@@ -84,7 +86,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Input")
     bool bHasAttackInput;
 
-    // ========== ÒÆ¶¯¿ØÖÆº¯Êı ==========
+    // ========== ç§»åŠ¨æ§åˆ¶å‡½æ•° ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetMovementInput(FVector inputDir);
 
@@ -97,7 +99,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void ChangeSlopeState(bool slopeState);
 
-    // ========== ÖØÁ¦¿ØÖÆ ==========
+    // ========== é‡åŠ›æ§åˆ¶ ==========
 
     UFUNCTION(BlueprintCallable, Category = "Gravity")
     void SetUseCustomGravity(bool CustomGravityOnEnable);
@@ -107,7 +109,7 @@ public:
 
     FVector PerformGravityRaycast();
 
-    // ========== Ïà»ú¿ØÖÆ ==========
+    // ========== ç›¸æœºæ§åˆ¶ ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetCameraDistance(float Distance);
 
@@ -123,7 +125,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void ShakeCamera(float Intensity, float Duration);
 
-    // ========== ×´Ì¬²éÑ¯ ==========
+    // ========== ç›¸æœºåŠ¨ç”»ç»„ä»¶ ==========
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera Animation")
+    UOldManCameraAnimationComponent* CameraAnimationComponent;
+
+    UFUNCTION(BlueprintCallable, Category = "Camera Animation")
+    void PlayCameraAnimation(const FOldManCameraAnimationData& AnimationData);
+
+    UFUNCTION(BlueprintCallable, Category = "Camera Animation")
+    void StopCameraAnimation();
+
+    // ========== çŠ¶æ€æŸ¥è¯¢ ==========
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "State")
     bool IsMoving() const;
 
@@ -139,7 +151,7 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "State")
     bool HasMovementInput() const;
 
-    // ========== µØÃæ¼ì²â¸Ä½ø ==========
+    // ========== åœ°é¢æ£€æµ‹æ”¹è¿› ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     bool IsActuallyGrounded() const;
 
@@ -149,7 +161,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Debug")
     void PrintMovementState() const;
 
-    // ========== ¶¯»­ÊÂ¼ş ==========
+    // ========== åŠ¨ç”»äº‹ä»¶ ==========
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void PlayMoveAnimation(float MovementSpeed, float Direction);
 
@@ -186,29 +198,29 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation|Slope")
     void PlayFadeOutSlopeAnimation();
 
-    // ========== ½ÇÉ«ÉèÖÃ ==========
+    // ========== è§’è‰²è®¾ç½® ==========
     UFUNCTION(BlueprintCallable, Category = "Character")
     void SetupCharacterMesh(USkeletalMesh* NewMesh, UClass* NewAnimClass);
 
-    // ========== ÎïÌå¼ì²â ==========
+    // ========== ç‰©ä½“æ£€æµ‹ ==========
     UFUNCTION(BlueprintCallable, Category = "Detected")
     void DectedActors();
 
-    // ========== Õ½¶·ÏµÍ³ ==========
+    // ========== æˆ˜æ–—ç³»ç»Ÿ ==========
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void PerformAttackDetection();
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
     void OnAttackHit(AActor* HitActor);
 
-    // ========== Ïà»úÊôĞÔ ==========
+    // ========== ç›¸æœºå±æ€§ ==========
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     float CameraDistance = 300.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
     FVector CameraOffset = FVector(0.0f, 0.0f, 75.0f);
 
-    // ========== ×´Ì¬±äÁ¿ ==========
+    // ========== çŠ¶æ€å˜é‡ ==========
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bIsRunning;
 
@@ -221,7 +233,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bIsOnSlope;
 
-    // ========== Ğı×ª¿ØÖÆ ==========
+    // ========== æ—‹è½¬æ§åˆ¶ ==========
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
 
@@ -232,14 +244,15 @@ public:
     FVector GetMovementDirectionFromCamera() const;
 
 private:
-    // µØÃæ¼ì²â¸Ä½ø
+    // åœ°é¢æ£€æµ‹æ”¹è¿›
     float LastLandingTime;
     bool bWasFalling;
 
-    // ³õÊ¼»¯²ÎÊı
+    // åˆå§‹åŒ–å‚æ•°
     void InitializeParam();
     void InitializeStateMachine();
     void InitializeCameraComponent();
+    void InitializeAnimationCameraComponent();
     void InitializeEvent();
 #pragma endregion
 
@@ -262,11 +275,11 @@ public:
 
     // PullItem
 public:
-    // ÍÏ¶¯ÁéÃô¶È
+    // æ‹–åŠ¨çµæ•åº¦
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float DragSensitivity = 0.5f;
 
-    // ×îĞ¡ÒÆ¶¯ãĞÖµ
+    // æœ€å°ç§»åŠ¨é˜ˆå€¼
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float MinMovementThreshold = 0.01f;
 

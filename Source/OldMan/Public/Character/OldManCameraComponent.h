@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -32,13 +32,15 @@ protected:
 public:
     UPROPERTY()
     float CurCameraDistance;
+    UPROPERTY()
+    float CurCameraFOV;
 
 public:
-    // ========== Ïà»ú³õÊ¼»¯ ==========
+    // ========== ç›¸æœºåˆå§‹åŒ– ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void InitializeCameraComponents(USpringArmComponent* InCameraBoom, UCameraComponent* InFollowCamera, FOldManCameraData CameraData);
 
-    // ========== Ïà»ú¿ØÖÆ ==========
+    // ========== ç›¸æœºæ§åˆ¶ ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetCameraTarget(AOldManCharacter* TargetActor);
 
@@ -55,16 +57,19 @@ public:
     FRotator GetCameraRotation();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
+    FVector GetCameraLocation() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Camera")
     void ShakeCamera(float Intensity, float Duration);
 
-    // ========== Ïà»úÄ£Ê½ ==========
+    // ========== ç›¸æœºæ¨¡å¼ ==========
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetThirdPersonMode();
 
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetPersonInSlopeMode();
 
-    //Ï£Çø¿Â¿Ë±ä½¹
+    //å¸ŒåŒºæŸ¯å…‹å˜ç„¦
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void SetCameraInHitchcock(float TargetFOV, float TargetDistance);
     UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -91,14 +96,14 @@ public:
     );
 
 private:
-    // µ¯»É±Û×é¼şÒıÓÃ
+    // å¼¹ç°§è‡‚ç»„ä»¶å¼•ç”¨
     UPROPERTY()
     USpringArmComponent* CameraBoom;
 
     UPROPERTY()
     UTimelineComponent* FadeHitchcockZoomTimeline;
 
-    // ¸úËæÏà»ú×é¼şÒıÓÃ
+    // è·Ÿéšç›¸æœºç»„ä»¶å¼•ç”¨
     UPROPERTY()
     UCameraComponent* FollowCamera;
 
@@ -111,39 +116,39 @@ private:
     UPROPERTY()
     FOldManDetectionData MyDetectionData;
 
-    // Æ½»¬Ïà»úĞı×ª±äÁ¿
+    // å¹³æ»‘ç›¸æœºæ—‹è½¬å˜é‡
     FRotator CurrentCameraRotation;
     FRotator DesiredCameraRotation;
 
-    // ÊäÈë´¦Àí - ¸ÄÎªÖ±½ÓÉèÖÃ¶ø·ÇÀÛ¼Ó
+    // è¾“å…¥å¤„ç† - æ”¹ä¸ºç›´æ¥è®¾ç½®è€Œéç´¯åŠ 
     float CurrentLookUpInput;
     float CurrentTurnInput;
 
-    // ÊäÈëÆ½»¬´¦Àí
+    // è¾“å…¥å¹³æ»‘å¤„ç†
     float SmoothedLookUpInput;
     float SmoothedTurnInput;
 
     bool bHasRecentInput;
 
-    // ÖØÁ¦¶ÔÆë±ê¼Ç
+    // é‡åŠ›å¯¹é½æ ‡è®°
     bool bNeedsGravityAlignment;
 
-    // ÊäÈëÆ½»¬²ÎÊı
+    // è¾“å…¥å¹³æ»‘å‚æ•°
     UPROPERTY(EditAnywhere, Category = "Camera|Input")
     float InputSmoothingInterpSpeed = 12.0f;
 
-    // ÖØÁ¦·½Ïò´¦Àí
+    // é‡åŠ›æ–¹å‘å¤„ç†
     UPROPERTY()
     FVector CurrentGravityDirection;
 
     UPROPERTY()
     FVector DesiredGravityDirection;
 
-    // ÖØÁ¦·½ÏòÆ½»¬²ÎÊı
+    // é‡åŠ›æ–¹å‘å¹³æ»‘å‚æ•°
     UPROPERTY(EditAnywhere, Category = "Camera|Gravity")
     float GravityRotationInterpSpeed = 8.0f;
 
-    // Õğ¶¯Ïà¹Ø±äÁ¿
+    // éœ‡åŠ¨ç›¸å…³å˜é‡
     bool bIsShaking;
     float ShakeIntensity;
     float ShakeDuration;
@@ -151,35 +156,34 @@ private:
 
     bool NotToControlCameraDisState;
 
-    //Ï£Çø¿Â¿ËÏà¹Ø
+    //å¸ŒåŒºæŸ¯å…‹ç›¸å…³
     float OriginalCameraFOV;
     float OriginalCameraDistance;
     float TargetCameraFOV;
     float TargetCameraDistance;
-    float CurCameraFOV;
 
     FOnTimelineFloat FadeInHitchcockTimeLineFloat;
     FOnTimelineFloat FadeOutHitchcockTimeLineFloat;
 
-    // Ê±¼äÏßÍê³ÉÊÂ¼ş
+    // æ—¶é—´çº¿å®Œæˆäº‹ä»¶
     FOnTimelineEvent OnHitchcockTimelineFinished;
 
-    // µ±Ç°Ïà»úÄ£Ê½
+    // å½“å‰ç›¸æœºæ¨¡å¼
     ECameraMode CurrentCameraMode;
 
-    // Ã¿Ö¡¸üĞÂ
+    // æ¯å¸§æ›´æ–°
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-    // ¸üĞÂº¯Êı
+    // æ›´æ–°å‡½æ•°
     void UpdateCamera(float DeltaTime);
 
     void UpdateInputSmoothing(float DeltaTime);
     void UpdateCameraRotation(float DeltaTime);
     void UpdateCameraRotationInGravity(float DeltaTime);
     void UpdateCameraPosition(float DeltaTime);
-    void UpdateGravityAlignment(float DeltaTime); // ĞÂÔö£ºÖØÁ¦¶ÔÆë
+    void UpdateGravityAlignment(float DeltaTime); // æ–°å¢ï¼šé‡åŠ›å¯¹é½
 
-    //¸¨Öúº¯Êı
+    //è¾…åŠ©å‡½æ•°
     void SmoothCameraRotate(float DeltaTime);
 
     UFUNCTION()

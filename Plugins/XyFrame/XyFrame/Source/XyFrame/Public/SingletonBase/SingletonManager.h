@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -7,11 +7,11 @@
 #include "Engine/Engine.h"
 #include "SingletonManager.generated.h"
 
-// Ç°ÏòÉùÃ÷
+// å‰å‘å£°æ˜
 class USingletonBase;
 
 /**
- * µ¥Àı¹ÜÀíÆ÷ - ²»¼Ì³ĞUSingletonBase
+ * å•ä¾‹ç®¡ç†å™¨
  */
 UCLASS()
 class XYFRAME_API USingletonManager : public UObject
@@ -19,58 +19,43 @@ class XYFRAME_API USingletonManager : public UObject
     GENERATED_BODY()
 
 public:
-    // »ñÈ¡¹ÜÀíÆ÷ÊµÀı£¨´«Í³µ¥ÀıÄ£Ê½£©
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     static USingletonManager* GetInstance();
 
-    // ³õÊ¼»¯¹ÜÀíÆ÷
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     static void Initialize();
 
-    // ÉèÖÃÊÀ½çÉÏÏÂÎÄ£¨ÓÃÓÚActorµ¥Àı£©
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     static void SetWorldContext(UWorld* World);
 
-    // ¹Ø±Õ¹ÜÀíÆ÷
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     static void Shutdown();
 
-    // ×¢²áµ¥Àı
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     void RegisterSingleton(UObject* Singleton);
 
-    // ×¢Ïúµ¥Àı
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     void UnregisterSingleton(UClass* SingletonClass);
 
-    // »ñÈ¡µ¥Àı
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     UObject* GetSingleton(UClass* SingletonClass) const;
 
-    // Ïú»ÙÖ¸¶¨ÀàĞÍµÄµ¥Àı
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     void DestroySingleton(UClass* SingletonClass);
 
-    // Ïú»ÙËùÓĞµ¥Àı
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     void DestroyAllSingletons();
 
-    // »ñÈ¡µ¥ÀıÊıÁ¿
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     int32 GetSingletonCount() const;
 
-    // ´òÓ¡ËùÓĞµ¥ÀıĞÅÏ¢
     UFUNCTION(BlueprintCallable, Category = "SingletonManager")
     void PrintAllSingletons() const;
 
 private:
-    // ´æ´¢µ¥ÀıÊµÀı
     UPROPERTY()
     TMap<UClass*, UObject*> SingletonInstances;
 
-    // ¹ÜÀíÆ÷ÊµÀı
     static USingletonManager* ManagerInstance;
-
-    // ÊÀ½çÉÏÏÂÎÄ
     static UWorld* CurrentWorldContext;
 };

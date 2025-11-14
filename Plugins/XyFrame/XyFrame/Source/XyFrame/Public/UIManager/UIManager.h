@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -11,12 +11,12 @@
 #include "UITypes.h"
 #include "UIManager.generated.h"
 
-// Ç°ÏòÉùÃ÷
+// å‰å‘å£°æ˜
 class UUIConfigDataAsset;
 class UUIBase;
-struct FUIConfigData;  // Ìí¼ÓÕâ¸öÇ°ÏòÉùÃ÷
+struct FUIConfigData;  // æ·»åŠ è¿™ä¸ªå‰å‘å£°æ˜
 
-// UIĞÅÏ¢½á¹¹
+// UIä¿¡æ¯ç»“æ„
 USTRUCT(BlueprintType)
 struct FUIInfo
 {
@@ -49,7 +49,7 @@ struct FUIInfo
     }
 };
 
-// UIÊÂ¼ş
+// UIäº‹ä»¶
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIShown, FName, UIName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIHidden, FName, UIName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIClosed, FName, UIName);
@@ -63,12 +63,11 @@ class XYFRAME_API UUIManager : public USingletonBase
     DECLARE_SINGLETON(UUIManager)
 
 public:
-    // ³õÊ¼»¯UI¹ÜÀíÆ÷
+    // åˆå§‹åŒ–UIç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "UI")
     void InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset = nullptr);
 
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "UI", meta = (DisplayName = "Get UI Manager"))
     static UUIManager* GetUIManager() { return GetInstance(); }
@@ -76,103 +75,103 @@ public:
     UUIManager();
     virtual ~UUIManager() override;
 
-    // ========== UIÉúÃüÖÜÆÚ·½·¨ ==========
+    // ========== UIç”Ÿå‘½å‘¨æœŸæ–¹æ³• ==========
 
-    // ÏÔÊ¾UI½çÃæ
+    // æ˜¾ç¤ºUIç•Œé¢
     UFUNCTION(BlueprintCallable, Category = "UI")
     UUserWidget* ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer = EUIPanelLayer::Middle, UObject* Data = nullptr, FName UIName = "");
 
-    // ¸ù¾İÃû³ÆÏÔÊ¾UI
+    // æ ¹æ®åç§°æ˜¾ç¤ºUI
     UFUNCTION(BlueprintCallable, Category = "UI")
     UUserWidget* ShowUIByName(FName UIName, UObject* Data = nullptr);
 
-    // Òş²ØUI
+    // éšè—UI
     UFUNCTION(BlueprintCallable, Category = "UI")
     void HideUI(FName UIName);
 
-    // ¹Ø±ÕUI
+    // å…³é—­UI
     UFUNCTION(BlueprintCallable, Category = "UI")
     void CloseUI(FName UIName);
 
-    // ¹Ø±ÕËùÓĞUI
+    // å…³é—­æ‰€æœ‰UI
     UFUNCTION(BlueprintCallable, Category = "UI")
     void CloseAllUI();
 
-    // ========== ÅäÖÃ·½·¨ ==========
+    // ========== é…ç½®æ–¹æ³• ==========
 
-    // ¼ÓÔØUIÅäÖÃ
+    // åŠ è½½UIé…ç½®
     UFUNCTION(BlueprintCallable, Category = "UI|Config")
     void LoadUIConfig(UUIConfigDataAsset* ConfigDataAsset);
 
-    // ÖØĞÂ¼ÓÔØUIÅäÖÃ
+    // é‡æ–°åŠ è½½UIé…ç½®
     UFUNCTION(BlueprintCallable, Category = "UI|Config")
     void ReloadUIConfig();
 
-    // Ô¤¼ÓÔØUI
+    // é¢„åŠ è½½UI
     UFUNCTION(BlueprintCallable, Category = "UI|Config")
     void PreloadUIs(const TArray<FName>& UINames);
 
-    // Ô¤¼ÓÔØËùÓĞ±ê¼ÇÎªÔ¤¼ÓÔØµÄUI
+    // é¢„åŠ è½½æ‰€æœ‰æ ‡è®°ä¸ºé¢„åŠ è½½çš„UI
     UFUNCTION(BlueprintCallable, Category = "UI|Config")
     void PreloadMarkedUIs();
 
-    // ========== UIĞÅÏ¢²éÑ¯ ==========
+    // ========== UIä¿¡æ¯æŸ¥è¯¢ ==========
 
-    // »ñÈ¡UIÊµÀı
+    // è·å–UIå®ä¾‹
     UFUNCTION(BlueprintCallable, Category = "UI")
     UUserWidget* GetUI(FName UIName) const;
 
-    // ¼ì²éUIÊÇ·ñÏÔÊ¾ÖĞ
+    // æ£€æŸ¥UIæ˜¯å¦æ˜¾ç¤ºä¸­
     UFUNCTION(BlueprintCallable, Category = "UI")
     bool IsUIVisible(FName UIName) const;
 
-    // ¼ì²éUIÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥UIæ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "UI")
     bool DoesUIExist(FName UIName) const;
 
-    // »ñÈ¡ËùÓĞ»îÔ¾µÄUI
+    // è·å–æ‰€æœ‰æ´»è·ƒçš„UI
     UFUNCTION(BlueprintCallable, Category = "UI")
     TArray<FName> GetAllActiveUIs() const;
 
-    // »ñÈ¡ËùÓĞ×¢²áµÄUI
+    // è·å–æ‰€æœ‰æ³¨å†Œçš„UI
     UFUNCTION(BlueprintCallable, Category = "UI")
     TArray<FName> GetAllRegisteredUIs() const;
 
-    // ========== ²ã¼¶·½·¨ ==========
+    // ========== å±‚çº§æ–¹æ³• ==========
 
-    // ÉèÖÃUI²ã¼¶
+    // è®¾ç½®UIå±‚çº§
     UFUNCTION(BlueprintCallable, Category = "UI")
     void SetUILayer(FName UIName, EUIPanelLayer NewLayer);
 
-    // »ñÈ¡UI²ã¼¶
+    // è·å–UIå±‚çº§
     UFUNCTION(BlueprintCallable, Category = "UI")
     EUIPanelLayer GetUILayer(FName UIName) const;
 
-    // ========== ¶¯»­ºÍĞ§¹û ==========
+    // ========== åŠ¨ç”»å’Œæ•ˆæœ ==========
 
-    // µ­ÈëĞ§¹û
+    // æ·¡å…¥æ•ˆæœ
     UFUNCTION(BlueprintCallable, Category = "UI")
     void FadeInUI(FName UIName, float Duration = 0.3f);
 
-    // µ­³öĞ§¹û
+    // æ·¡å‡ºæ•ˆæœ
     UFUNCTION(BlueprintCallable, Category = "UI")
     void FadeOutUI(FName UIName, float Duration = 0.3f);
 
-    // ========== µ÷ÊÔ¹¦ÄÜ ==========
+    // ========== è°ƒè¯•åŠŸèƒ½ ==========
 
-    // ´òÓ¡ËùÓĞUIĞÅÏ¢
+    // æ‰“å°æ‰€æœ‰UIä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "UI|Debug")
     void PrintAllUIs();
 
-    // ´òÓ¡²ã¼¶ĞÅÏ¢
+    // æ‰“å°å±‚çº§ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "UI|Debug")
     void PrintLayerInfo();
 
-    // ´òÓ¡ÅäÖÃĞÅÏ¢
+    // æ‰“å°é…ç½®ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "UI|Debug")
     void PrintConfigInfo();
 
-    // ========== ÊÂ¼ş ==========
+    // ========== äº‹ä»¶ ==========
 
     UPROPERTY(BlueprintAssignable, Category = "UI|Events")
     FOnUIShown OnUIShown;
@@ -187,40 +186,40 @@ public:
     FOnUIConfigLoaded OnUIConfigLoaded;
 
 private:
-    // UI×¢²á±í
+    // UIæ³¨å†Œè¡¨
     UPROPERTY()
     TMap<FName, FUIInfo> UIRegistry;
 
-    // ²ã¼¶Ãæ°å
+    // å±‚çº§é¢æ¿
     UPROPERTY()
     TMap<EUIPanelLayer, UCanvasPanel*> LayerPanels;
 
-    // ÅäÖÃÊı¾İ
+    // é…ç½®æ•°æ®
     UPROPERTY()
     UUIConfigDataAsset* UIConfigData;
 
-    // ÊÀ½çÉÏÏÂÎÄ
+    // ä¸–ç•Œä¸Šä¸‹æ–‡
     UPROPERTY()
     UWorld* WorldContext;
 
-    // ¸ù»­²¼
+    // æ ¹ç”»å¸ƒ
     UPROPERTY()
     UCanvasPanel* RootCanvas;
 
-    // Ë½ÓĞ·½·¨
+    // ç§æœ‰æ–¹æ³•
     void CreateLayerPanels();
     UCanvasPanel* GetOrCreateLayerPanel(EUIPanelLayer Layer);
     void AddToLayer(UUserWidget* Widget, EUIPanelLayer Layer);
     void RemoveFromLayer(UUserWidget* Widget);
 
-    // ÅäÖÃ¹ÜÀí·½·¨
-    bool RegisterUIFromConfig(const FUIConfigData& Config);  // ĞŞ¸´ÕâÀï£¬Ìí¼Ó·µ»ØÀàĞÍ
+    // é…ç½®ç®¡ç†æ–¹æ³•
+    bool RegisterUIFromConfig(const FUIConfigData& Config);  // ä¿®å¤è¿™é‡Œï¼Œæ·»åŠ è¿”å›ç±»å‹
     void RegisterAllUIsFromConfig();
     TSubclassOf<UUserWidget> LoadWidgetClass(const TSoftClassPtr<UUserWidget>& SoftClassPtr);
 
-    // ¶¯»­´¦Àí
+    // åŠ¨ç”»å¤„ç†
     void HandleFadeAnimation(FName UIName, float TargetAlpha, float Duration);
 
-    // »ñÈ¡ÊÀ½ç
+    // è·å–ä¸–ç•Œ
     UWorld* GetWorld() const override;
 };

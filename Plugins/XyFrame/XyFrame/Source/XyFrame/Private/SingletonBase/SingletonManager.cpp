@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SingletonBase/SingletonManager.h"
 #include "SingletonBase/SingletonBase.h"
@@ -20,7 +20,7 @@ USingletonManager* USingletonManager::GetInstance()
 
 void USingletonManager::Initialize()
 {
-    GetInstance(); // È·±£ÊµÀı´æÔÚ
+    GetInstance(); // ç¡®ä¿å®ä¾‹å­˜åœ¨
     UE_LOG(LogTemp, Log, TEXT("SingletonManager initialized"));
 }
 
@@ -78,29 +78,28 @@ UObject* USingletonManager::GetSingleton(UClass* SingletonClass) const
 
 void USingletonManager::DestroySingleton(UClass* SingletonClass)
 {
-    USingletonBase* Singleton = Cast<USingletonBase>(GetSingleton(SingletonClass));
+    UObject* Singleton = GetSingleton(SingletonClass);
     if (Singleton && IsValid(Singleton))
     {
-        // ²éÕÒ²¢µ÷ÓÃ¶ÔÓ¦µ¥ÀıÀàµÄDestroyInstance·½·¨
-        UFunction* DestroyFunc = Singleton->FindFunction(FName("DestroyCurSingleton"));
-        if (DestroyFunc)
+        // ä½¿ç”¨æ¥å£è¿›è¡Œé”€æ¯
+        if (ISingletonInterface* SingletonInterface = Cast<ISingletonInterface>(Singleton))
         {
-            Singleton->ProcessEvent(DestroyFunc, nullptr);
+            SingletonInterface->DestroySingleton();
         }
         else
         {
-            // ¶ÔÓÚActorÀàĞÍ£¬ĞèÒªÌØÊâ´¦Àí
+            // å›é€€åˆ°ç±»å‹ç‰¹å®šçš„é”€æ¯æ–¹å¼
             if (AActor* ActorSingleton = Cast<AActor>(Singleton))
             {
                 ActorSingleton->Destroy();
             }
             else
             {
-                Singleton->RemoveFromRoot();
                 Singleton->ConditionalBeginDestroy();
             }
-            UnregisterSingleton(SingletonClass);
         }
+
+        UnregisterSingleton(SingletonClass);
     }
 }
 
@@ -108,7 +107,7 @@ void USingletonManager::DestroyAllSingletons()
 {
     UE_LOG(LogTemp, Log, TEXT("Destroying all %d singletons"), SingletonInstances.Num());
 
-    // ´´½¨ÁÙÊ±Êı×é£¬±ÜÃâÔÚµü´ú¹ı³ÌÖĞĞŞ¸ÄÈİÆ÷
+    // åˆ›å»ºä¸´æ—¶æ•°ç»„ï¼Œé¿å…åœ¨è¿­ä»£è¿‡ç¨‹ä¸­ä¿®æ”¹å®¹å™¨
     TArray<UClass*> SingletonClasses;
     SingletonInstances.GetKeys(SingletonClasses);
 

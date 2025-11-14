@@ -74,7 +74,6 @@ public:
 
     // 重写单例初始化方法
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
     // 获取管理器实例的蓝图可调用方法
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Audio", meta = (DisplayName = "Get Audio Manager"))

@@ -1,4 +1,4 @@
-// StateMachineBase.h
+ï»¿// StateMachineBase.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +7,7 @@
 #include "MonoManager/MonoManager.h"
 #include "StateMachineBase.generated.h"
 
-// ×´Ì¬»úÓµÓĞÕß½Ó¿Ú
+// çŠ¶æ€æœºæ‹¥æœ‰è€…æ¥å£
 UINTERFACE(Blueprintable)
 class UStateMachineOwner : public UInterface
 {
@@ -19,7 +19,7 @@ class IStateMachineOwner
     GENERATED_BODY()
 };
 
-// ×´Ì¬»ùÀà
+// çŠ¶æ€åŸºç±»
 UCLASS(Abstract, Blueprintable)
 class XYFRAME_API UStateBase : public UObject
 {
@@ -28,36 +28,36 @@ class XYFRAME_API UStateBase : public UObject
 public:
     virtual ~UStateBase() = default;
 
-    // ³õÊ¼»¯ÄÚ²¿Êı¾İ
+    // åˆå§‹åŒ–å†…éƒ¨æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     virtual void InitializeInternal(class UStateMachineBase* InStateMachine)
     {
         StateMachine = InStateMachine;
     }
 
-    // ³õÊ¼»¯×´Ì¬ - ¼ò»¯°æ±¾£¬±ÜÃâÀ¶Í¼¸´ÔÓÇ©Ãû
+    // åˆå§‹åŒ–çŠ¶æ€ - ç®€åŒ–ç‰ˆæœ¬ï¼Œé¿å…è“å›¾å¤æ‚ç­¾å
     virtual void Initialize(TScriptInterface<IStateMachineOwner> InOwner)
     {
         Owner = InOwner;
     }
 
-    // ×´Ì¬½øÈë
+    // çŠ¶æ€è¿›å…¥
     virtual void Enter() {}
 
-    // ×´Ì¬ÍË³ö  
+    // çŠ¶æ€é€€å‡º  
     virtual void Exit() {}
 
-    // ×´Ì¬¸üĞÂ
+    // çŠ¶æ€æ›´æ–°
     virtual void Update(float DeltaTime) {}
 
-    // ×´Ì¬ÑÓ³Ù¸üĞÂ
+    // çŠ¶æ€å»¶è¿Ÿæ›´æ–°
     virtual void LateUpdate(float DeltaTime) {}
 
-    // ×´Ì¬¹Ì¶¨¸üĞÂ
+    // çŠ¶æ€å›ºå®šæ›´æ–°
     virtual void FixedUpdate(float DeltaTime) {}
 
 protected:
-    // Ìõ¼ş×ª»»¼ì²é
+    // æ¡ä»¶è½¬æ¢æ£€æŸ¥
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     bool CheckTransition(TSubclassOf<UStateBase> NewStateClass, bool bReEnterCurrent = false);
 
@@ -68,7 +68,7 @@ protected:
     TScriptInterface<IStateMachineOwner> Owner;
 };
 
-// ×´Ì¬»ú»ùÀà
+// çŠ¶æ€æœºåŸºç±»
 UCLASS(Blueprintable, BlueprintType)
 class XYFRAME_API UStateMachineBase : public UObject
 {
@@ -78,36 +78,36 @@ public:
     UStateMachineBase();
     virtual ~UStateMachineBase();
 
-    // ³õÊ¼»¯×´Ì¬»ú
+    // åˆå§‹åŒ–çŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     virtual void Initialize(TScriptInterface<IStateMachineOwner> InOwner, bool bInEnableStateSharing = false);
 
-    // ´ø³õÊ¼×´Ì¬µÄ³õÊ¼»¯
+    // å¸¦åˆå§‹çŠ¶æ€çš„åˆå§‹åŒ–
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void InitializeWithState(TSubclassOf<UStateBase> InitialState, TScriptInterface<IStateMachineOwner> InOwner, bool bInEnableStateSharing = false);
 
-    // ¸Ä±ä×´Ì¬
+    // æ”¹å˜çŠ¶æ€
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     bool ChangeState(TSubclassOf<UStateBase> NewStateClass, bool bReEnterCurrent = false);
 
-    // »ñÈ¡µ±Ç°×´Ì¬
+    // è·å–å½“å‰çŠ¶æ€
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "StateMachine")
     UStateBase* GetCurrentState() const { return CurrentState; }
 
-    // »ñÈ¡µ±Ç°×´Ì¬Àà
+    // è·å–å½“å‰çŠ¶æ€ç±»
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "StateMachine")
     TSubclassOf<UStateBase> GetCurrentStateClass() const { return CurrentStateClass; }
 
-    // Í£Ö¹×´Ì¬»ú
+    // åœæ­¢çŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     virtual void Stop();
 
-    // Ïú»Ù×´Ì¬»ú
+    // é”€æ¯çŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     virtual void Destroy();
 
 
-    // ×´Ì¬¹²ÏíÊı¾İ²Ù×÷
+    // çŠ¶æ€å…±äº«æ•°æ®æ“ä½œ
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void SetSharedData(const FString& Key, UObject* Data);
 
@@ -117,11 +117,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void RemoveSharedData(const FString& Key);
 
-    // ¼ì²éÊÇ·ñÕıÔÚÔËĞĞ
+    // æ£€æŸ¥æ˜¯å¦æ­£åœ¨è¿è¡Œ
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "StateMachine")
     bool IsRunning() const { return bIsRunning; }
 
-    // ÊÖ¶¯¸üĞÂ×´Ì¬»ú
+    // æ‰‹åŠ¨æ›´æ–°çŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void Update(float DeltaTime);
 
@@ -131,11 +131,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void FixedUpdate(float DeltaTime);
 
-    // ÖØĞ´GetWorld
+    // é‡å†™GetWorld
     virtual UWorld* GetWorld() const override;
 
 protected:
-    // ÄÚ²¿×´Ì¬´´½¨
+    // å†…éƒ¨çŠ¶æ€åˆ›å»º
     UStateBase* GetOrCreateState(TSubclassOf<UStateBase> StateClass);
 
 private:
@@ -158,7 +158,7 @@ private:
     bool bEnableStateSharing;
 };
 
-// ×´Ì¬»ú¹ÜÀíÆ÷
+// çŠ¶æ€æœºç®¡ç†å™¨
 UCLASS(Blueprintable, BlueprintType)
 class XYFRAME_API UStateMachineManager : public USingletonBase
 {
@@ -171,20 +171,19 @@ public:
     void InitializeStateMachineManager();
 
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "StateMachine", meta = (DisplayName = "Get StateMachine Manager"))
     static UStateMachineManager* GetStateMachineManager() { return GetInstance(); }
 
-    // ´´½¨×´Ì¬»ú
+    // åˆ›å»ºçŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     UStateMachineBase* CreateStateMachine(TScriptInterface<IStateMachineOwner> Owner, bool bEnableStateSharing = false);
 
-    // Ïú»Ù×´Ì¬»ú
+    // é”€æ¯çŠ¶æ€æœº
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     void DestroyStateMachine(UStateMachineBase* StateMachine);
 
-    // »ñÈ¡»îÔ¾×´Ì¬»úÊıÁ¿
+    // è·å–æ´»è·ƒçŠ¶æ€æœºæ•°é‡
     UFUNCTION(BlueprintCallable, Category = "StateMachine")
     int32 GetActiveStateMachineCount() const { return ActiveStateMachines.Num(); }
 

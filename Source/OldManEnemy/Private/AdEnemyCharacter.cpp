@@ -7,6 +7,8 @@
 #include "Engine/DamageEvents.h"
 #include "Character/OldManCharacter.h"
 #include "DrawDebugHelpers.h"
+#include "AdEnemyAIController.h"
+#include "OldManEnemyManager.h"
 
 
 AAdEnemyCharacter::AAdEnemyCharacter()
@@ -23,7 +25,13 @@ void AAdEnemyCharacter::BeginPlay()
     Super::BeginPlay();
     Player = Cast<AOldManCharacter>( UGameplayStatics::GetPlayerCharacter(this, 0));
     CurrentState = EAdMonsterState::Patrol;
+
    
+}
+
+void AAdEnemyCharacter::InitializeEnemy_Implementation(const FEnemyLocationInfo& EnemyInfo)
+{
+    Path = EnemyInfo.PatrolPath;
 }
 
 void AAdEnemyCharacter::Tick(float DeltaTime)
@@ -135,14 +143,49 @@ void AAdEnemyCharacter::PerformLaserAttack()
 
 void AAdEnemyCharacter::TakeDamage(int32 DamageAmount)
 {
-    Health -= DamageAmount;
+    CurrentHealth -= DamageAmount;
     if (Health <= 0)
     {
         ChangeState(EAdMonsterState::Dead);
-        // 处理死亡逻辑
+        OnDespawn_Implementation();
     }
     else
     {
         /*ChangeState(EAdMonsterState::Hurt);*/
+    }
+}
+
+
+
+
+void AAdEnemyCharacter::OnSpawn_Implementation()
+{
+    // 被对象池取出时调用：重置角色状态
+    SetActorHiddenInGame(false);
+    SetActorEnableCollision(true);
+    SetActorTickEnabled(true);
+    CurrentHealth = Health; // 重置生命值
+    bIsDead = false;
+
+    // 确保 Controller 正确设置 - 原始指针版本
+    if (!AIController) // 直接检查指针是否为nullptr
+    {
+        AIController = Cast<AAdEnemyAIController>(GetController());   
+    }
+    AIController->OnEnemySpawn();
+    TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Add(AIController); // 直接使用指针
+}
+
+void AAdEnemyCharacter::OnDespawn_Implementation()
+{
+    // 被回收到对象池时调用：清理角色状态
+    SetActorHiddenInGame(true);
+    SetActorEnableCollision(false);
+    SetActorTickEnabled(false); 
+    if (bIsDead) return;
+    bIsDead = true;
+    // ... 角色自身的死亡逻辑
+    if (AIController) {
+        AIController->OnEnemyDeath(); // 通知控制器处理死亡
     }
 }

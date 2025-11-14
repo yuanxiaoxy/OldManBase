@@ -50,12 +50,22 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool hasTracked = false;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    AAdEnemyCharacter* PossessedEnemy;
+
+
     // 通知其他怪物
     UFUNCTION(BlueprintCallable, Category = "AI")
     void NotifyOtherMonsters();
 
     UFUNCTION(BlueprintCallable, Category = "AI")
     void ChangeState(EAdMonsterState state);
+
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void OnEnemyDeath();
+
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void OnEnemySpawn();
 
 };
 

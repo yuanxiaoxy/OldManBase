@@ -18,14 +18,14 @@ void AAdEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
 	EnemyCharacter = Cast<AAdEnemyCharacter>(GetPawn());
-	TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Add(this);
+	
 }
 
 void AAdEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	UE_LOG(LogTemp, Warning, TEXT("AAdEnemyAIController.OnProssess is called."));
-	AAdEnemyCharacter* PossessedEnemy = Cast<AAdEnemyCharacter>(InPawn);
+	PossessedEnemy = Cast<AAdEnemyCharacter>(InPawn);
 	if (!PossessedEnemy)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to possess pawn as AAdEnemyCharacter!"));
@@ -33,16 +33,7 @@ void AAdEnemyAIController::OnPossess(APawn* InPawn)
 	}
 
 
-	if (PossessedEnemy->BehaviorTree && PossessedEnemy->BehaviorTree->BlackboardAsset)
-	{
-		// 初始化黑板组件
-		if (BlackboardComponent && BlackboardComponent->InitializeBlackboard(*(PossessedEnemy->BehaviorTree->BlackboardAsset)))
-		{
-			// 启动行为树
-			RunBehaviorTree(PossessedEnemy->BehaviorTree);
-			UE_LOG(LogTemp, Warning, TEXT("Behavior Tree started successfully for %s!"), *PossessedEnemy->GetName());
-		}
-	}
+	
 	
 }
 void AAdEnemyAIController::Tick(float DeltaTime)
@@ -81,3 +72,22 @@ void AAdEnemyAIController::ChangeState(EAdMonsterState state)
 }
 
 
+void AAdEnemyAIController::OnEnemyDeath()
+{
+	BehaviorTreeComponent->StopTree();
+	StopMovement();
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+	TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Remove(this);
+	/*UnPossess();*/
+}
+
+void AAdEnemyAIController::OnEnemySpawn()
+{
+	if (BlackboardComponent && BlackboardComponent->InitializeBlackboard(*(PossessedEnemy->BehaviorTree->BlackboardAsset)))
+	{
+		ChangeState(EAdMonsterState::Patrol);
+		// 启动行为树
+		RunBehaviorTree(PossessedEnemy->BehaviorTree);
+		UE_LOG(LogTemp, Warning, TEXT("Behavior Tree started successfully for %s!"), *PossessedEnemy->GetName());
+	}
+}

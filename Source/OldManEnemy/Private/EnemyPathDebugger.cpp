@@ -8,8 +8,8 @@ void AEnemyPathDebugger::DrawEnemyDebugInfo(TArray<FEnemyLocationInfo> infos, fl
 #if WITH_EDITOR
     UWorld* world = GetWorld();
     // 添加世界类型检查，确保在纯编辑器模式下也执行
-    if (!world || (world->WorldType != EWorldType::Editor && world->WorldType != EWorldType::PIE))
-        return;
+    /*if (!world || (world->WorldType != EWorldType::Editor && world->WorldType != EWorldType::PIE))
+        return;*/
 
     for (const FEnemyLocationInfo& info : infos)
     {

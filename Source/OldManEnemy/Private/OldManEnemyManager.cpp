@@ -66,15 +66,7 @@ void UOldManEnemyManager::NotifyMonstersTracking()
     }
 }
 
-void UOldManEnemyManager::Tick(float DeltaTime)
-{
-    
-}
 
-TStatId UOldManEnemyManager::GetStatId() const
-{
-    RETURN_QUICK_DECLARE_CYCLE_STAT(UOldManEnemyManager, STATGROUP_Tickables);
-}
 
 
 

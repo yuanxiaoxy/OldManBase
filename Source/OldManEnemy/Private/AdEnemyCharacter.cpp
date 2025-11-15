@@ -173,6 +173,7 @@ void AAdEnemyCharacter::OnSpawn_Implementation()
         AIController = Cast<AAdEnemyAIController>(GetController());   
     }
     AIController->OnEnemySpawn();
+    AIController->EnemyCharacter = this;
     TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Add(AIController); // 直接使用指针
 }
 

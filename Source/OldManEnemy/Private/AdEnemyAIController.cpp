@@ -17,7 +17,7 @@ AAdEnemyAIController::AAdEnemyAIController()
 void AAdEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
-	EnemyCharacter = Cast<AAdEnemyCharacter>(GetPawn());
+	
 	
 }
 

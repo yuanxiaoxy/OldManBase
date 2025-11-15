@@ -4,7 +4,6 @@
 
 #include "Containers/Array.h"
 #include "CoreMinimal.h"
-#include "Tickable.h"
 #include "AdEnemyCharacter.h"
 #include "GameFramework/Actor.h"
 #include "SingletonBase/SingletonBase.h"
@@ -21,7 +20,7 @@ class  UEnemyObjectPool;
 
 
 UCLASS(Blueprintable, BlueprintType)
-class OLDMANENEMY_API UOldManEnemyManager : public USingletonBase, public FTickableGameObject
+class OLDMANENEMY_API UOldManEnemyManager :  public USingletonBase
 {
 	GENERATED_BODY()
 	
@@ -30,20 +29,19 @@ public:
     UFUNCTION(BlueprintCallable, Category = "EnemyManager")
 	virtual void InitializeSingleton() override;
 	
+    virtual void DestroyCurSingleton() override { DestroyInstance(); }
+
 	UFUNCTION(BlueprintCallable, Category = "EnemyManager")
 	void NotifyMonstersTracking();
 
-
-    // FTickableGameObject 接口实现
-    virtual void Tick(float DeltaTime) override;
-    virtual bool IsTickable() const override { return true; }
-    virtual TStatId GetStatId() const override;
-    virtual bool IsTickableWhenPaused() const override { return false; }
-    virtual bool IsTickableInEditor() const override { return true; }
-
-
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EnemyManager")
     static UOldManEnemyManager* GetEnemyManager() { return GetInstance(); }
+
+
+
+
+
+
 
     UFUNCTION(BlueprintCallable, Category = "EnemyManager")
     void AddInfos(FEnemyLocationInfo info);

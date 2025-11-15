@@ -38,12 +38,13 @@ protected:
     
 
 
-    UPROPERTY()
-    AAdEnemyCharacter* EnemyCharacter;
 
 public:
     // 获取Blackboard
     UBlackboardComponent* GetBlackboard() const { return BlackboardComponent; }
+
+    UPROPERTY()
+    AAdEnemyCharacter* EnemyCharacter;
 
     EAdMonsterState GetCurrentState();
 

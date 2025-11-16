@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -9,12 +9,12 @@
 #include "TimerManager.h"
 #include "MonoManager.generated.h"
 
-// ¼ÆÊ±Æ÷»Øµ÷Î¯ÍĞ
+// è®¡æ—¶å™¨å›è°ƒå§”æ‰˜
 DECLARE_DYNAMIC_DELEGATE_OneParam(FTimerCallbackDelegate, const FString&, TimerId);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FTimerUpdateCallbackDelegate, const FString&, TimerId, float, Progress);
 DECLARE_DYNAMIC_DELEGATE(FTimerSimpleDelegate);
 
-// ¼ÆÊ±Æ÷ÀàĞÍ
+// è®¡æ—¶å™¨ç±»å‹
 UENUM(BlueprintType)
 enum class ETimerType : uint8
 {
@@ -23,7 +23,7 @@ enum class ETimerType : uint8
     Countdown UMETA(DisplayName = "Countdown")
 };
 
-// ¼ÆÊ±Æ÷ĞÅÏ¢
+// è®¡æ—¶å™¨ä¿¡æ¯
 USTRUCT(BlueprintType)
 struct FTimerInfo
 {
@@ -50,7 +50,7 @@ struct FTimerInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer")
     bool bIsActive;
 
-    // ´æ´¢»Øµ÷ĞÅÏ¢ - Ê¹ÓÃLambda¶ø²»ÊÇº¯ÊıÃû
+    // å­˜å‚¨å›è°ƒä¿¡æ¯ - ä½¿ç”¨Lambdaè€Œä¸æ˜¯å‡½æ•°å
     TWeakObjectPtr<UObject> CallbackObject;
     TFunction<void()> StaticCallback;
 
@@ -92,7 +92,6 @@ public:
     void InitializeMonoManager();
 
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); };
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "MonoManager", meta = (DisplayName = "Get Mono Manager"))
     static UMonoManager* GetMonoManager() { return GetInstance(); }
@@ -100,7 +99,7 @@ public:
     UMonoManager();
     virtual ~UMonoManager() override;
 
-    // ========== ¼ÆÊ±Æ÷ÏµÍ³ (×Ô¶¯Éú³ÉTimerId) ==========
+    // ========== è®¡æ—¶å™¨ç³»ç»Ÿ (è‡ªåŠ¨ç”ŸæˆTimerId) ==========
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer", meta = (DisplayName = "Set Timeout"))
     FString SetTimeout(float Delay, const FTimerCallbackDelegate& CompleteCallback);
 
@@ -122,7 +121,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     FString SetCountdownSimple(float Interval, int32 Count, const FTimerSimpleDelegate& CompleteCallback);
 
-    // ========== ¼ÆÊ±Æ÷ÏµÍ³ (×Ô¶¨ÒåTimerId) ==========
+    // ========== è®¡æ—¶å™¨ç³»ç»Ÿ (è‡ªå®šä¹‰TimerId) ==========
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     bool SetTimeoutWithId(float Delay, const FString& TimerId, const FTimerCallbackDelegate& CompleteCallback);
 
@@ -141,8 +140,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     bool SetCountdownSimpleWithId(float Interval, int32 Count, const FString& TimerId, const FTimerSimpleDelegate& CompleteCallback);
 
-    // ========== C++³ÉÔ±º¯Êı°ó¶¨ ==========
-// °ó¶¨³ÉÔ±º¯Êı - Ò»´ÎĞÔ¶¨Ê±Æ÷ (×Ô¶¯Éú³ÉTimerId)
+    // ========== C++æˆå‘˜å‡½æ•°ç»‘å®š ==========
+// ç»‘å®šæˆå‘˜å‡½æ•° - ä¸€æ¬¡æ€§å®šæ—¶å™¨ (è‡ªåŠ¨ç”ŸæˆTimerId)
     template<typename T>
     FString SetTimeout(float Delay, T* Object, void(T::* Function)())
     {
@@ -154,14 +153,14 @@ public:
         return FString();
     }
 
-    // °ó¶¨³ÉÔ±º¯Êı - Ò»´ÎĞÔ¶¨Ê±Æ÷ (×Ô¶¨ÒåTimerId)
+    // ç»‘å®šæˆå‘˜å‡½æ•° - ä¸€æ¬¡æ€§å®šæ—¶å™¨ (è‡ªå®šä¹‰TimerId)
     template<typename T>
     bool SetTimeout(float Delay, const FString& TimerId, T* Object, void(T::* Function)())
     {
         return CreateTimerInternal(TimerId, ETimerType::OneShot, Delay, 1, Object, Function);
     }
 
-    // °ó¶¨³ÉÔ±º¯Êı - ¼ä¸ô¶¨Ê±Æ÷ (×Ô¶¯Éú³ÉTimerId)
+    // ç»‘å®šæˆå‘˜å‡½æ•° - é—´éš”å®šæ—¶å™¨ (è‡ªåŠ¨ç”ŸæˆTimerId)
     template<typename T>
     FString SetInterval(float Interval, T* Object, void(T::* Function)())
     {
@@ -173,14 +172,14 @@ public:
         return FString();
     }
 
-    // °ó¶¨³ÉÔ±º¯Êı - ¼ä¸ô¶¨Ê±Æ÷ (×Ô¶¨ÒåTimerId)
+    // ç»‘å®šæˆå‘˜å‡½æ•° - é—´éš”å®šæ—¶å™¨ (è‡ªå®šä¹‰TimerId)
     template<typename T>
     bool SetInterval(float Interval, const FString& TimerId, T* Object, void(T::* Function)())
     {
         return CreateTimerInternal(TimerId, ETimerType::Interval, Interval, 0, Object, Function);
     }
 
-    // °ó¶¨³ÉÔ±º¯Êı - µ¹¼ÆÊ±Æ÷ (×Ô¶¯Éú³ÉTimerId)
+    // ç»‘å®šæˆå‘˜å‡½æ•° - å€’è®¡æ—¶å™¨ (è‡ªåŠ¨ç”ŸæˆTimerId)
     template<typename T>
     FString SetCountdown(float Interval, int32 Count, T* Object, void(T::* Function)())
     {
@@ -192,14 +191,14 @@ public:
         return FString();
     }
 
-    // °ó¶¨³ÉÔ±º¯Êı - µ¹¼ÆÊ±Æ÷ (×Ô¶¨ÒåTimerId)
+    // ç»‘å®šæˆå‘˜å‡½æ•° - å€’è®¡æ—¶å™¨ (è‡ªå®šä¹‰TimerId)
     template<typename T>
     bool SetCountdown(float Interval, int32 Count, const FString& TimerId, T* Object, void(T::* Function)())
     {
         return CreateTimerInternal(TimerId, ETimerType::Countdown, Interval, Count, Object, Function);
     }
 
-    // ========== ¼ÆÊ±Æ÷¿ØÖÆ ==========
+    // ========== è®¡æ—¶å™¨æ§åˆ¶ ==========
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     void PauseTimer(const FString& TimerId);
 
@@ -221,7 +220,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     void ClearAllTimers();
 
-    // ========== ²éÑ¯·½·¨ ==========
+    // ========== æŸ¥è¯¢æ–¹æ³• ==========
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     bool IsTimerActive(const FString& TimerId) const;
 
@@ -234,12 +233,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Timer")
     int32 GetActiveTimerCount() const;
 
-    // ========== µ÷ÊÔ¹¤¾ß ==========
+    // ========== è°ƒè¯•å·¥å…· ==========
     UFUNCTION(BlueprintCallable, Category = "MonoManager|Debug")
     void PrintAllTimers();
 
 protected:
-    // Ê¹ÓÃUEµÄTimerÏµÍ³À´Çı¶¯¸üĞÂ
+    // ä½¿ç”¨UEçš„Timerç³»ç»Ÿæ¥é©±åŠ¨æ›´æ–°
     void StartUpdateTimer();
     void StopUpdateTimer();
     UFUNCTION()
@@ -248,7 +247,7 @@ protected:
 private:
     TMap<FString, FTimerInfo> Timers;
 
-    // »Øµ÷´æ´¢
+    // å›è°ƒå­˜å‚¨
     TMap<FString, FTimerCallbackDelegate> TimerCallbacks;
     TMap<FString, FTimerSimpleDelegate> SimpleCallbacks;
     TMap<FString, FTimerUpdateCallbackDelegate> UpdateCallbacks;
@@ -265,7 +264,7 @@ private:
         const FTimerUpdateCallbackDelegate& UpdateCallback = FTimerUpdateCallbackDelegate(),
         const FTimerSimpleDelegate& SimpleCallback = FTimerSimpleDelegate());
 
-    // ³ÉÔ±º¯Êı°ó¶¨°æ±¾ - Ê¹ÓÃº¯ÊıÃû×Ö·û´®
+    // æˆå‘˜å‡½æ•°ç»‘å®šç‰ˆæœ¬ - ä½¿ç”¨å‡½æ•°åå­—ç¬¦ä¸²
     template<typename T>
     bool CreateTimerInternal(const FString& TimerId, ETimerType TimerType, float Duration, int32 LoopCount, T* Object, void(T::* Function)())
     {
@@ -287,12 +286,12 @@ private:
             return false;
         }
 
-        // ´´½¨¼ÆÊ±Æ÷ĞÅÏ¢
+        // åˆ›å»ºè®¡æ—¶å™¨ä¿¡æ¯
         FTimerInfo TimerInfo(TimerId, TimerType, Duration);
         TimerInfo.LoopCount = LoopCount;
         TimerInfo.CallbackObject = Object;
 
-        // Ê¹ÓÃLambdaÀ´²¶»ñ³ÉÔ±º¯ÊıÖ¸Õë
+        // ä½¿ç”¨Lambdaæ¥æ•è·æˆå‘˜å‡½æ•°æŒ‡é’ˆ
         TimerInfo.StaticCallback = [Object, Function]() {
             if (Object && Function)
             {
@@ -302,7 +301,7 @@ private:
 
         Timers.Add(TimerId, TimerInfo);
 
-        // Æô¶¯¸üĞÂ¼ÆÊ±Æ÷£¨Èç¹ûĞèÒª£©
+        // å¯åŠ¨æ›´æ–°è®¡æ—¶å™¨ï¼ˆå¦‚æœéœ€è¦ï¼‰
         StartUpdateTimer();
 
         UE_LOG(LogTemp, Log, TEXT("Created timer with member function: %s, Type: %s, Duration: %.2f, Loops: %d"),

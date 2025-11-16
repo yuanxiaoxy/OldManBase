@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UIManager/UIManager.h"
 #include "Engine/Engine.h"
@@ -29,7 +29,7 @@ void UUIManager::InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset)
 
     CreateLayerPanels();
 
-    // ¼ÓÔØÅäÖÃ
+    // åŠ è½½é…ç½®
     if (ConfigDataAsset)
     {
         LoadUIConfig(ConfigDataAsset);
@@ -45,10 +45,10 @@ void UUIManager::CreateLayerPanels()
 {
     if (!WorldContext) return;
 
-    // ´´½¨¸ù»­²¼
+    // åˆ›å»ºæ ¹ç”»å¸ƒ
     RootCanvas = NewObject<UCanvasPanel>(GetTransientPackage(), UCanvasPanel::StaticClass());
 
-    // ´´½¨¸÷²ã¼¶Ãæ°å
+    // åˆ›å»ºå„å±‚çº§é¢æ¿
     for (int32 i = 0; i <= static_cast<int32>(EUIPanelLayer::ForeFront); i++)
     {
         EUIPanelLayer Layer = static_cast<EUIPanelLayer>(i);
@@ -70,7 +70,7 @@ void UUIManager::LoadUIConfig(UUIConfigDataAsset* ConfigDataAsset)
 
     UIConfigData = ConfigDataAsset;
 
-    // ´ÓÅäÖÃ×¢²áËùÓĞUI
+    // ä»é…ç½®æ³¨å†Œæ‰€æœ‰UI
     RegisterAllUIsFromConfig();
 
     UE_LOG(LogTemp, Log, TEXT("UUIManager::LoadUIConfig - Loaded UI config with %d entries"),
@@ -83,13 +83,13 @@ void UUIManager::ReloadUIConfig()
 {
     if (UIConfigData)
     {
-        // ÏÈ¹Ø±ÕËùÓĞUI
+        // å…ˆå…³é—­æ‰€æœ‰UI
         CloseAllUI();
 
-        // Çå¿Õ×¢²á±í
+        // æ¸…ç©ºæ³¨å†Œè¡¨
         UIRegistry.Empty();
 
-        // ÖØĞÂ¼ÓÔØÅäÖÃ
+        // é‡æ–°åŠ è½½é…ç½®
         RegisterAllUIsFromConfig();
 
         UE_LOG(LogTemp, Log, TEXT("UUIManager::ReloadUIConfig - Reloaded UI config"));
@@ -111,7 +111,7 @@ void UUIManager::RegisterAllUIsFromConfig()
         RegisterUIFromConfig(Config);
     }
 
-    // Ô¤¼ÓÔØ±ê¼ÇÎªÔ¤¼ÓÔØµÄUI
+    // é¢„åŠ è½½æ ‡è®°ä¸ºé¢„åŠ è½½çš„UI
     PreloadMarkedUIs();
 }
 
@@ -130,7 +130,7 @@ bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
         return false;
     }
 
-    // ¼ì²éÊÇ·ñÒÑ×¢²á
+    // æ£€æŸ¥æ˜¯å¦å·²æ³¨å†Œ
     if (UIRegistry.Contains(Config.UIName))
     {
         UE_LOG(LogTemp, Warning, TEXT("UUIManager::RegisterUIFromConfig - UI already registered: %s"),
@@ -138,7 +138,7 @@ bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
         return false;
     }
 
-    // ¼ÓÔØWidgetÀà
+    // åŠ è½½Widgetç±»
     TSubclassOf<UUserWidget> WidgetClass = LoadWidgetClass(Config.WidgetClass);
     if (!WidgetClass)
     {
@@ -147,7 +147,7 @@ bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
         return false;
     }
 
-    // ×¢²áUIĞÅÏ¢
+    // æ³¨å†ŒUIä¿¡æ¯
     FUIInfo UIInfo;
     UIInfo.UIName = Config.UIName;
     UIInfo.WidgetClass = WidgetClass;
@@ -174,7 +174,7 @@ TSubclassOf<UUserWidget> UUIManager::LoadWidgetClass(const TSoftClassPtr<UUserWi
         return nullptr;
     }
 
-    // Í¬²½¼ÓÔØWidgetÀà
+    // åŒæ­¥åŠ è½½Widgetç±»
     TSubclassOf<UUserWidget> WidgetClass = SoftClassPtr.LoadSynchronous();
     if (!WidgetClass)
     {
@@ -193,7 +193,7 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                // ´´½¨µ«²»ÏÔÊ¾
+                // åˆ›å»ºä½†ä¸æ˜¾ç¤º
                 UUserWidget* Widget = CreateWidget<UUserWidget>(WorldContext, UIInfo->WidgetClass);
                 if (Widget)
                 {
@@ -222,7 +222,7 @@ void UUIManager::PreloadMarkedUIs()
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                // ´´½¨µ«²»ÏÔÊ¾
+                // åˆ›å»ºä½†ä¸æ˜¾ç¤º
                 UUserWidget* Widget = CreateWidget<UUserWidget>(WorldContext, UIInfo->WidgetClass);
                 if (Widget)
                 {
@@ -248,10 +248,10 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     if (UIName.IsNone())
     {
         UIName = FName(*WidgetClass->GetName());
-        UIName = FName(*UIName.ToString().Replace(TEXT("_C"), TEXT(""))); // ÒÆ³ıºó×º
+        UIName = FName(*UIName.ToString().Replace(TEXT("_C"), TEXT(""))); // ç§»é™¤åç¼€
     }
 
-    // ¼ì²éÊÇ·ñÒÑ´æÔÚ
+    // æ£€æŸ¥æ˜¯å¦å·²å­˜åœ¨
     if (FUIInfo* ExistingUI = UIRegistry.Find(UIName))
     {
         if (ExistingUI->WidgetInstance)
@@ -273,7 +273,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         }
     }
 
-    // ´´½¨ĞÂUI
+    // åˆ›å»ºæ–°UI
     UUserWidget* NewWidget = CreateWidget<UUserWidget>(WorldContext, WidgetClass);
     if (!NewWidget)
     {
@@ -281,10 +281,10 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         return nullptr;
     }
 
-    // Ìí¼Óµ½²ã¼¶
+    // æ·»åŠ åˆ°å±‚çº§
     AddToLayer(NewWidget, Layer);
 
-    // ×¢²áUIĞÅÏ¢£¨Èç¹ûÉĞÎ´×¢²á£©
+    // æ³¨å†ŒUIä¿¡æ¯ï¼ˆå¦‚æœå°šæœªæ³¨å†Œï¼‰
     if (!UIRegistry.Contains(UIName))
     {
         FUIInfo UIInfo;
@@ -299,19 +299,19 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     }
     else
     {
-        // ¸üĞÂÒÑÓĞUIĞÅÏ¢
+        // æ›´æ–°å·²æœ‰UIä¿¡æ¯
         FUIInfo* UIInfo = UIRegistry.Find(UIName);
         UIInfo->WidgetInstance = NewWidget;
         UIInfo->State = EUIState::Visible;
     }
 
-    // ÉèÖÃÊı¾İ
+    // è®¾ç½®æ•°æ®
     if (Data)
     {
-        // ÕâÀïĞèÒª¾ßÌåµÄUIÀàÀ´´¦ÀíÊı¾İ
+        // è¿™é‡Œéœ€è¦å…·ä½“çš„UIç±»æ¥å¤„ç†æ•°æ®
     }
 
-    // ÏÔÊ¾UI
+    // æ˜¾ç¤ºUI
     NewWidget->AddToViewport();
 
     OnUIShown.Broadcast(UIName);
@@ -325,7 +325,7 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data)
 {
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        // Èç¹ûÒÑ¾­Ô¤¼ÓÔØ£¬Ö±½ÓÊ¹ÓÃÔ¤¼ÓÔØµÄÊµÀı
+        // å¦‚æœå·²ç»é¢„åŠ è½½ï¼Œç›´æ¥ä½¿ç”¨é¢„åŠ è½½çš„å®ä¾‹
         if (UIInfo->WidgetInstance)
         {
             UIInfo->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
@@ -340,7 +340,7 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data)
                 }
             }
 
-            // Ìí¼Óµ½²ã¼¶£¨Èç¹ûÉĞÎ´Ìí¼Ó£©
+            // æ·»åŠ åˆ°å±‚çº§ï¼ˆå¦‚æœå°šæœªæ·»åŠ ï¼‰
             if (!UIInfo->WidgetInstance->IsInViewport())
             {
                 AddToLayer(UIInfo->WidgetInstance, UIInfo->Layer);
@@ -352,7 +352,7 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data)
         }
         else
         {
-            // Ã»ÓĞÔ¤¼ÓÔØ£¬´´½¨ĞÂÊµÀı
+            // æ²¡æœ‰é¢„åŠ è½½ï¼Œåˆ›å»ºæ–°å®ä¾‹
             return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName);
         }
     }
@@ -385,15 +385,15 @@ void UUIManager::CloseUI(FName UIName)
             UIInfo->WidgetInstance = nullptr;
         }
 
-        // Èç¹ûUI²»ÊÇÍ¨¹ıÅäÖÃ×¢²áµÄ£¬Ôò´Ó×¢²á±íÖĞÒÆ³ı
-        FUIConfigData TempConfig;  // ´´½¨ÁÙÊ±±äÁ¿
+        // å¦‚æœUIä¸æ˜¯é€šè¿‡é…ç½®æ³¨å†Œçš„ï¼Œåˆ™ä»æ³¨å†Œè¡¨ä¸­ç§»é™¤
+        FUIConfigData TempConfig;  // åˆ›å»ºä¸´æ—¶å˜é‡
         if (!UIConfigData || !UIConfigData->GetUIConfig(UIName, TempConfig))
         {
             UIRegistry.Remove(UIName);
         }
         else
         {
-            // ÖØÖÃÊµÀıºÍ×´Ì¬
+            // é‡ç½®å®ä¾‹å’ŒçŠ¶æ€
             UIInfo->WidgetInstance = nullptr;
             UIInfo->State = EUIState::Hidden;
         }
@@ -489,14 +489,14 @@ UCanvasPanel* UUIManager::GetOrCreateLayerPanel(EUIPanelLayer Layer)
 
 void UUIManager::AddToLayer(UUserWidget* Widget, EUIPanelLayer Layer)
 {
-    // ÔÚÊµ¼ÊÊµÏÖÖĞ£¬ÕâÀïĞèÒª½«WidgetÌí¼Óµ½Ö¸¶¨²ã¼¶µÄ»­²¼ÖĞ
+    // åœ¨å®é™…å®ç°ä¸­ï¼Œè¿™é‡Œéœ€è¦å°†Widgetæ·»åŠ åˆ°æŒ‡å®šå±‚çº§çš„ç”»å¸ƒä¸­
     UE_LOG(LogTemp, Log, TEXT("UUIManager::AddToLayer - Added widget to layer: %s"),
         *UEnum::GetValueAsString(Layer));
 }
 
 void UUIManager::RemoveFromLayer(UUserWidget* Widget)
 {
-    // ÔÚÊµ¼ÊÊµÏÖÖĞ£¬ÕâÀïĞèÒª´Ó²ã¼¶»­²¼ÖĞÒÆ³ıWidget
+    // åœ¨å®é™…å®ç°ä¸­ï¼Œè¿™é‡Œéœ€è¦ä»å±‚çº§ç”»å¸ƒä¸­ç§»é™¤Widget
     UE_LOG(LogTemp, Log, TEXT("UUIManager::RemoveFromLayer - Removed widget from layer"));
 }
 
@@ -526,7 +526,7 @@ void UUIManager::FadeOutUI(FName UIName, float Duration)
 
 void UUIManager::HandleFadeAnimation(FName UIName, float TargetAlpha, float Duration)
 {
-    // ÔÚÊµ¼ÊÊµÏÖÖĞ£¬ÕâÀïĞèÒªÊ¹ÓÃUMGµÄ¶¯»­ÏµÍ³
+    // åœ¨å®é™…å®ç°ä¸­ï¼Œè¿™é‡Œéœ€è¦ä½¿ç”¨UMGçš„åŠ¨ç”»ç³»ç»Ÿ
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         if (UIInfo->WidgetInstance)

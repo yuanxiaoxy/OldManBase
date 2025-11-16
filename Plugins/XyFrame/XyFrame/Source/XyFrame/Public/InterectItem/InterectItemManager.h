@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -80,7 +80,6 @@ public:
     void InitializeInteractManager();
 
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "InteractManager", meta = (DisplayName = "Get Interact Manager"))
     static UInterectItemManager* GetInteractManager() { return GetInstance(); }

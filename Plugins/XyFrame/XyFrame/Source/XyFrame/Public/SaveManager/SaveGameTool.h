@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include "SaveGameDataTypes.h"
 #include "SaveGameTool.generated.h"
 
-// ´æµµ²ÛÀàĞÍ
+// å­˜æ¡£æ§½ç±»å‹
 UENUM(BlueprintType)
 enum class ESaveSlotType : uint8
 {
@@ -22,7 +22,7 @@ enum class ESaveSlotType : uint8
     System       UMETA(DisplayName = "System Data")
 };
 
-// ´æµµÊı¾İ×´Ì¬
+// å­˜æ¡£æ•°æ®çŠ¶æ€
 UENUM(BlueprintType)
 enum class ESaveDataState : uint8
 {
@@ -33,7 +33,7 @@ enum class ESaveDataState : uint8
     Saving       UMETA(DisplayName = "Saving")
 };
 
-// ´æµµÔªÊı¾İ
+// å­˜æ¡£å…ƒæ•°æ®
 USTRUCT(BlueprintType)
 struct FSaveGameMetadata
 {
@@ -79,7 +79,7 @@ struct FSaveGameMetadata
     }
 };
 
-// »ù´¡´æµµÀà
+// åŸºç¡€å­˜æ¡£ç±»
 UCLASS(Blueprintable, BlueprintType)
 class USaveGameBase : public USaveGame
 {
@@ -102,7 +102,7 @@ public:
     TMap<FString, bool> CustomBoolData;
 };
 
-// Íæ¼Ò´æµµÀà
+// ç©å®¶å­˜æ¡£ç±»
 UCLASS(Blueprintable)
 class UPlayerSaveGame : public USaveGameBase
 {
@@ -112,7 +112,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player")
     FPlayerSaveData PlayerData;
 
-    // ±ã½İ·½·¨
+    // ä¾¿æ·æ–¹æ³•
     UFUNCTION(BlueprintCallable, Category = "Player")
     void SetPlayerData(const FPlayerSaveData& NewData) { PlayerData = NewData; }
 
@@ -120,7 +120,7 @@ public:
     FPlayerSaveData GetPlayerData() const { return PlayerData; }
 };
 
-// ÊÀ½ç´æµµÀà
+// ä¸–ç•Œå­˜æ¡£ç±»
 UCLASS(Blueprintable)
 class UWorldSaveGame : public USaveGameBase
 {
@@ -137,7 +137,7 @@ public:
     FWorldSaveData GetWorldData() const { return WorldData; }
 };
 
-// ÉèÖÃ´æµµÀà
+// è®¾ç½®å­˜æ¡£ç±»
 UCLASS(Blueprintable)
 class USettingsSaveGame : public USaveGameBase
 {
@@ -154,7 +154,7 @@ public:
     FSettingsData GetSettingsData() const { return SettingsData; }
 };
 
-// ½ø¶È´æµµÀà
+// è¿›åº¦å­˜æ¡£ç±»
 UCLASS(Blueprintable)
 class UProgressSaveGame : public USaveGameBase
 {
@@ -171,20 +171,20 @@ public:
     FProgressData GetProgressData() const { return ProgressData; }
 };
 
-// ´æµµÍê³ÉÎ¯ÍĞ
+// å­˜æ¡£å®Œæˆå§”æ‰˜
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveGameComplete, const FString&, SlotName, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadGameComplete, const FString&, SlotName, USaveGameBase*, SaveGame, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDeleteSaveComplete, const FString&, SlotName, bool, bSuccess);
 
-// À¶Í¼»Øµ÷Î¯ÍĞ
+// è“å›¾å›è°ƒå§”æ‰˜
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnSaveGameCallback, const FString&, SlotName, bool, bSuccess);
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FOnLoadGameCallback, const FString&, SlotName, USaveGameBase*, SaveGame, bool, bSuccess);
 
-// ¾²Ì¬Î¯ÍĞ - ÓÃÓÚC++»Øµ÷
+// é™æ€å§”æ‰˜ - ç”¨äºC++å›è°ƒ
 DECLARE_DELEGATE_TwoParams(FOnSaveGameStaticDelegate, const FString&, bool);
 DECLARE_DELEGATE_ThreeParams(FOnLoadGameStaticDelegate, const FString&, USaveGameBase*, bool);
 
-// ¼ÓÔØ½á¹û½á¹¹Ìå
+// åŠ è½½ç»“æœç»“æ„ä½“
 USTRUCT(BlueprintType)
 struct FLoadResult
 {
@@ -205,67 +205,66 @@ class XYFRAME_API USaveGameTool : public USingletonBase
 {
     GENERATED_BODY()
 
-    // µ¥ÀıÉùÃ÷
+    // å•ä¾‹å£°æ˜
     DECLARE_SINGLETON(USaveGameTool)
 
 public:
-    // ¹¹Ôìº¯ÊıºÍÎö¹¹º¯Êı
+    // æ„é€ å‡½æ•°å’Œææ„å‡½æ•°
     USaveGameTool();
     virtual ~USaveGameTool() override;
 
-    // ³õÊ¼»¯´æµµ¹ÜÀíÆ÷
+    // åˆå§‹åŒ–å­˜æ¡£ç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "SaveGame")
     void InitializeSaveTool();
 
-    // µ¥Àı³õÊ¼»¯·½·¨
+    // å•ä¾‹åˆå§‹åŒ–æ–¹æ³•
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
-    // »ñÈ¡µ¥ÀıµÄ¿É·ÃÎÊ·½·¨
+    // è·å–å•ä¾‹çš„å¯è®¿é—®æ–¹æ³•
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "SaveGame", meta = (DisplayName = "Get Save Game Tool"))
     static USaveGameTool* GetSaveGameTool() { return GetInstance(); }
 
-    // ========== »ù´¡´æµµ²Ù×÷ ==========
+    // ========== åŸºç¡€å­˜æ¡£æ“ä½œ ==========
 
-    // Í¬²½±£´æÓÎÏ·
+    // åŒæ­¥ä¿å­˜æ¸¸æˆ
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Sync")
     bool SaveGameSync(const FString& SlotName, USaveGameBase* SaveGameObject, int32 UserIndex = 0);
 
-    // Í¬²½¼ÓÔØÓÎÏ·
+    // åŒæ­¥åŠ è½½æ¸¸æˆ
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Sync")
     USaveGameBase* LoadGameSync(const FString& SlotName, int32 UserIndex = 0);
 
-    // Í¬²½É¾³ı´æµµ
+    // åŒæ­¥åˆ é™¤å­˜æ¡£
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Sync")
     bool DeleteGameSync(const FString& SlotName, int32 UserIndex = 0);
 
-    // ========== Òì²½´æµµ²Ù×÷ ==========
+    // ========== å¼‚æ­¥å­˜æ¡£æ“ä½œ ==========
 
-    // Òì²½±£´æÓÎÏ·
+    // å¼‚æ­¥ä¿å­˜æ¸¸æˆ
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Async")
     void SaveGameAsync(const FString& SlotName, USaveGameBase* SaveGameObject, int32 UserIndex = 0);
 
-    // Òì²½¼ÓÔØÓÎÏ·
+    // å¼‚æ­¥åŠ è½½æ¸¸æˆ
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Async")
     void LoadGameAsync(const FString& SlotName, int32 UserIndex = 0);
 
-    // Òì²½É¾³ı´æµµ
+    // å¼‚æ­¥åˆ é™¤å­˜æ¡£
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Async")
     void DeleteGameAsync(const FString& SlotName, int32 UserIndex = 0);
 
-    // ========== ´ø»Øµ÷µÄÒì²½²Ù×÷ ==========
+    // ========== å¸¦å›è°ƒçš„å¼‚æ­¥æ“ä½œ ==========
 
-    // Òì²½±£´æÓÎÏ·£¨À¶Í¼»Øµ÷£©
+    // å¼‚æ­¥ä¿å­˜æ¸¸æˆï¼ˆè“å›¾å›è°ƒï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Async")
     void SaveGameAsyncWithCallback(const FString& SlotName, USaveGameBase* SaveGameObject, const FOnSaveGameCallback& Callback, int32 UserIndex = 0);
 
-    // Òì²½¼ÓÔØÓÎÏ·£¨À¶Í¼»Øµ÷£©
+    // å¼‚æ­¥åŠ è½½æ¸¸æˆï¼ˆè“å›¾å›è°ƒï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Async")
     void LoadGameAsyncWithCallback(const FString& SlotName, const FOnLoadGameCallback& Callback, int32 UserIndex = 0);
 
-    // ========== C++¾²Ì¬Î¯ÍĞ»Øµ÷·½·¨ ==========
+    // ========== C++é™æ€å§”æ‰˜å›è°ƒæ–¹æ³• ==========
 
-    // Òì²½±£´æÓÎÏ·£¨C++¾²Ì¬Î¯ÍĞ£©
+    // å¼‚æ­¥ä¿å­˜æ¸¸æˆï¼ˆC++é™æ€å§”æ‰˜ï¼‰
     template<typename T>
     void SaveGameAsyncWithCallback(const FString& SlotName, USaveGameBase* SaveGameObject, T* Object, void(T::* Function)(const FString&, bool), int32 UserIndex = 0)
     {
@@ -274,7 +273,7 @@ public:
         InternalSaveGameAsyncWithStaticCallback(SlotName, SaveGameObject, StaticDelegate, UserIndex);
     }
 
-    // Òì²½±£´æÓÎÏ·£¨ÎŞ²ÎÊıC++¾²Ì¬Î¯ÍĞ£©
+    // å¼‚æ­¥ä¿å­˜æ¸¸æˆï¼ˆæ— å‚æ•°C++é™æ€å§”æ‰˜ï¼‰
     template<typename T>
     void SaveGameAsyncWithCallback(const FString& SlotName, USaveGameBase* SaveGameObject, T* Object, void(T::* Function)(), int32 UserIndex = 0)
     {
@@ -287,7 +286,7 @@ public:
         InternalSaveGameAsyncWithStaticCallback(SlotName, SaveGameObject, StaticDelegate, UserIndex);
     }
 
-    // Òì²½¼ÓÔØÓÎÏ·£¨C++¾²Ì¬Î¯ÍĞ£©
+    // å¼‚æ­¥åŠ è½½æ¸¸æˆï¼ˆC++é™æ€å§”æ‰˜ï¼‰
     template<typename T>
     void LoadGameAsyncWithCallback(const FString& SlotName, T* Object, void(T::* Function)(const FString&, USaveGameBase*, bool), int32 UserIndex = 0)
     {
@@ -296,7 +295,7 @@ public:
         InternalLoadGameAsyncWithStaticCallback(SlotName, StaticDelegate, UserIndex);
     }
 
-    // Òì²½¼ÓÔØÓÎÏ·£¨ÎŞ²ÎÊıC++¾²Ì¬Î¯ÍĞ£©
+    // å¼‚æ­¥åŠ è½½æ¸¸æˆï¼ˆæ— å‚æ•°C++é™æ€å§”æ‰˜ï¼‰
     template<typename T>
     void LoadGameAsyncWithCallback(const FString& SlotName, T* Object, void(T::* Function)(), int32 UserIndex = 0)
     {
@@ -309,23 +308,23 @@ public:
         InternalLoadGameAsyncWithStaticCallback(SlotName, StaticDelegate, UserIndex);
     }
 
-    // ========== ¿ìËÙ´æµµ¹¦ÄÜ ==========
+    // ========== å¿«é€Ÿå­˜æ¡£åŠŸèƒ½ ==========
 
-    // ¿ìËÙ±£´æ
+    // å¿«é€Ÿä¿å­˜
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Quick")
     void QuickSave();
 
-    // ¿ìËÙ¼ÓÔØ
+    // å¿«é€ŸåŠ è½½
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Quick")
     bool QuickLoad();
 
-    // ×Ô¶¯±£´æ
+    // è‡ªåŠ¨ä¿å­˜
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Auto")
     void AutoSave();
 
-    // ========== Êı¾İ´´½¨ºÍ»ñÈ¡ ==========
+    // ========== æ•°æ®åˆ›å»ºå’Œè·å– ==========
 
-    // ´´½¨¿ÕµÄ´æµµ¶ÔÏó
+    // åˆ›å»ºç©ºçš„å­˜æ¡£å¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     UPlayerSaveGame* CreatePlayerSaveGame();
 
@@ -338,7 +337,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     UProgressSaveGame* CreateProgressSaveGame();
 
-    // ´Ó½á¹¹Ìå´´½¨´æµµ¶ÔÏó
+    // ä»ç»“æ„ä½“åˆ›å»ºå­˜æ¡£å¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     UPlayerSaveGame* CreatePlayerSaveGameFromData(const FPlayerSaveData& PlayerData);
 
@@ -351,7 +350,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     UProgressSaveGame* CreateProgressSaveGameFromData(const FProgressData& ProgressData);
 
-    // ´Ó´æµµ¶ÔÏó»ñÈ¡½á¹¹ÌåÊı¾İ
+    // ä»å­˜æ¡£å¯¹è±¡è·å–ç»“æ„ä½“æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     FPlayerSaveData GetPlayerDataFromSaveGame(UPlayerSaveGame* SaveGame) const;
 
@@ -364,27 +363,27 @@ public:
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     FProgressData GetProgressDataFromSaveGame(UProgressSaveGame* SaveGame) const;
 
-    // ========== °²È«µÄ¼ÓÔØ·½·¨£¨·µ»Øbool±íÊ¾³É¹¦£© ==========
+    // ========== å®‰å…¨çš„åŠ è½½æ–¹æ³•ï¼ˆè¿”å›boolè¡¨ç¤ºæˆåŠŸï¼‰ ==========
 
-    // °²È«¼ÓÔØÍæ¼ÒÊı¾İµ½½á¹¹Ìå
+    // å®‰å…¨åŠ è½½ç©å®¶æ•°æ®åˆ°ç»“æ„ä½“
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadPlayerDataStruct(FPlayerSaveData& OutData, const FString& SlotName = TEXT("PlayerData"));
 
-    // °²È«¼ÓÔØÊÀ½çÊı¾İµ½½á¹¹Ìå
+    // å®‰å…¨åŠ è½½ä¸–ç•Œæ•°æ®åˆ°ç»“æ„ä½“
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadWorldDataStruct(FWorldSaveData& OutData, const FString& SlotName = TEXT("WorldData"));
 
-    // °²È«¼ÓÔØÉèÖÃÊı¾İµ½½á¹¹Ìå
+    // å®‰å…¨åŠ è½½è®¾ç½®æ•°æ®åˆ°ç»“æ„ä½“
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadSettingsDataStruct(FSettingsData& OutData, const FString& SlotName = TEXT("GameSettings"));
 
-    // °²È«¼ÓÔØ½ø¶ÈÊı¾İµ½½á¹¹Ìå
+    // å®‰å…¨åŠ è½½è¿›åº¦æ•°æ®åˆ°ç»“æ„ä½“
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadProgressDataStruct(FProgressData& OutData, const FString& SlotName = TEXT("ProgressData"));
 
-    // ========== Ö±½Ó½á¹¹Ìå±£´æ ==========
+    // ========== ç›´æ¥ç»“æ„ä½“ä¿å­˜ ==========
 
-    // Ö±½ÓÊ¹ÓÃ½á¹¹Ìå±£´æÊı¾İ
+    // ç›´æ¥ä½¿ç”¨ç»“æ„ä½“ä¿å­˜æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool SavePlayerDataStruct(const FPlayerSaveData& PlayerData, const FString& SlotName = TEXT("PlayerData"));
 
@@ -397,87 +396,87 @@ public:
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool SaveProgressDataStruct(const FProgressData& ProgressData, const FString& SlotName = TEXT("ProgressData"));
 
-    // ========== ±ã½İ±£´æ·½·¨ ==========
+    // ========== ä¾¿æ·ä¿å­˜æ–¹æ³• ==========
 
-    // ±£´æÍæ¼ÒÊı¾İ£¨´ÓPawn´´½¨Êı¾İ£©
+    // ä¿å­˜ç©å®¶æ•°æ®ï¼ˆä»Pawnåˆ›å»ºæ•°æ®ï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool SavePlayerData(APawn* PlayerPawn, const FString& SlotName = TEXT("PlayerData"));
 
-    // ¼ÓÔØÍæ¼ÒÊı¾İµ½Pawn
+    // åŠ è½½ç©å®¶æ•°æ®åˆ°Pawn
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadPlayerData(APawn* PlayerPawn, const FString& SlotName = TEXT("PlayerData"));
 
-    // ´ÓPawn´´½¨Íæ¼ÒÊı¾İ
+    // ä»Pawnåˆ›å»ºç©å®¶æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool CreatePlayerDataFromPawn(APawn* PlayerPawn, FPlayerSaveData& OutData);
 
-    // ========== µ±Ç°Êı¾İ¹ÜÀí ==========
+    // ========== å½“å‰æ•°æ®ç®¡ç† ==========
 
-    // »ñÈ¡µ±Ç°ÉèÖÃ£¨Èç¹ûÃ»ÓĞÔò¼ÓÔØ»ò´´½¨Ä¬ÈÏÉèÖÃ£©
+    // è·å–å½“å‰è®¾ç½®ï¼ˆå¦‚æœæ²¡æœ‰åˆ™åŠ è½½æˆ–åˆ›å»ºé»˜è®¤è®¾ç½®ï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     USettingsSaveGame* GetCurrentSettings();
 
-    // ÉèÖÃµ±Ç°ÉèÖÃ
+    // è®¾ç½®å½“å‰è®¾ç½®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     void SetCurrentSettings(USettingsSaveGame* NewSettings);
 
-    // »ñÈ¡µ±Ç°ÉèÖÃÊı¾İ
+    // è·å–å½“å‰è®¾ç½®æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     FSettingsData GetCurrentSettingsData() const;
 
-    // ÉèÖÃµ±Ç°ÉèÖÃÊı¾İ
+    // è®¾ç½®å½“å‰è®¾ç½®æ•°æ®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Data")
     void SetCurrentSettingsData(const FSettingsData& NewData);
 
-    // ±£´æµ±Ç°ÉèÖÃ
+    // ä¿å­˜å½“å‰è®¾ç½®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool SaveCurrentSettings(const FString& SlotName = TEXT("GameSettings"));
 
-    // ¼ÓÔØÉèÖÃ
+    // åŠ è½½è®¾ç½®
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Convenience")
     bool LoadSettings(const FString& SlotName = TEXT("GameSettings"));
 
-    // ========== ´æµµ¹ÜÀí ==========
+    // ========== å­˜æ¡£ç®¡ç† ==========
 
-    // ¼ì²é´æµµÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥å­˜æ¡£æ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     bool DoesSaveGameExist(const FString& SlotName, int32 UserIndex = 0);
 
-    // »ñÈ¡ËùÓĞ´æµµ²Û
+    // è·å–æ‰€æœ‰å­˜æ¡£æ§½
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     TArray<FString> GetAllSaveSlots() const;
 
-    // »ñÈ¡´æµµÔªÊı¾İ£¨²»¼ÓÔØÍêÕû´æµµ£©
+    // è·å–å­˜æ¡£å…ƒæ•°æ®ï¼ˆä¸åŠ è½½å®Œæ•´å­˜æ¡£ï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     FSaveGameMetadata GetSaveMetadata(const FString& SlotName, int32 UserIndex = 0);
 
-    // »ñÈ¡´æµµ´óĞ¡£¨×Ö½Ú£©
+    // è·å–å­˜æ¡£å¤§å°ï¼ˆå­—èŠ‚ï¼‰
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     int64 GetSaveGameSize(const FString& SlotName, int32 UserIndex = 0) const;
 
-    // »ñÈ¡×Ü´æµµ´óĞ¡
+    // è·å–æ€»å­˜æ¡£å¤§å°
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     int64 GetTotalSaveSize() const;
 
-    // ÇåÀí¾É´æµµ
+    // æ¸…ç†æ—§å­˜æ¡£
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Management")
     void CleanupOldSaves(int32 MaxSaveCount = 10);
 
-    // ========== µ÷ÊÔ¹¤¾ß ==========
+    // ========== è°ƒè¯•å·¥å…· ==========
 
-    // ´òÓ¡ËùÓĞ´æµµ
+    // æ‰“å°æ‰€æœ‰å­˜æ¡£
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Debug")
     void PrintAllSaves();
 
-    // ÑéÖ¤´æµµÍêÕûĞÔ
+    // éªŒè¯å­˜æ¡£å®Œæ•´æ€§
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Debug")
     bool ValidateSaveGame(const FString& SlotName, int32 UserIndex = 0);
 
-    // ´òÓ¡´æµµÍ³¼ÆĞÅÏ¢
+    // æ‰“å°å­˜æ¡£ç»Ÿè®¡ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "SaveGame|Debug")
     void PrintSaveStatistics();
 
-    // ========== ÊÂ¼şÎ¯ÍĞ ==========
+    // ========== äº‹ä»¶å§”æ‰˜ ==========
 
     UPROPERTY(BlueprintAssignable, Category = "SaveGame|Events")
     FOnSaveGameComplete OnSaveGameComplete;
@@ -489,38 +488,38 @@ public:
     FOnDeleteSaveComplete OnDeleteSaveComplete;
 
 private:
-    // µ±Ç°ÉèÖÃ
+    // å½“å‰è®¾ç½®
     UPROPERTY()
     USettingsSaveGame* CurrentSettings;
 
-    // µ±Ç°ÉèÖÃÊı¾İ»º´æ
+    // å½“å‰è®¾ç½®æ•°æ®ç¼“å­˜
     FSettingsData CurrentSettingsData;
 
-    // »Øµ÷Ó³Éä
+    // å›è°ƒæ˜ å°„
     TMap<FString, FOnSaveGameCallback> SaveCallbacks;
     TMap<FString, FOnLoadGameCallback> LoadCallbacks;
 
-    // ¾²Ì¬Î¯ÍĞÓ³Éä
+    // é™æ€å§”æ‰˜æ˜ å°„
     TMap<FString, FOnSaveGameStaticDelegate> SaveStaticCallbacks;
     TMap<FString, FOnLoadGameStaticDelegate> LoadStaticCallbacks;
 
-    // ÄÚ²¿ÊµÏÖ·½·¨
+    // å†…éƒ¨å®ç°æ–¹æ³•
     FString GenerateBackupName(const FString& SlotName) const;
     bool InternalSaveGame(const FString& SlotName, USaveGameBase* SaveGameObject, int32 UserIndex);
     USaveGameBase* InternalLoadGame(const FString& SlotName, int32 UserIndex);
     void UpdateSaveMetadata(USaveGameBase* SaveGame, const FString& SlotName, ESaveSlotType SlotType);
 
-    // ¾²Ì¬Î¯ÍĞÄÚ²¿·½·¨
+    // é™æ€å§”æ‰˜å†…éƒ¨æ–¹æ³•
     void InternalSaveGameAsyncWithStaticCallback(const FString& SlotName, USaveGameBase* SaveGameObject, const FOnSaveGameStaticDelegate& Callback, int32 UserIndex);
     void InternalLoadGameAsyncWithStaticCallback(const FString& SlotName, const FOnLoadGameStaticDelegate& Callback, int32 UserIndex);
 
-    // Òì²½²Ù×÷Íê³É´¦Àí
+    // å¼‚æ­¥æ“ä½œå®Œæˆå¤„ç†
     UFUNCTION()
     void HandleAsyncSaveComplete(const FString& SlotName, const int32 UserIndex, bool bSuccess);
 
     UFUNCTION()
     void HandleAsyncLoadComplete(const FString& SlotName, const int32 UserIndex, USaveGame* SaveGame);
 
-    // »ñÈ¡ÊÀ½ç
+    // è·å–ä¸–ç•Œ
     UWorld* GetWorld() const override;
 };

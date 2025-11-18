@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "Engine/World.h"
 #include "LoadSceneManager.generated.h"
 
-// ³¡¾°¼ÓÔØÄ£Ê½
+// åœºæ™¯åŠ è½½æ¨¡å¼
 UENUM(BlueprintType)
 enum class ESceneLoadMode : uint8
 {
@@ -16,7 +16,7 @@ enum class ESceneLoadMode : uint8
     Additive UMETA(DisplayName = "Additive")
 };
 
-// ³¡¾°¼ÓÔØ×´Ì¬
+// åœºæ™¯åŠ è½½çŠ¶æ€
 UENUM(BlueprintType)
 enum class ESceneLoadState : uint8
 {
@@ -26,7 +26,7 @@ enum class ESceneLoadState : uint8
     Failed UMETA(DisplayName = "Failed")
 };
 
-// ³¡¾°ĞÅÏ¢
+// åœºæ™¯ä¿¡æ¯
 USTRUCT(BlueprintType)
 struct FSceneInfo
 {
@@ -51,7 +51,7 @@ struct FSceneInfo
     }
 };
 
-// Òì²½¼ÓÔØÇëÇó - ÖØÃüÃûÎª±ÜÃâ³åÍ»
+// å¼‚æ­¥åŠ è½½è¯·æ±‚ - é‡å‘½åä¸ºé¿å…å†²çª
 USTRUCT(BlueprintType)
 struct FSceneAsyncLoadRequest
 {
@@ -69,7 +69,7 @@ struct FSceneAsyncLoadRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scene")
     float Progress;
 
-    // ĞÂÔö×Ö¶ÎÓÃÓÚ¹ØÁªLatentActionInfo
+    // æ–°å¢å­—æ®µç”¨äºå…³è”LatentActionInfo
     int32 LatentActionUUID;
 
     FSceneAsyncLoadRequest()
@@ -80,7 +80,7 @@ struct FSceneAsyncLoadRequest
     }
 };
 
-// Á÷ËÍ¹Ø¿¨ĞÅÏ¢
+// æµé€å…³å¡ä¿¡æ¯
 USTRUCT(BlueprintType)
 struct FStreamingLevelInfo
 {
@@ -109,7 +109,7 @@ struct FStreamingLevelInfo
     }
 };
 
-// µØÍ¼ÎÄ¼şĞÅÏ¢
+// åœ°å›¾æ–‡ä»¶ä¿¡æ¯
 USTRUCT(BlueprintType)
 struct FMapFileInfo
 {
@@ -133,12 +133,12 @@ struct FMapFileInfo
     }
 };
 
-// Î¯ÍĞÉùÃ÷
+// å§”æ‰˜å£°æ˜
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSceneLoadProgress, const FString&, RequestId, float, Progress);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSceneLoadComplete, const FString&, RequestId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSceneUnloadComplete, const FString&, RequestId);
 
-// ¼ò»¯µÄ»Øµ÷Î¯ÍĞ
+// ç®€åŒ–çš„å›è°ƒå§”æ‰˜
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnSceneLoadedCallback, const FString&, SceneName);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnSceneUnloadedCallback, const FString&, SceneName);
 
@@ -147,267 +147,266 @@ class XYFRAME_API ULoadSceneManager : public USingletonBase
 {
     GENERATED_BODY()
 
-    // µ¥ÀıÉùÃ÷
+    // å•ä¾‹å£°æ˜
     DECLARE_SINGLETON(ULoadSceneManager)
 
 public:
-    // ³õÊ¼»¯³¡¾°¹ÜÀíÆ÷
+    // åˆå§‹åŒ–åœºæ™¯ç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "Scene")
     void InitializeSceneManager();
 
-    // ÖØĞ´µ¥Àı³õÊ¼»¯·½·¨
+    // é‡å†™å•ä¾‹åˆå§‹åŒ–æ–¹æ³•
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
-    // »ñÈ¡¹ÜÀíÆ÷ÊµÀıµÄÀ¶Í¼¿Éµ÷ÓÃ·½·¨
+    // è·å–ç®¡ç†å™¨å®ä¾‹çš„è“å›¾å¯è°ƒç”¨æ–¹æ³•
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Scene", meta = (DisplayName = "Get Scene Manager"))
     static ULoadSceneManager* GetSceneManager() { return GetInstance(); }
 
-    // ¹¹Ôìº¯Êı
+    // æ„é€ å‡½æ•°
     ULoadSceneManager();
     virtual ~ULoadSceneManager() override;
 
-    // ========== Í¬²½³¡¾°¼ÓÔØ ==========
+    // ========== åŒæ­¥åœºæ™¯åŠ è½½ ==========
 
-    // Í¨¹ıË÷ÒıÍ¬²½¼ÓÔØ³¡¾°
+    // é€šè¿‡ç´¢å¼•åŒæ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadSceneByIndex(int32 SceneIndex, ESceneLoadMode Mode = ESceneLoadMode::Single);
 
-    // Í¨¹ıÃû³ÆÍ¬²½¼ÓÔØ³¡¾°
+    // é€šè¿‡åç§°åŒæ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadSceneByName(const FString& SceneName, ESceneLoadMode Mode = ESceneLoadMode::Single);
 
-    // Í¨¹ıÎÄ¼şÂ·¾¶Í¬²½¼ÓÔØ³¡¾°
+    // é€šè¿‡æ–‡ä»¶è·¯å¾„åŒæ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadSceneByPath(const FString& MapPath, ESceneLoadMode Mode = ESceneLoadMode::Single);
 
-    // Í¨¹ı TSoftObjectPtr Í¬²½¼ÓÔØ³¡¾°
+    // é€šè¿‡ TSoftObjectPtr åŒæ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadSceneByAsset(const TSoftObjectPtr<UWorld>& MapAsset, ESceneLoadMode Mode = ESceneLoadMode::Single);
 
-    // Í¨¹ıÍêÕû×Ê²úÂ·¾¶Í¬²½¼ÓÔØ³¡¾°
+    // é€šè¿‡å®Œæ•´èµ„äº§è·¯å¾„åŒæ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadSceneByFullPath(const FString& FullMapPath, ESceneLoadMode Mode = ESceneLoadMode::Single);
 
-    // ÖØĞÂ¼ÓÔØµ±Ç°»î¶¯³¡¾°
+    // é‡æ–°åŠ è½½å½“å‰æ´»åŠ¨åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void ReloadCurrentScene();
 
-    // ¼ÓÔØÏÂÒ»¸ö³¡¾°
+    // åŠ è½½ä¸‹ä¸€ä¸ªåœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadNextScene(bool bCyclical = false);
 
-    // ¼ÓÔØÉÏÒ»¸ö³¡¾°
+    // åŠ è½½ä¸Šä¸€ä¸ªåœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Sync")
     void LoadPreviousScene(bool bCyclical = false);
 
-    // ========== Òì²½³¡¾°¼ÓÔØ ==========
+    // ========== å¼‚æ­¥åœºæ™¯åŠ è½½ ==========
 
-    // Í¨¹ıË÷ÒıÒì²½¼ÓÔØ³¡¾°
+    // é€šè¿‡ç´¢å¼•å¼‚æ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadSceneAsyncByIndex(int32 SceneIndex, ESceneLoadMode Mode = ESceneLoadMode::Single, bool bActivateAfterLoad = true);
 
-    // Í¨¹ıÃû³ÆÒì²½¼ÓÔØ³¡¾°
+    // é€šè¿‡åç§°å¼‚æ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadSceneAsyncByName(const FString& SceneName, ESceneLoadMode Mode = ESceneLoadMode::Single, bool bActivateAfterLoad = true);
 
-    // Í¨¹ıÎÄ¼şÂ·¾¶Òì²½¼ÓÔØ³¡¾°
+    // é€šè¿‡æ–‡ä»¶è·¯å¾„å¼‚æ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadSceneAsyncByPath(const FString& MapPath, ESceneLoadMode Mode = ESceneLoadMode::Single, bool bActivateAfterLoad = true);
 
-    // Í¨¹ı TSoftObjectPtr Òì²½¼ÓÔØ³¡¾°
+    // é€šè¿‡ TSoftObjectPtr å¼‚æ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadSceneAsyncByAsset(const TSoftObjectPtr<UWorld>& MapAsset, ESceneLoadMode Mode = ESceneLoadMode::Single, bool bActivateAfterLoad = true);
 
-    // Í¨¹ıÍêÕû×Ê²úÂ·¾¶Òì²½¼ÓÔØ³¡¾°
+    // é€šè¿‡å®Œæ•´èµ„äº§è·¯å¾„å¼‚æ­¥åŠ è½½åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadSceneAsyncByFullPath(const FString& FullMapPath, ESceneLoadMode Mode = ESceneLoadMode::Single, bool bActivateAfterLoad = true);
 
-    // Òì²½ÖØĞÂ¼ÓÔØµ±Ç°³¡¾°
+    // å¼‚æ­¥é‡æ–°åŠ è½½å½“å‰åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString ReloadCurrentSceneAsync(bool bActivateAfterLoad = true);
 
-    // Òì²½¼ÓÔØÏÂÒ»¸ö³¡¾°
+    // å¼‚æ­¥åŠ è½½ä¸‹ä¸€ä¸ªåœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadNextSceneAsync(bool bCyclical = false, bool bActivateAfterLoad = true);
 
-    // Òì²½¼ÓÔØÉÏÒ»¸ö³¡¾°
+    // å¼‚æ­¥åŠ è½½ä¸Šä¸€ä¸ªåœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     FString LoadPreviousSceneAsync(bool bCyclical = false, bool bActivateAfterLoad = true);
 
-    // ========== Òì²½³¡¾°¼ÓÔØ£¨´ø»Øµ÷£© ==========
+    // ========== å¼‚æ­¥åœºæ™¯åŠ è½½ï¼ˆå¸¦å›è°ƒï¼‰ ==========
 
-// Òì²½¼ÓÔØ³¡¾°´øÍê³É»Øµ÷
+// å¼‚æ­¥åŠ è½½åœºæ™¯å¸¦å®Œæˆå›è°ƒ
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     void LoadSceneAsyncWithCallback(int32 SceneIndex, ESceneLoadMode Mode, bool bActivateAfterLoad, const FOnSceneLoadedCallback& OnComplete);
 
-    // Òì²½¼ÓÔØ³¡¾°´øÂ·¾¶ºÍÍê³É»Øµ÷
+    // å¼‚æ­¥åŠ è½½åœºæ™¯å¸¦è·¯å¾„å’Œå®Œæˆå›è°ƒ
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     void LoadSceneAsyncByPathWithCallback(const FString& MapPath, ESceneLoadMode Mode, bool bActivateAfterLoad, const FOnSceneLoadedCallback& OnComplete);
 
-    // Í¨¹ı TSoftObjectPtr Òì²½¼ÓÔØ³¡¾°´ø»Øµ÷
+    // é€šè¿‡ TSoftObjectPtr å¼‚æ­¥åŠ è½½åœºæ™¯å¸¦å›è°ƒ
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     void LoadSceneAsyncByAssetWithCallback(const TSoftObjectPtr<UWorld>& MapAsset, ESceneLoadMode Mode, bool bActivateAfterLoad, const FOnSceneLoadedCallback& OnComplete);
 
-    // ========== ³¡¾°Ğ¶ÔØ ==========
+    // ========== åœºæ™¯å¸è½½ ==========
 
-    // Ğ¶ÔØ³¡¾°£¨Í¨¹ıÃû³Æ£©
+    // å¸è½½åœºæ™¯ï¼ˆé€šè¿‡åç§°ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Scene|Unload")
     FString UnloadSceneAsync(const FString& SceneName);
 
-    // Ğ¶ÔØËùÓĞ¸½¼Ó³¡¾°
+    // å¸è½½æ‰€æœ‰é™„åŠ åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Unload")
     void UnloadAllAdditiveScenes();
 
-    // ========== µØÍ¼Á÷ËÍ¹ÜÀí ==========
+    // ========== åœ°å›¾æµé€ç®¡ç† ==========
 
-    // ¼ÓÔØÁ÷ËÍ¹Ø¿¨
+    // åŠ è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void LoadStreamingLevel(const FString& LevelName, bool bMakeVisibleAfterLoad = true, bool bShouldBlockOnLoad = false);
 
-    // Í¨¹ıÂ·¾¶¼ÓÔØÁ÷ËÍ¹Ø¿¨
+    // é€šè¿‡è·¯å¾„åŠ è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void LoadStreamingLevelByPath(const FString& LevelPath, bool bMakeVisibleAfterLoad = true, bool bShouldBlockOnLoad = false);
 
-    // Í¨¹ı TSoftObjectPtr ¼ÓÔØÁ÷ËÍ¹Ø¿¨
+    // é€šè¿‡ TSoftObjectPtr åŠ è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void LoadStreamingLevelByAsset(const TSoftObjectPtr<UWorld>& MapAsset, bool bMakeVisibleAfterLoad = true, bool bShouldBlockOnLoad = false);
 
-    // Ğ¶ÔØÁ÷ËÍ¹Ø¿¨
+    // å¸è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void UnloadStreamingLevel(const FString& LevelName);
 
-    // ÉèÖÃÁ÷ËÍ¹Ø¿¨¿É¼ûĞÔ
+    // è®¾ç½®æµé€å…³å¡å¯è§æ€§
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void SetStreamingLevelVisible(const FString& LevelName, bool bVisible);
 
-    // »ñÈ¡ËùÓĞÁ÷ËÍ¹Ø¿¨ĞÅÏ¢
+    // è·å–æ‰€æœ‰æµé€å…³å¡ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     TArray<FStreamingLevelInfo> GetAllStreamingLevelsInfo() const;
 
-    // ¼ì²éÁ÷ËÍ¹Ø¿¨ÊÇ·ñÒÑ¼ÓÔØ
+    // æ£€æŸ¥æµé€å…³å¡æ˜¯å¦å·²åŠ è½½
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     bool IsStreamingLevelLoaded(const FString& LevelName) const;
 
-    // ÅúÁ¿¼ÓÔØÁ÷ËÍ¹Ø¿¨
+    // æ‰¹é‡åŠ è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void LoadStreamingLevels(const TArray<FString>& LevelNames, bool bMakeVisibleAfterLoad = true);
 
-    // ÅúÁ¿Ğ¶ÔØÁ÷ËÍ¹Ø¿¨
+    // æ‰¹é‡å¸è½½æµé€å…³å¡
     UFUNCTION(BlueprintCallable, Category = "Scene|Streaming")
     void UnloadStreamingLevels(const TArray<FString>& LevelNames);
 
-    // ========== µØÍ¼ÎÄ¼ş¹ÜÀí ==========
+    // ========== åœ°å›¾æ–‡ä»¶ç®¡ç† ==========
 
-    // »ñÈ¡ËùÓĞ¿ÉÓÃµÄµØÍ¼ÎÄ¼ş
+    // è·å–æ‰€æœ‰å¯ç”¨çš„åœ°å›¾æ–‡ä»¶
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     TArray<FMapFileInfo> GetAllAvailableMaps() const;
 
-    // ÔÚÖ¸¶¨ÎÄ¼ş¼ĞÖĞ²éÕÒµØÍ¼ÎÄ¼ş
+    // åœ¨æŒ‡å®šæ–‡ä»¶å¤¹ä¸­æŸ¥æ‰¾åœ°å›¾æ–‡ä»¶
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     TArray<FMapFileInfo> FindMapsInFolder(const FString& FolderPath) const;
 
-    // ¼ì²éµØÍ¼ÎÄ¼şÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥åœ°å›¾æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     bool DoesMapFileExist(const FString& MapPath) const;
 
-    // »ñÈ¡µØÍ¼ÏÔÊ¾Ãû³Æ
+    // è·å–åœ°å›¾æ˜¾ç¤ºåç§°
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     FString GetMapDisplayName(const FString& MapPath) const;
 
-    // ========== ³¡¾°ĞÅÏ¢²éÑ¯ ==========
+    // ========== åœºæ™¯ä¿¡æ¯æŸ¥è¯¢ ==========
 
-    // »ñÈ¡µ±Ç°»î¶¯³¡¾°Ãû³Æ
+    // è·å–å½“å‰æ´»åŠ¨åœºæ™¯åç§°
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     FString GetCurrentSceneName() const;
 
-    // »ñÈ¡µ±Ç°³¡¾°Â·¾¶
+    // è·å–å½“å‰åœºæ™¯è·¯å¾„
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     FString GetCurrentScenePath() const;
 
-    // »ñÈ¡µ±Ç°³¡¾°Ë÷Òı
+    // è·å–å½“å‰åœºæ™¯ç´¢å¼•
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     int32 GetCurrentSceneIndex() const;
 
-    // »ñÈ¡³¡¾°×ÜÊı
+    // è·å–åœºæ™¯æ€»æ•°
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     int32 GetSceneCount() const;
 
-    // »ñÈ¡³¡¾°ĞÅÏ¢
+    // è·å–åœºæ™¯ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     FSceneInfo GetSceneInfo(int32 SceneIndex) const;
 
-    // ¼ì²é³¡¾°Ë÷ÒıÊÇ·ñÓĞĞ§
+    // æ£€æŸ¥åœºæ™¯ç´¢å¼•æ˜¯å¦æœ‰æ•ˆ
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     bool IsSceneIndexValid(int32 SceneIndex) const;
 
-    // ¼ì²é³¡¾°Ãû³ÆÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥åœºæ™¯åç§°æ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     bool DoesSceneExist(const FString& SceneName) const;
 
-    // »ñÈ¡ËùÓĞÒÑ¼ÓÔØµÄ³¡¾°
+    // è·å–æ‰€æœ‰å·²åŠ è½½çš„åœºæ™¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     TArray<FString> GetAllLoadedScenes() const;
 
-    // »ñÈ¡³¡¾°ÖĞµÄ¸ùActor
+    // è·å–åœºæ™¯ä¸­çš„æ ¹Actor
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     TArray<AActor*> GetRootActorsInScene(const FString& SceneName) const;
 
-    // »ñÈ¡ËùÓĞÒÑ¼ÓÔØ³¡¾°µÄ¸ùActor
+    // è·å–æ‰€æœ‰å·²åŠ è½½åœºæ™¯çš„æ ¹Actor
     UFUNCTION(BlueprintCallable, Category = "Scene|Query")
     TArray<AActor*> GetRootActorsInAllLoadedScenes() const;
 
-    // ========== Òì²½ÇëÇó¹ÜÀí ==========
+    // ========== å¼‚æ­¥è¯·æ±‚ç®¡ç† ==========
 
-    // »ñÈ¡Òì²½ÇëÇó×´Ì¬
+    // è·å–å¼‚æ­¥è¯·æ±‚çŠ¶æ€
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     ESceneLoadState GetAsyncRequestState(const FString& RequestId) const;
 
-    // »ñÈ¡Òì²½ÇëÇó½ø¶È
+    // è·å–å¼‚æ­¥è¯·æ±‚è¿›åº¦
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     float GetAsyncRequestProgress(const FString& RequestId) const;
 
-    // È¡ÏûÒì²½ÇëÇó
+    // å–æ¶ˆå¼‚æ­¥è¯·æ±‚
     UFUNCTION(BlueprintCallable, Category = "Scene|Async")
     void CancelAsyncRequest(const FString& RequestId);
 
-    // ========== µ÷ÊÔ¹¤¾ß ==========
+    // ========== è°ƒè¯•å·¥å…· ==========
 
-    // ´òÓ¡ËùÓĞ³¡¾°ĞÅÏ¢
+    // æ‰“å°æ‰€æœ‰åœºæ™¯ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Debug")
     void PrintAllScenesInfo();
 
-    // ´òÓ¡ËùÓĞÁ÷ËÍ¹Ø¿¨ĞÅÏ¢
+    // æ‰“å°æ‰€æœ‰æµé€å…³å¡ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Debug")
     void PrintAllStreamingLevelsInfo();
 
-    // ´òÓ¡ËùÓĞÒì²½ÇëÇóĞÅÏ¢
+    // æ‰“å°æ‰€æœ‰å¼‚æ­¥è¯·æ±‚ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Scene|Debug")
     void PrintAllAsyncRequests();
 
-    // ´òÓ¡ËùÓĞ¿ÉÓÃµØÍ¼
+    // æ‰“å°æ‰€æœ‰å¯ç”¨åœ°å›¾
     UFUNCTION(BlueprintCallable, Category = "Scene|Debug")
     void PrintAllAvailableMaps();
 
-    // ========== µØÍ¼×Ê²ú¹ÜÀí ==========
+    // ========== åœ°å›¾èµ„äº§ç®¡ç† ==========
 
-// »ñÈ¡ËùÓĞ¿ÉÓÃµÄµØÍ¼×Ê²ú
+// è·å–æ‰€æœ‰å¯ç”¨çš„åœ°å›¾èµ„äº§
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     TArray<TSoftObjectPtr<UWorld>> GetAllAvailableMapAssets() const;
 
-    // ÔÚÖ¸¶¨ÎÄ¼ş¼ĞÖĞ²éÕÒµØÍ¼×Ê²ú
+    // åœ¨æŒ‡å®šæ–‡ä»¶å¤¹ä¸­æŸ¥æ‰¾åœ°å›¾èµ„äº§
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     TArray<TSoftObjectPtr<UWorld>> FindMapAssetsInFolder(const FString& FolderPath) const;
 
-    // ¼ì²éµØÍ¼×Ê²úÊÇ·ñÓĞĞ§
+    // æ£€æŸ¥åœ°å›¾èµ„äº§æ˜¯å¦æœ‰æ•ˆ
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     bool IsMapAssetValid(const TSoftObjectPtr<UWorld>& MapAsset) const;
 
-    // »ñÈ¡µØÍ¼×Ê²úµÄÏÔÊ¾Ãû³Æ
+    // è·å–åœ°å›¾èµ„äº§çš„æ˜¾ç¤ºåç§°
     UFUNCTION(BlueprintCallable, Category = "Scene|Maps")
     FString GetMapAssetDisplayName(const TSoftObjectPtr<UWorld>& MapAsset) const;
 
-    // ========== Î¯ÍĞ ==========
+    // ========== å§”æ‰˜ ==========
 
     UPROPERTY(BlueprintAssignable, Category = "Scene|Events")
     FOnSceneLoadProgress OnSceneLoadProgress;
@@ -419,17 +418,17 @@ public:
     FOnSceneUnloadComplete OnSceneUnloadComplete;
 
 private:
-    // Òì²½¼ÓÔØÇëÇóÓ³Éä - Ê¹ÓÃÖØÃüÃûµÄ½á¹¹Ìå
+    // å¼‚æ­¥åŠ è½½è¯·æ±‚æ˜ å°„ - ä½¿ç”¨é‡å‘½åçš„ç»“æ„ä½“
     TMap<FString, FSceneAsyncLoadRequest> AsyncRequests;
 
-    // ³¡¾°ĞÅÏ¢»º´æ
+    // åœºæ™¯ä¿¡æ¯ç¼“å­˜
     TMap<FString, FSceneInfo> SceneInfoCache;
 
-    // »Øµ÷Ó³Éä
+    // å›è°ƒæ˜ å°„
     TMap<FString, FOnSceneLoadedCallback> LoadCallbacks;
     TMap<FString, FOnSceneUnloadedCallback> UnloadCallbacks;
 
-    // ÄÚ²¿·½·¨
+    // å†…éƒ¨æ–¹æ³•
     FString GenerateRequestId() const;
     bool IsValidSceneIndex(int32 SceneIndex) const;
     FString GetSceneNameFromIndex(int32 SceneIndex) const;
@@ -437,16 +436,16 @@ private:
     void UpdateAsyncRequestProgress(const FString& RequestId, float Progress);
     void CompleteAsyncRequest(const FString& RequestId, bool bSuccess);
 
-    // Â·¾¶´¦Àí
+    // è·¯å¾„å¤„ç†
     FString SanitizeMapPath(const FString& MapPath) const;
     FString ExtractMapNameFromPath(const FString& MapPath) const;
     bool IsMapPath(const FString& Path) const;
 
-    // Á÷ËÍ¹Ø¿¨¹ÜÀí
+    // æµé€å…³å¡ç®¡ç†
     ULevelStreaming* GetStreamingLevelByName(const FString& LevelName) const;
     ULevelStreaming* GetStreamingLevelByPath(const FString& LevelPath) const;
 
-    // ÍêÕûµÄ»Øµ÷º¯ÊıÉùÃ÷
+    // å®Œæ•´çš„å›è°ƒå‡½æ•°å£°æ˜
     UFUNCTION()
     void OnAsyncLoadComplete();
 
@@ -459,23 +458,23 @@ private:
     UFUNCTION()
     void OnStreamingLevelUnloaded();
 
-    // µØÍ¼ÎÄ¼şÉ¨Ãè
+    // åœ°å›¾æ–‡ä»¶æ‰«æ
     void ScanForMapFiles();
     TArray<FMapFileInfo> AvailableMaps;
 
-    // ¼ÆÊ±Æ÷ÓÃÓÚ½ø¶È¸üĞÂ
+    // è®¡æ—¶å™¨ç”¨äºè¿›åº¦æ›´æ–°
     void StartProgressTimer(const FString& RequestId);
     void StopProgressTimer(const FString& RequestId);
     void UpdateProgress(const FString& RequestId);
 
-    // ¸¨Öú·½·¨£ºÍ¨¹ıUUID²éÕÒÇëÇóID
+    // è¾…åŠ©æ–¹æ³•ï¼šé€šè¿‡UUIDæŸ¥æ‰¾è¯·æ±‚ID
     FString FindRequestIdByUUID(int32 UUID) const;
 
     FString ExtractMapNameFromFullPath(const FString& FullPath) const;
 
-    // ¼ÆÊ±Æ÷¾ä±ú
+    // è®¡æ—¶å™¨å¥æŸ„
     TMap<FString, FTimerHandle> ProgressTimerHandles;
 
-    // »ñÈ¡WorldµÄ¸¨Öú·½·¨
+    // è·å–Worldçš„è¾…åŠ©æ–¹æ³•
     UWorld* GetWorld() const override;
 };

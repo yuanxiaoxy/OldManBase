@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -18,6 +18,10 @@ public class OldMan : ModuleRules
 				"XyFrame",
 				"OldManItem",
 				"OldManConfig",
+                "LevelSequence",      
+				"MovieScene",         
+				"MovieSceneTracks",   
+				"CinematicCamera"     
 			});
 
         PublicIncludePaths.AddRange(

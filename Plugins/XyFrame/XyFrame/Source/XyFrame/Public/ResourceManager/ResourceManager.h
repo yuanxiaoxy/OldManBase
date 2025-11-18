@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,7 +10,7 @@
 #include "ResourceTableRow.h"
 #include "ResourceManager.generated.h"
 
-// ×ÊÔ´¼ÓÔØ×´Ì¬
+// èµ„æºåŠ è½½çŠ¶æ€
 UENUM(BlueprintType)
 enum class EResourceLoadState : uint8
 {
@@ -20,7 +20,7 @@ enum class EResourceLoadState : uint8
     Failed UMETA(DisplayName = "Failed")
 };
 
-// ×ÊÔ´ĞÅÏ¢½á¹¹
+// èµ„æºä¿¡æ¯ç»“æ„
 USTRUCT(BlueprintType)
 struct FResourceInfo
 {
@@ -48,7 +48,7 @@ struct FResourceInfo
     }
 };
 
-// Òì²½¼ÓÔØÇëÇóID
+// å¼‚æ­¥åŠ è½½è¯·æ±‚ID
 USTRUCT(BlueprintType)
 struct FAsyncLoadRequest
 {
@@ -76,15 +76,15 @@ struct FAsyncLoadRequest
     }
 };
 
-// ×ÊÔ´¼ÓÔØÍê³ÉÎ¯ÍĞ
+// èµ„æºåŠ è½½å®Œæˆå§”æ‰˜
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnResourceFinishLoadedSignature, const FString&, RequestId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnResourcesFinishLoadedSignature, const FString&, RequestId);
 
-// ĞÂµÄ¼ò»¯»Øµ÷Î¯ÍĞ - Ö±½Ó´«µİ¼ÓÔØµÄ×ÊÔ´
+// æ–°çš„ç®€åŒ–å›è°ƒå§”æ‰˜ - ç›´æ¥ä¼ é€’åŠ è½½çš„èµ„æº
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnResourceLoadedCallback, UObject*, LoadedResource);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnResourcesLoadedCallback, const TArray<UObject*>&, LoadedResources);
 
-// ¾²Ì¬Î¯ÍĞÓÃÓÚC++³ÉÔ±º¯ÊıÖ¸Õë
+// é™æ€å§”æ‰˜ç”¨äºC++æˆå‘˜å‡½æ•°æŒ‡é’ˆ
 DECLARE_DELEGATE_OneParam(FOnResourceLoadedStaticDelegate, UObject*);
 DECLARE_DELEGATE_OneParam(FOnResourcesLoadedStaticDelegate, const TArray<UObject*>&);
 
@@ -93,116 +93,115 @@ class XYFRAME_API UResourceManager : public USingletonBase
 {
     GENERATED_BODY()
 
-    // ÉùÃ÷µ¥Àı
+    // å£°æ˜å•ä¾‹
     DECLARE_SINGLETON(UResourceManager)
 
 public:
-    // ³õÊ¼»¯×ÊÔ´¹ÜÀíÆ÷
+    // åˆå§‹åŒ–èµ„æºç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void InitializeResourceManager();
 
-    // ÖØĞ´³õÊ¼»¯·½·¨
+    // é‡å†™åˆå§‹åŒ–æ–¹æ³•
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); };
 
-    // »ñÈ¡ÊµÀıµÄÀ¶Í¼¿Éµ÷ÓÃ·½·¨
+    // è·å–å®ä¾‹çš„è“å›¾å¯è°ƒç”¨æ–¹æ³•
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Resource", meta = (DisplayName = "Get Resource Manager"))
     static UResourceManager* GetResourceManager() { return GetInstance(); }
 
-    // ÉèÖÃ×ÊÔ´Êı¾İ±í
+    // è®¾ç½®èµ„æºæ•°æ®è¡¨
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     void SetResourceDataTable(UDataTable* InResourceDataTable);
 
 
-    // Ä¬ÈÏ¹¹Ôìº¯Êı
+    // é»˜è®¤æ„é€ å‡½æ•°
     UResourceManager();
 
-    // Îö¹¹º¯Êı
+    // ææ„å‡½æ•°
     virtual ~UResourceManager() override;
 
-    // ========== À¶Í¼¿É·ÖÅäÎ¯ÍĞ ==========
+    // ========== è“å›¾å¯åˆ†é…å§”æ‰˜ ==========
 
-    // µ¥¸ö×ÊÔ´¼ÓÔØÍê³ÉÎ¯ÍĞ
+    // å•ä¸ªèµ„æºåŠ è½½å®Œæˆå§”æ‰˜
     UPROPERTY(BlueprintAssignable, Category = "Resource")
     FOnResourceFinishLoadedSignature OnResourceFinishLoaded;
 
-    // ¶à¸ö×ÊÔ´¼ÓÔØÍê³ÉÎ¯ÍĞ
+    // å¤šä¸ªèµ„æºåŠ è½½å®Œæˆå§”æ‰˜
     UPROPERTY(BlueprintAssignable, Category = "Resource")
     FOnResourcesFinishLoadedSignature OnResourcesFinishLoaded;
 
-    // ========== »ù´¡×ÊÔ´²Ù×÷ ==========
+    // ========== åŸºç¡€èµ„æºæ“ä½œ ==========
 
-    // Í¬²½¼ÓÔØµ¥¸ö×ÊÔ´
+    // åŒæ­¥åŠ è½½å•ä¸ªèµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     UObject* LoadResourceSync(const FString& ResourcePath);
 
-    // Í¨¹ı×ÊÔ´ID¼ÓÔØ×ÊÔ´£¨Í¬²½£©
+    // é€šè¿‡èµ„æºIDåŠ è½½èµ„æºï¼ˆåŒæ­¥ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     UObject* LoadResourceByID(const FName& ResourceID);
 
-    // Í¬²½¼ÓÔØÖ¸¶¨ÀàĞÍµÄµ¥¸ö×ÊÔ´
+    // åŒæ­¥åŠ è½½æŒ‡å®šç±»å‹çš„å•ä¸ªèµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     UObject* LoadResourceSyncByClass(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass);
 
-    // Í¬²½¼ÓÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´
+    // åŒæ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     TArray<UObject*> LoadResourcesInFolderSync(const FString& FolderPath);
 
-    // Í¬²½¼ÓÔØÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´
+    // åŒæ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     TArray<UObject*> LoadResourcesInFolderSyncByClass(const FString& FolderPath, TSubclassOf<UObject> ResourceClass);
 
-    // ========== Òì²½×ÊÔ´²Ù×÷£¨Ê¹ÓÃÇëÇóID£© ==========
+    // ========== å¼‚æ­¥èµ„æºæ“ä½œï¼ˆä½¿ç”¨è¯·æ±‚IDï¼‰ ==========
 
-    // Òì²½¼ÓÔØµ¥¸ö×ÊÔ´ - ·µ»ØÇëÇóID
+    // å¼‚æ­¥åŠ è½½å•ä¸ªèµ„æº - è¿”å›è¯·æ±‚ID
     UFUNCTION(BlueprintCallable, Category = "Resource")
     FString LoadResourceAsync(const FString& ResourcePath);
 
-    // Òì²½¼ÓÔØÖ¸¶¨ÀàĞÍµÄµ¥¸ö×ÊÔ´ - ·µ»ØÇëÇóID
+    // å¼‚æ­¥åŠ è½½æŒ‡å®šç±»å‹çš„å•ä¸ªèµ„æº - è¿”å›è¯·æ±‚ID
     UFUNCTION(BlueprintCallable, Category = "Resource")
     FString LoadResourceAsyncByClass(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass);
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´ - ·µ»ØÇëÇóID
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº - è¿”å›è¯·æ±‚ID
     UFUNCTION(BlueprintCallable, Category = "Resource")
     FString LoadResourcesInFolderAsync(const FString& FolderPath);
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´ - ·µ»ØÇëÇóID
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æº - è¿”å›è¯·æ±‚ID
     UFUNCTION(BlueprintCallable, Category = "Resource")
     FString LoadResourcesInFolderAsyncByClass(const FString& FolderPath, TSubclassOf<UObject> ResourceClass);
 
-    // ========== ¼ò»¯µÄÒì²½×ÊÔ´²Ù×÷£¨Ö±½Ó°ó¶¨»Øµ÷£© ==========
+    // ========== ç®€åŒ–çš„å¼‚æ­¥èµ„æºæ“ä½œï¼ˆç›´æ¥ç»‘å®šå›è°ƒï¼‰ ==========
 
-    // Òì²½¼ÓÔØµ¥¸ö×ÊÔ´ - Ö±½Ó°ó¶¨»Øµ÷£¨À¶Í¼£©
+    // å¼‚æ­¥åŠ è½½å•ä¸ªèµ„æº - ç›´æ¥ç»‘å®šå›è°ƒï¼ˆè“å›¾ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource", meta = (DisplayName = "Load Resource Async With Callback"))
     void LoadResourceAsyncWithCallback(const FString& ResourcePath, const FOnResourceLoadedCallback& Callback);
 
-    // Òì²½¼ÓÔØÖ¸¶¨ÀàĞÍµÄµ¥¸ö×ÊÔ´ - Ö±½Ó°ó¶¨»Øµ÷£¨À¶Í¼£©
+    // å¼‚æ­¥åŠ è½½æŒ‡å®šç±»å‹çš„å•ä¸ªèµ„æº - ç›´æ¥ç»‘å®šå›è°ƒï¼ˆè“å›¾ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource", meta = (DisplayName = "Load Resource Async By Class With Callback"))
     void LoadResourceAsyncByClassWithCallback(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass, const FOnResourceLoadedCallback& Callback);
 
-    // Í¨¹ı×ÊÔ´ID¼ÓÔØ×ÊÔ´£¨Òì²½£©- ·µ»ØÇëÇóID
+    // é€šè¿‡èµ„æºIDåŠ è½½èµ„æºï¼ˆå¼‚æ­¥ï¼‰- è¿”å›è¯·æ±‚ID
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     FString LoadResourceByIDAsync(const FName& ResourceID);
 
-    // Í¨¹ı×ÊÔ´ID¼ÓÔØ×ÊÔ´£¨Òì²½£©- Ö±½Ó»Øµ÷
+    // é€šè¿‡èµ„æºIDåŠ è½½èµ„æºï¼ˆå¼‚æ­¥ï¼‰- ç›´æ¥å›è°ƒ
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     void LoadResourceByIDWithCallback(const FName& ResourceID, const FOnResourceLoadedCallback& Callback);
 
-    // °´·ÖÀà¼ÓÔØ¶à¸ö×ÊÔ´
+    // æŒ‰åˆ†ç±»åŠ è½½å¤šä¸ªèµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     void LoadResourcesByCategory(EResourceCategory Category, const FOnResourcesLoadedCallback& Callback);
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´ - Ö±½Ó°ó¶¨»Øµ÷£¨À¶Í¼£©
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº - ç›´æ¥ç»‘å®šå›è°ƒï¼ˆè“å›¾ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource", meta = (DisplayName = "Load Resources In Folder Async With Callback"))
     void LoadResourcesInFolderAsyncWithCallback(const FString& FolderPath, const FOnResourcesLoadedCallback& Callback);
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´ - Ö±½Ó°ó¶¨»Øµ÷£¨À¶Í¼£©
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æº - ç›´æ¥ç»‘å®šå›è°ƒï¼ˆè“å›¾ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource", meta = (DisplayName = "Load Resources In Folder Async By Class With Callback"))
     void LoadResourcesInFolderAsyncByClassWithCallback(const FString& FolderPath, TSubclassOf<UObject> ResourceClass, const FOnResourcesLoadedCallback& Callback);
 
-    // ========== C++Ä£°å·½·¨ - Ö±½Ó´«µİ³ÉÔ±º¯ÊıÖ¸Õë ==========
+    // ========== C++æ¨¡æ¿æ–¹æ³• - ç›´æ¥ä¼ é€’æˆå‘˜å‡½æ•°æŒ‡é’ˆ ==========
 
-    // Òì²½¼ÓÔØµ¥¸ö×ÊÔ´ - Ö±½Ó°ó¶¨³ÉÔ±º¯ÊıÖ¸Õë
+    // å¼‚æ­¥åŠ è½½å•ä¸ªèµ„æº - ç›´æ¥ç»‘å®šæˆå‘˜å‡½æ•°æŒ‡é’ˆ
     template<typename T>
     void LoadResourceAsyncWithCallback(const FString& ResourcePath, T* Object, void(T::* Function)(UObject*))
     {
@@ -211,11 +210,11 @@ public:
         InternalLoadResourceAsyncWithStaticCallback(ResourcePath, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØµ¥¸ö×ÊÔ´ - ÎŞ²Î³ÉÔ±º¯ÊıÖ¸Õë
+    // å¼‚æ­¥åŠ è½½å•ä¸ªèµ„æº - æ— å‚æˆå‘˜å‡½æ•°æŒ‡é’ˆ
     template<typename T>
     void LoadResourceAsyncWithCallback(const FString& ResourcePath, T* Object, void(T::* Function)())
     {
-        // Ê¹ÓÃlambda°ü×°ÎŞ²Îº¯Êı£¬ºöÂÔ¼ÓÔØµÄ×ÊÔ´²ÎÊı
+        // ä½¿ç”¨lambdaåŒ…è£…æ— å‚å‡½æ•°ï¼Œå¿½ç•¥åŠ è½½çš„èµ„æºå‚æ•°
         FOnResourceLoadedStaticDelegate StaticDelegate = FOnResourceLoadedStaticDelegate::CreateLambda([Object, Function](UObject* LoadedResource) {
             if (Object && Function)
             {
@@ -225,7 +224,7 @@ public:
         InternalLoadResourceAsyncWithStaticCallback(ResourcePath, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØÖ¸¶¨ÀàĞÍµÄµ¥¸ö×ÊÔ´ - Ö±½Ó°ó¶¨³ÉÔ±º¯ÊıÖ¸Õë£¨´ø²ÎÊı£©
+    // å¼‚æ­¥åŠ è½½æŒ‡å®šç±»å‹çš„å•ä¸ªèµ„æº - ç›´æ¥ç»‘å®šæˆå‘˜å‡½æ•°æŒ‡é’ˆï¼ˆå¸¦å‚æ•°ï¼‰
     template<typename T>
     void LoadResourceAsyncByClassWithCallback(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass, T* Object, void(T::* Function)(UObject*))
     {
@@ -234,11 +233,11 @@ public:
         InternalLoadResourceAsyncByClassWithStaticCallback(ResourcePath, ResourceClass, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØÖ¸¶¨ÀàĞÍµÄµ¥¸ö×ÊÔ´ - ÎŞ²Î³ÉÔ±º¯ÊıÖ¸Õë
+    // å¼‚æ­¥åŠ è½½æŒ‡å®šç±»å‹çš„å•ä¸ªèµ„æº - æ— å‚æˆå‘˜å‡½æ•°æŒ‡é’ˆ
     template<typename T>
     void LoadResourceAsyncByClassWithCallback(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass, T* Object, void(T::* Function)())
     {
-        // Ê¹ÓÃlambda°ü×°ÎŞ²Îº¯Êı£¬ºöÂÔ¼ÓÔØµÄ×ÊÔ´²ÎÊı
+        // ä½¿ç”¨lambdaåŒ…è£…æ— å‚å‡½æ•°ï¼Œå¿½ç•¥åŠ è½½çš„èµ„æºå‚æ•°
         FOnResourceLoadedStaticDelegate StaticDelegate = FOnResourceLoadedStaticDelegate::CreateLambda([Object, Function](UObject* LoadedResource) {
             if (Object && Function)
             {
@@ -248,7 +247,7 @@ public:
         InternalLoadResourceAsyncByClassWithStaticCallback(ResourcePath, ResourceClass, StaticDelegate);
     }
 
-    // Í¨¹ı×ÊÔ´ID¼ÓÔØ×ÊÔ´£¨Òì²½£©- ³ÉÔ±º¯ÊıÖ¸Õë»Øµ÷
+    // é€šè¿‡èµ„æºIDåŠ è½½èµ„æºï¼ˆå¼‚æ­¥ï¼‰- æˆå‘˜å‡½æ•°æŒ‡é’ˆå›è°ƒ
     template<typename T>
     void LoadResourceByIDWithCallback(const FName& ResourceID, T* Object, void(T::* Function)(UObject*))
     {
@@ -269,7 +268,7 @@ public:
         }
     }
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´ - Ö±½Ó°ó¶¨³ÉÔ±º¯ÊıÖ¸Õë£¨´ø²ÎÊı£©
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº - ç›´æ¥ç»‘å®šæˆå‘˜å‡½æ•°æŒ‡é’ˆï¼ˆå¸¦å‚æ•°ï¼‰
     template<typename T>
     void LoadResourcesInFolderAsyncWithCallback(const FString& FolderPath, T* Object, void(T::* Function)(const TArray<UObject*>&))
     {
@@ -278,11 +277,11 @@ public:
         InternalLoadResourcesInFolderAsyncWithStaticCallback(FolderPath, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´ - ÎŞ²Î³ÉÔ±º¯ÊıÖ¸Õë
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº - æ— å‚æˆå‘˜å‡½æ•°æŒ‡é’ˆ
     template<typename T>
     void LoadResourcesInFolderAsyncWithCallback(const FString& FolderPath, T* Object, void(T::* Function)())
     {
-        // Ê¹ÓÃlambda°ü×°ÎŞ²Îº¯Êı£¬ºöÂÔ¼ÓÔØµÄ×ÊÔ´Êı×é²ÎÊı
+        // ä½¿ç”¨lambdaåŒ…è£…æ— å‚å‡½æ•°ï¼Œå¿½ç•¥åŠ è½½çš„èµ„æºæ•°ç»„å‚æ•°
         FOnResourcesLoadedStaticDelegate StaticDelegate = FOnResourcesLoadedStaticDelegate::CreateLambda([Object, Function](const TArray<UObject*>& LoadedResources) {
             if (Object && Function)
             {
@@ -292,7 +291,7 @@ public:
         InternalLoadResourcesInFolderAsyncWithStaticCallback(FolderPath, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´ - Ö±½Ó°ó¶¨³ÉÔ±º¯ÊıÖ¸Õë£¨´ø²ÎÊı£©
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æº - ç›´æ¥ç»‘å®šæˆå‘˜å‡½æ•°æŒ‡é’ˆï¼ˆå¸¦å‚æ•°ï¼‰
     template<typename T>
     void LoadResourcesInFolderAsyncByClassWithCallback(const FString& FolderPath, TSubclassOf<UObject> ResourceClass, T* Object, void(T::* Function)(const TArray<UObject*>&))
     {
@@ -301,11 +300,11 @@ public:
         InternalLoadResourcesInFolderAsyncByClassWithStaticCallback(FolderPath, ResourceClass, StaticDelegate);
     }
 
-    // Òì²½¼ÓÔØÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´ - ÎŞ²Î³ÉÔ±º¯ÊıÖ¸Õë
+    // å¼‚æ­¥åŠ è½½æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æº - æ— å‚æˆå‘˜å‡½æ•°æŒ‡é’ˆ
     template<typename T>
     void LoadResourcesInFolderAsyncByClassWithCallback(const FString& FolderPath, TSubclassOf<UObject> ResourceClass, T* Object, void(T::* Function)())
     {
-        // Ê¹ÓÃlambda°ü×°ÎŞ²Îº¯Êı£¬ºöÂÔ¼ÓÔØµÄ×ÊÔ´Êı×é²ÎÊı
+        // ä½¿ç”¨lambdaåŒ…è£…æ— å‚å‡½æ•°ï¼Œå¿½ç•¥åŠ è½½çš„èµ„æºæ•°ç»„å‚æ•°
         FOnResourcesLoadedStaticDelegate StaticDelegate = FOnResourcesLoadedStaticDelegate::CreateLambda([Object, Function](const TArray<UObject*>& LoadedResources) {
             if (Object && Function)
             {
@@ -315,181 +314,181 @@ public:
         InternalLoadResourcesInFolderAsyncByClassWithStaticCallback(FolderPath, ResourceClass, StaticDelegate);
     }
 
-    // ========== Òì²½ÇëÇó¹ÜÀí ==========
+    // ========== å¼‚æ­¥è¯·æ±‚ç®¡ç† ==========
 
-    // »ñÈ¡Òì²½ÇëÇó×´Ì¬
+    // è·å–å¼‚æ­¥è¯·æ±‚çŠ¶æ€
     UFUNCTION(BlueprintCallable, Category = "Resource")
     EResourceLoadState GetAsyncRequestState(const FString& RequestId) const;
 
-    // »ñÈ¡Òì²½ÇëÇó¼ÓÔØµÄ×ÊÔ´£¨µ¥¸ö£©
+    // è·å–å¼‚æ­¥è¯·æ±‚åŠ è½½çš„èµ„æºï¼ˆå•ä¸ªï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource")
     UObject* GetAsyncRequestResource(const FString& RequestId) const;
 
-    // »ñÈ¡Òì²½ÇëÇó¼ÓÔØµÄ×ÊÔ´£¨¶à¸ö£©
+    // è·å–å¼‚æ­¥è¯·æ±‚åŠ è½½çš„èµ„æºï¼ˆå¤šä¸ªï¼‰
     UFUNCTION(BlueprintCallable, Category = "Resource")
     TArray<UObject*> GetAsyncRequestResources(const FString& RequestId) const;
 
-    // È¡ÏûÒì²½ÇëÇó
+    // å–æ¶ˆå¼‚æ­¥è¯·æ±‚
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void CancelAsyncRequest(const FString& RequestId);
 
-    // ========== ×ÊÔ´»º´æ¹ÜÀí ==========
+    // ========== èµ„æºç¼“å­˜ç®¡ç† ==========
 
-    // Ô¤¼ÓÔØËùÓĞ±ê¼ÇÎªÔ¤¼ÓÔØµÄ×ÊÔ´
+    // é¢„åŠ è½½æ‰€æœ‰æ ‡è®°ä¸ºé¢„åŠ è½½çš„èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     void PreloadMarkedResources();
 
-    // ½«×ÊÔ´Ìí¼Óµ½»º´æ
+    // å°†èµ„æºæ·»åŠ åˆ°ç¼“å­˜
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void AddToCache(const FString& ResourcePath, UObject* Resource);
 
-    // ´Ó»º´æ»ñÈ¡×ÊÔ´
+    // ä»ç¼“å­˜è·å–èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     UObject* GetFromCache(const FString& ResourcePath);
 
-    // ¼ì²é×ÊÔ´ÊÇ·ñÔÚ»º´æÖĞ
+    // æ£€æŸ¥èµ„æºæ˜¯å¦åœ¨ç¼“å­˜ä¸­
     UFUNCTION(BlueprintCallable, Category = "Resource")
     bool IsInCache(const FString& ResourcePath);
 
-    // ´Ó»º´æÒÆ³ı×ÊÔ´
+    // ä»ç¼“å­˜ç§»é™¤èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void RemoveFromCache(const FString& ResourcePath);
 
-    // Çå¿Õ×ÊÔ´»º´æ
+    // æ¸…ç©ºèµ„æºç¼“å­˜
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void ClearCache();
 
-    // »ñÈ¡»º´æ´óĞ¡
+    // è·å–ç¼“å­˜å¤§å°
     UFUNCTION(BlueprintCallable, Category = "Resource")
     int32 GetCacheSize() const;
 
-    // ========== ×ÊÔ´ĞÅÏ¢²éÑ¯ ==========
+    // ========== èµ„æºä¿¡æ¯æŸ¥è¯¢ ==========
 
-    // »ñÈ¡×ÊÔ´ĞÅÏ¢
+    // è·å–èµ„æºä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Resource")
     FResourceInfo GetResourceInfo(const FString& ResourcePath);
 
-    // »ñÈ¡×ÊÔ´ĞÅÏ¢
+    // è·å–èµ„æºä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     bool GetResourceInfoByID(const FName& ResourceID, FResourceTableRow& OutInfo) const;
 
-    // ¼ì²é×ÊÔ´ÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥èµ„æºæ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "Resource")
     bool DoesResourceExist(const FString& ResourcePath);
 
-    // ¼ì²é×ÊÔ´IDÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥èµ„æºIDæ˜¯å¦å­˜åœ¨
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     bool DoesResourceIDExist(const FName& ResourceID) const;
 
-    // »ñÈ¡ÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´Â·¾¶
+    // è·å–æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æºè·¯å¾„
     UFUNCTION(BlueprintCallable, Category = "Resource")
     TArray<FString> GetResourcePathsInFolder(const FString& FolderPath);
 
-    // »ñÈ¡ÎÄ¼ş¼ĞÏÂÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÊÔ´Â·¾¶
+    // è·å–æ–‡ä»¶å¤¹ä¸‹æŒ‡å®šç±»å‹çš„æ‰€æœ‰èµ„æºè·¯å¾„
     UFUNCTION(BlueprintCallable, Category = "Resource")
     TArray<FString> GetResourcePathsInFolderByClass(const FString& FolderPath, TSubclassOf<UObject> ResourceClass);
 
-    // »ñÈ¡·ÖÀàÏÂµÄËùÓĞ×ÊÔ´ID
+    // è·å–åˆ†ç±»ä¸‹çš„æ‰€æœ‰èµ„æºID
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     TArray<FName> GetResourceIDsByCategory(EResourceCategory Category) const;
 
-    // »ñÈ¡×ÊÔ´Â·¾¶
+    // è·å–èµ„æºè·¯å¾„
     UFUNCTION(BlueprintCallable, Category = "Resource|DataTable")
     FString GetResourcePathByID(const FName& ResourceID) const;
 
-    // ========== ×ÊÔ´Ğ¶ÔØ¹ÜÀí ==========
+    // ========== èµ„æºå¸è½½ç®¡ç† ==========
 
-    // Ğ¶ÔØµ¥¸ö×ÊÔ´
+    // å¸è½½å•ä¸ªèµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void UnloadResource(const FString& ResourcePath);
 
-    // Ğ¶ÔØÎÄ¼ş¼ĞÏÂËùÓĞ×ÊÔ´
+    // å¸è½½æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰èµ„æº
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void UnloadResourcesInFolder(const FString& FolderPath);
 
-    // Ç¿ÖÆÀ¬»ø»ØÊÕ
+    // å¼ºåˆ¶åƒåœ¾å›æ”¶
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void ForceGarbageCollection();
 
-    // ========== µ÷ÊÔ¹¤¾ß ==========
+    // ========== è°ƒè¯•å·¥å…· ==========
 
-    // ´òÓ¡»º´æĞÅÏ¢
+    // æ‰“å°ç¼“å­˜ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void PrintCacheInfo();
 
-    // ´òÓ¡ÎÄ¼ş¼Ğ×ÊÔ´ÁĞ±í
+    // æ‰“å°æ–‡ä»¶å¤¹èµ„æºåˆ—è¡¨
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void PrintFolderResources(const FString& FolderPath);
 
-    // ´òÓ¡ËùÓĞÒì²½ÇëÇó×´Ì¬
+    // æ‰“å°æ‰€æœ‰å¼‚æ­¥è¯·æ±‚çŠ¶æ€
     UFUNCTION(BlueprintCallable, Category = "Resource")
     void PrintAsyncRequests();
 
 private:
-    // Á÷Ê½¼ÓÔØ¹ÜÀíÆ÷
+    // æµå¼åŠ è½½ç®¡ç†å™¨
     FStreamableManager StreamableManager;
 
-    // ×ÊÔ´»º´æ
+    // èµ„æºç¼“å­˜
     TMap<FString, UObject*> ResourceCache;
 
-    // Òì²½¼ÓÔØ¾ä±ú
+    // å¼‚æ­¥åŠ è½½å¥æŸ„
     TMap<FString, TSharedPtr<FStreamableHandle>> AsyncHandles;
 
-    // Òì²½ÇëÇóĞÅÏ¢
+    // å¼‚æ­¥è¯·æ±‚ä¿¡æ¯
     TMap<FString, FAsyncLoadRequest> AsyncRequests;
 
-    // µ¥¸ö×ÊÔ´ÇëÇó½á¹û
+    // å•ä¸ªèµ„æºè¯·æ±‚ç»“æœ
     TMap<FString, UObject*> SingleResourceResults;
 
-    // ¶à¸ö×ÊÔ´ÇëÇó½á¹û
+    // å¤šä¸ªèµ„æºè¯·æ±‚ç»“æœ
     TMap<FString, TArray<UObject*>> MultiResourceResults;
 
-    // ¼ò»¯»Øµ÷Ó³Éä
+    // ç®€åŒ–å›è°ƒæ˜ å°„
     TMap<FString, FOnResourceLoadedCallback> SingleResourceCallbacks;
     TMap<FString, FOnResourcesLoadedCallback> MultiResourceCallbacks;
 
-    // ¾²Ì¬»Øµ÷Ó³Éä
+    // é™æ€å›è°ƒæ˜ å°„
     TMap<FString, FOnResourceLoadedStaticDelegate> SingleResourceStaticCallbacks;
     TMap<FString, FOnResourcesLoadedStaticDelegate> MultiResourceStaticCallbacks;
 
-    // ÄÚ²¿¼ÓÔØ·½·¨
+    // å†…éƒ¨åŠ è½½æ–¹æ³•
     UObject* InternalLoadResourceSync(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass = nullptr);
     TArray<UObject*> InternalLoadResourcesInFolderSync(const FString& FolderPath, TSubclassOf<UObject> ResourceClass = nullptr);
 
-    // ×ÊÔ´Êı¾İ±í
+    // èµ„æºæ•°æ®è¡¨
     UPROPERTY()
     UDataTable* ResourceDataTable;
 
-    // ×ÊÔ´IDµ½Â·¾¶µÄ¿ìËÙ²éÕÒ±í
+    // èµ„æºIDåˆ°è·¯å¾„çš„å¿«é€ŸæŸ¥æ‰¾è¡¨
     TMap<FName, FString> ResourceIDToPathMap;
 
-    // ·ÖÀàµ½×ÊÔ´IDµÄÓ³Éä
+    // åˆ†ç±»åˆ°èµ„æºIDçš„æ˜ å°„
     TMap<EResourceCategory, TArray<FName>> CategoryToResourceIDsMap;
 
-    // ÄÚ²¿Òì²½¼ÓÔØ»Øµ÷
+    // å†…éƒ¨å¼‚æ­¥åŠ è½½å›è°ƒ
     void HandleSingleResourceLoaded(FString RequestId);
     void HandleFolderResourcesLoaded(FString RequestId);
 
-    // ¼ò»¯»Øµ÷´¦Àí
+    // ç®€åŒ–å›è°ƒå¤„ç†
     void HandleSingleResourceWithCallback(FString RequestId);
     void HandleFolderResourcesWithCallback(FString RequestId);
 
-    // ¾²Ì¬»Øµ÷´¦Àí
+    // é™æ€å›è°ƒå¤„ç†
     void HandleSingleResourceWithStaticCallback(FString RequestId);
     void HandleFolderResourcesWithStaticCallback(FString RequestId);
 
-    // ÄÚ²¿¾²Ì¬»Øµ÷·½·¨
+    // å†…éƒ¨é™æ€å›è°ƒæ–¹æ³•
     void InternalLoadResourceAsyncWithStaticCallback(const FString& ResourcePath, const FOnResourceLoadedStaticDelegate& Callback);
     void InternalLoadResourceAsyncByClassWithStaticCallback(const FString& ResourcePath, TSubclassOf<UObject> ResourceClass, const FOnResourceLoadedStaticDelegate& Callback);
     void InternalLoadResourcesInFolderAsyncWithStaticCallback(const FString& FolderPath, const FOnResourcesLoadedStaticDelegate& Callback);
     void InternalLoadResourcesInFolderAsyncByClassWithStaticCallback(const FString& FolderPath, TSubclassOf<UObject> ResourceClass, const FOnResourcesLoadedStaticDelegate& Callback);
 
-    // ¹¤¾ß·½·¨
+    // å·¥å…·æ–¹æ³•
     FString SanitizeResourcePath(const FString& ResourcePath) const;
     bool IsValidResourceClass(TSubclassOf<UObject> ResourceClass) const;
     FString GenerateRequestId() const;
 
-    // ÄÚ²¿·½·¨
+    // å†…éƒ¨æ–¹æ³•
     void BuildLookupTables();
     bool GetResourceTableRow(const FName& ResourceID, FResourceTableRow& OutRow) const;
 };

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -9,7 +9,7 @@
 #include "TimerManager.h"
 #include "ObjectPoolManager.generated.h"
 
-// ¶ÔÏó³Ø½Ó¿Ú - Ê¹ÓÃUEµÄ½Ó¿ÚÏµÍ³
+// å¯¹è±¡æ± æ¥å£ - ä½¿ç”¨UEçš„æ¥å£ç³»ç»Ÿ
 UINTERFACE(Blueprintable)
 class UObjectPoolInterface : public UInterface
 {
@@ -28,7 +28,7 @@ public:
     void OnDespawn();
 };
 
-// ¶ÔÏó³ØĞÅÏ¢
+// å¯¹è±¡æ± ä¿¡æ¯
 USTRUCT(BlueprintType)
 struct FObjectPoolInfo
 {
@@ -61,43 +61,43 @@ struct FObjectPoolInfo
     }
 };
 
-// µ¥¸ö¶ÔÏó³Ø
+// å•ä¸ªå¯¹è±¡æ± 
 UCLASS()
 class XYFRAME_API UObjectPool : public UObject
 {
     GENERATED_BODY()
 
 public:
-    // ³õÊ¼»¯¶ÔÏó³Ø
+    // åˆå§‹åŒ–å¯¹è±¡æ± 
     void Initialize(TSubclassOf<AActor> InActorClass, int32 InCapacity = -1);
 
-    // ´Ó¶ÔÏó³ØÉú³É¶ÔÏó
+    // ä»å¯¹è±¡æ± ç”Ÿæˆå¯¹è±¡
     AActor* Spawn(UWorld* World, const FVector& Location, const FRotator& Rotation,
         AActor* Owner = nullptr, APawn* Instigator = nullptr);
 
-    // »ØÊÕ¶ÔÏóµ½¶ÔÏó³Ø
+    // å›æ”¶å¯¹è±¡åˆ°å¯¹è±¡æ± 
     void Despawn(AActor* Actor, float DelayTime = 0.0f);
 
-    // Á¢¼´»ØÊÕ¶ÔÏó£¨ÄÚ²¿Ê¹ÓÃ£©
+    // ç«‹å³å›æ”¶å¯¹è±¡ï¼ˆå†…éƒ¨ä½¿ç”¨ï¼‰
     void DespawnImmediate(AActor* Actor);
 
-    // »ØÊÕËùÓĞÕıÔÚÊ¹ÓÃµÄ¶ÔÏó
+    // å›æ”¶æ‰€æœ‰æ­£åœ¨ä½¿ç”¨çš„å¯¹è±¡
     void DespawnAll();
 
-    // Ô¤¼ÓÔØ¶ÔÏó
+    // é¢„åŠ è½½å¯¹è±¡
     void Preload(UWorld* World, int32 Amount = 1);
 
-    // »ñÈ¡¶ÔÏó³ØĞÅÏ¢
+    // è·å–å¯¹è±¡æ± ä¿¡æ¯
     FObjectPoolInfo GetPoolInfo() const;
 
-    // ÉèÖÃÈİÁ¿
+    // è®¾ç½®å®¹é‡
     void SetCapacity(int32 NewCapacity);
 
-    // ÇåÀí¶ÔÏó³Ø
+    // æ¸…ç†å¯¹è±¡æ± 
     void ClearPool();
 
 private:
-    // Êµ¼ÊÖ´ĞĞ»ØÊÕµÄ¶¨Ê±Æ÷»Øµ÷
+    // å®é™…æ‰§è¡Œå›æ”¶çš„å®šæ—¶å™¨å›è°ƒ
     UFUNCTION()
     void ExecuteDespawn(AActor* Actor);
 
@@ -116,7 +116,7 @@ private:
     friend class UObjectPoolManager;
 };
 
-// ¶ÔÏó³Ø¹ÜÀíÆ÷
+// å¯¹è±¡æ± ç®¡ç†å™¨
 UCLASS(Blueprintable, BlueprintType)
 class XYFRAME_API UObjectPoolManager : public USingletonBase
 {
@@ -125,94 +125,93 @@ class XYFRAME_API UObjectPoolManager : public USingletonBase
     DECLARE_SINGLETON(UObjectPoolManager)
 
 public:
-    // ³õÊ¼»¯¶ÔÏó³Ø¹ÜÀíÆ÷
+    // åˆå§‹åŒ–å¯¹è±¡æ± ç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void InitializeObjectPoolManager();
 
-    // ÖØĞ´µ¥Àı³õÊ¼»¯·½·¨
+    // é‡å†™å•ä¾‹åˆå§‹åŒ–æ–¹æ³•
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
-    // »ñÈ¡¹ÜÀíÆ÷ÊµÀıµÄÀ¶Í¼¿Éµ÷ÓÃ·½·¨
+    // è·å–ç®¡ç†å™¨å®ä¾‹çš„è“å›¾å¯è°ƒç”¨æ–¹æ³•
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "ObjectPool", meta = (DisplayName = "Get ObjectPool Manager"))
     static UObjectPoolManager* GetObjectPoolManager() { return GetInstance(); }
 
-    // ¹¹Ôìº¯Êı
+    // æ„é€ å‡½æ•°
     UObjectPoolManager();
     virtual ~UObjectPoolManager() override;
 
-    // ========== Ö÷Òª½Ó¿Ú ==========
+    // ========== ä¸»è¦æ¥å£ ==========
 
-    // ´Ó¶ÔÏó³ØÉú³É¶ÔÏó
+    // ä»å¯¹è±¡æ± ç”Ÿæˆå¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     AActor* Spawn(TSubclassOf<AActor> ActorClass, const FVector& Location, const FRotator& Rotation,
         AActor* Owner = nullptr, APawn* Instigator = nullptr);
 
-    // »ØÊÕ¶ÔÏóµ½¶ÔÏó³Ø£¨Ö§³ÖÑÓ³Ù£©
+    // å›æ”¶å¯¹è±¡åˆ°å¯¹è±¡æ± ï¼ˆæ”¯æŒå»¶è¿Ÿï¼‰
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void Despawn(AActor* Actor, float DelayTime = 0.0f);
 
-    // »ØÊÕÖ¸¶¨ÀàĞÍµÄËùÓĞ¶ÔÏó
+    // å›æ”¶æŒ‡å®šç±»å‹çš„æ‰€æœ‰å¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void DespawnAllByClass(TSubclassOf<AActor> ActorClass);
 
-    // »ØÊÕËùÓĞ¶ÔÏó
+    // å›æ”¶æ‰€æœ‰å¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void DespawnAll();
 
-    // Ô¤¼ÓÔØ¶ÔÏó
+    // é¢„åŠ è½½å¯¹è±¡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void Preload(TSubclassOf<AActor> ActorClass, int32 Amount = 1);
 
-    // ÉèÖÃ¶ÔÏó³ØÈİÁ¿
+    // è®¾ç½®å¯¹è±¡æ± å®¹é‡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void SetCapacity(TSubclassOf<AActor> ActorClass, int32 Capacity = -1);
 
-    // »ñÈ¡¶ÔÏó³ØÈİÁ¿
+    // è·å–å¯¹è±¡æ± å®¹é‡
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     int32 GetCapacity(TSubclassOf<AActor> ActorClass);
 
-    // ========== ²éÑ¯ºÍµ÷ÊÔ ==========
+    // ========== æŸ¥è¯¢å’Œè°ƒè¯• ==========
 
-    // »ñÈ¡¶ÔÏó³ØĞÅÏ¢
+    // è·å–å¯¹è±¡æ± ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     FObjectPoolInfo GetPoolInfo(TSubclassOf<AActor> ActorClass);
 
-    // »ñÈ¡ËùÓĞ¶ÔÏó³ØĞÅÏ¢
+    // è·å–æ‰€æœ‰å¯¹è±¡æ± ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     TArray<FObjectPoolInfo> GetAllPoolInfos();
 
-    // ´òÓ¡ËùÓĞ¶ÔÏó³ØĞÅÏ¢
+    // æ‰“å°æ‰€æœ‰å¯¹è±¡æ± ä¿¡æ¯
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     void PrintAllPools();
 
-    // ¼ì²é¶ÔÏóÊÇ·ñÓÉ¶ÔÏó³Ø¹ÜÀí
+    // æ£€æŸ¥å¯¹è±¡æ˜¯å¦ç”±å¯¹è±¡æ± ç®¡ç†
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     bool IsManagedByPool(AActor* Actor);
 
-    // »ñÈ¡¹ÜÀíµÄ¶ÔÏó×ÜÊı
+    // è·å–ç®¡ç†çš„å¯¹è±¡æ€»æ•°
     UFUNCTION(BlueprintCallable, Category = "ObjectPool")
     int32 GetTotalManagedCount() const;
 
 private:
-    // ²éÕÒ»ò´´½¨¶ÔÏó³Ø
+    // æŸ¥æ‰¾æˆ–åˆ›å»ºå¯¹è±¡æ± 
     UObjectPool* FindOrCreatePool(TSubclassOf<AActor> ActorClass);
 
-    // ²éÕÒ¶ÔÏó³Ø
+    // æŸ¥æ‰¾å¯¹è±¡æ± 
     UObjectPool* FindPool(TSubclassOf<AActor> ActorClass);
 
-    // Í¨¹ı¶ÔÏó²éÕÒ¶ÔÏó³Ø
+    // é€šè¿‡å¯¹è±¡æŸ¥æ‰¾å¯¹è±¡æ± 
     UObjectPool* FindPoolByActor(AActor* Actor);
 
-    // ¶ÔÏóµ½¶ÔÏó³ØµÄÓ³Éä
+    // å¯¹è±¡åˆ°å¯¹è±¡æ± çš„æ˜ å°„
     UPROPERTY()
     TMap<TSubclassOf<AActor>, UObjectPool*> PoolsMap;
 
-    // ¶ÔÏóµ½¶ÔÏó³ØµÄ¿ìËÙ²éÕÒ
+    // å¯¹è±¡åˆ°å¯¹è±¡æ± çš„å¿«é€ŸæŸ¥æ‰¾
     UPROPERTY()
     TMap<AActor*, UObjectPool*> ActorToPoolMap;
 
-    // ¶ÔÏó³Ø¸¸¶ÔÏó£¨ÓÃÓÚ×éÖ¯£©
+    // å¯¹è±¡æ± çˆ¶å¯¹è±¡ï¼ˆç”¨äºç»„ç»‡ï¼‰
     UPROPERTY()
     UObject* PoolsParent;
 

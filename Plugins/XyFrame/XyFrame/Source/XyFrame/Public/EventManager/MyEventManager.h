@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "Math/Vector.h"
 #include "MyEventManager.generated.h"
 
-// ÊÂ¼şÊı¾İÀàĞÍ¶¨Òå
+// äº‹ä»¶æ•°æ®ç±»å‹å®šä¹‰
 UENUM(BlueprintType)
 enum class EGameEventType : uint8
 {
@@ -20,7 +20,7 @@ enum class EGameEventType : uint8
     EnemyKilled UMETA(DisplayName = "Enemy Killed"),
 };
 
-// Í¨ÓÃÊÂ¼şÊı¾İ½á¹¹
+// é€šç”¨äº‹ä»¶æ•°æ®ç»“æ„
 USTRUCT(BlueprintType)
 struct FGameEventData
 {
@@ -35,33 +35,33 @@ struct FGameEventData
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
     TArray<AActor*> Actors;
 
-    // Ä¬ÈÏ¹¹Ôìº¯Êı
+    // é»˜è®¤æ„é€ å‡½æ•°
     FGameEventData() {}
 
-    // ±ã½İ¹¹Ôìº¯Êı
+    // ä¾¿æ·æ„é€ å‡½æ•°
     FGameEventData(const TArray<FString>& InTexts, const TArray<float>& InValues, const TArray<AActor*>& InActors)
         : Texts(InTexts), Values(InValues), Actors(InActors) {
     }
 
-    // µ¥×Ö·û´®¹¹Ôìº¯Êı
+    // å•å­—ç¬¦ä¸²æ„é€ å‡½æ•°
     FGameEventData(const FString& Text)
     {
         Texts.Add(Text);
     }
 
-    // µ¥ÊıÖµ¹¹Ôìº¯Êı
+    // å•æ•°å€¼æ„é€ å‡½æ•°
     FGameEventData(float Value)
     {
         Values.Add(Value);
     }
 
-    // µ¥Actor¹¹Ôìº¯Êı
+    // å•Actoræ„é€ å‡½æ•°
     FGameEventData(AActor* Actor)
     {
         if (Actor) Actors.Add(Actor);
     }
 
-    // ×Ö·û´®+ÊıÖµ¹¹Ôìº¯Êı
+    // å­—ç¬¦ä¸²+æ•°å€¼æ„é€ å‡½æ•°
     FGameEventData(const FString& Text, float Value)
     {
         Texts.Add(Text);
@@ -69,10 +69,10 @@ struct FGameEventData
     }
 };
 
-// Í¨ÓÃÀ¶Í¼ÊÂ¼şÎ¯ÍĞ£¨Ê¹ÓÃÍ³Ò»µÄÊÂ¼şÊı¾İ½á¹¹£©
+// é€šç”¨è“å›¾äº‹ä»¶å§”æ‰˜ï¼ˆä½¿ç”¨ç»Ÿä¸€çš„äº‹ä»¶æ•°æ®ç»“æ„ï¼‰
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGameEventSignature, EGameEventType, EventType, const FGameEventData&, EventData);
 
-// C++Ä£°åÎ¯ÍĞÉùÃ÷
+// C++æ¨¡æ¿å§”æ‰˜å£°æ˜
 template<typename... TArgs>
 class TCppEventDelegate;
 
@@ -121,150 +121,149 @@ class XYFRAME_API UMyEventManager : public USingletonBase
 {
     GENERATED_BODY()
 
-    // ÉùÃ÷µ¥Àı
+    // å£°æ˜å•ä¾‹
     DECLARE_SINGLETON(UMyEventManager)
 
 public:
-    // ³õÊ¼»¯ÊÂ¼ş¹ÜÀíÆ÷
+    // åˆå§‹åŒ–äº‹ä»¶ç®¡ç†å™¨
     UFUNCTION(BlueprintCallable, Category = "Event")
     void InitializeEventManager();
 
-    // ÖØĞ´³õÊ¼»¯·½·¨
+    // é‡å†™åˆå§‹åŒ–æ–¹æ³•
     virtual void InitializeSingleton() override;
-    virtual void DestroyCurSingleton() override { DestroyInstance(); };
 
-    // Ìí¼ÓÒ»¸ö»ñÈ¡ÊµÀıµÄÀ¶Í¼¿Éµ÷ÓÃ·½·¨
+    // æ·»åŠ ä¸€ä¸ªè·å–å®ä¾‹çš„è“å›¾å¯è°ƒç”¨æ–¹æ³•
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Event", meta = (DisplayName = "Get Event Manager"))
     static UMyEventManager* GetEventManager() { return GetInstance(); }
 
-    // Ä¬ÈÏ¹¹Ôìº¯Êı
+    // é»˜è®¤æ„é€ å‡½æ•°
     UMyEventManager();
 
-    // Îö¹¹º¯Êı
+    // ææ„å‡½æ•°
     virtual ~UMyEventManager() override;
 
-    // ========== À¶Í¼¿É·ÖÅäÎ¯ÍĞ ==========
+    // ========== è“å›¾å¯åˆ†é…å§”æ‰˜ ==========
 
-    // È«¾ÖÊÂ¼şÎ¯ÍĞ - À¶Í¼¿ÉÒÔÖ±½Ó°ó¶¨
+    // å…¨å±€äº‹ä»¶å§”æ‰˜ - è“å›¾å¯ä»¥ç›´æ¥ç»‘å®š
     UPROPERTY(BlueprintAssignable, Category = "Event System")
     FOnGameEventSignature OnGameEvent;
 
-    // ========== Í³Ò»ÊÂ¼ş½Ó¿Ú£¨ÍÆ¼öÊ¹ÓÃ£© ==========
+    // ========== ç»Ÿä¸€äº‹ä»¶æ¥å£ï¼ˆæ¨èä½¿ç”¨ï¼‰ ==========
 
-    // ´¥·¢Í¨ÓÃÊÂ¼ş£¨À¶Í¼µ÷ÓÃ£©
+    // è§¦å‘é€šç”¨äº‹ä»¶ï¼ˆè“å›¾è°ƒç”¨ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Event System")
     void TriggerGameEvent(EGameEventType EventType, const FGameEventData& EventData);
 
-    // ´¥·¢Í¨ÓÃÊÂ¼ş - ¼ò»¯°æ±¾£¨À¶Í¼µ÷ÓÃ£©
+    // è§¦å‘é€šç”¨äº‹ä»¶ - ç®€åŒ–ç‰ˆæœ¬ï¼ˆè“å›¾è°ƒç”¨ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Event System")
     void TriggerSimpleGameEvent(EGameEventType EventType, const FString& TextParam = "", float ValueParam = 0.0f, AActor* ActorParam = nullptr);
 
-    // ========== À¶Í¼µ÷ÓÃC++ÊÂ¼ş½Ó¿Ú ==========
+    // ========== è“å›¾è°ƒç”¨C++äº‹ä»¶æ¥å£ ==========
 
-    // ´ÓÀ¶Í¼´¥·¢C++ÊÂ¼ş - ÎŞ²ÎÊı°æ±¾
+    // ä»è“å›¾è§¦å‘C++äº‹ä»¶ - æ— å‚æ•°ç‰ˆæœ¬
     UFUNCTION(BlueprintCallable, Category = "Event System", meta = (DisplayName = "Trigger C++ Event (No Param)"))
     void TriggerCppEvent_NoParam(FName EventName);
 
-    // ´ÓÀ¶Í¼´¥·¢C++ÊÂ¼ş - ´øÊÂ¼şÊı¾İ°æ±¾
+    // ä»è“å›¾è§¦å‘C++äº‹ä»¶ - å¸¦äº‹ä»¶æ•°æ®ç‰ˆæœ¬
     UFUNCTION(BlueprintCallable, Category = "Event System", meta = (DisplayName = "Trigger C++ Event (With Data)"))
     void TriggerCppEvent_WithData(FName EventName, const FGameEventData& EventData);
 
-    // ´ÓÀ¶Í¼´¥·¢C++ÊÂ¼ş - ¼òµ¥×Ö·û´®²ÎÊı
+    // ä»è“å›¾è§¦å‘C++äº‹ä»¶ - ç®€å•å­—ç¬¦ä¸²å‚æ•°
     UFUNCTION(BlueprintCallable, Category = "Event System", meta = (DisplayName = "Trigger C++ Event (String)"))
     void TriggerCppEvent_String(FName EventName, const FString& StringParam);
 
-    // ´ÓÀ¶Í¼´¥·¢C++ÊÂ¼ş - ¼òµ¥ÕûÊı²ÎÊı
+    // ä»è“å›¾è§¦å‘C++äº‹ä»¶ - ç®€å•æ•´æ•°å‚æ•°
     UFUNCTION(BlueprintCallable, Category = "Event System", meta = (DisplayName = "Trigger C++ Event (Int)"))
     void TriggerCppEvent_Int(FName EventName, int32 IntParam);
 
-    // ´ÓÀ¶Í¼´¥·¢C++ÊÂ¼ş - ¼òµ¥¸¡µãÊı²ÎÊı
+    // ä»è“å›¾è§¦å‘C++äº‹ä»¶ - ç®€å•æµ®ç‚¹æ•°å‚æ•°
     UFUNCTION(BlueprintCallable, Category = "Event System", meta = (DisplayName = "Trigger C++ Event (Float)"))
     void TriggerCppEvent_Float(FName EventName, float FloatParam);
 
-    // ========== ÊÂ¼ş¹ÜÀí½Ó¿Ú ==========
+    // ========== äº‹ä»¶ç®¡ç†æ¥å£ ==========
 
-    // ÒÆ³ıÌØ¶¨À¶Í¼ÊÂ¼şµÄËùÓĞ¼àÌı
+    // ç§»é™¤ç‰¹å®šè“å›¾äº‹ä»¶çš„æ‰€æœ‰ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveBlueprintEventByEventname(FName EventName, UObject* object);
 
-    // ÒÆ³ıÌØ¶¨¶ÔÏóµÄËùÓĞÀ¶Í¼ÊÂ¼ş°ó¶¨
+    // ç§»é™¤ç‰¹å®šå¯¹è±¡çš„æ‰€æœ‰è“å›¾äº‹ä»¶ç»‘å®š
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveAllBlueprintBindingsForObject(UObject* Object);
 
-    // ÒÆ³ıËùÓĞÊÂ¼ş¼àÌı£¨À¶Í¼ºÍC++£©
+    // ç§»é™¤æ‰€æœ‰äº‹ä»¶ç›‘å¬ï¼ˆè“å›¾å’ŒC++ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveAllEvents();
 
-    // ÒÆ³ıËùÓĞÀ¶Í¼°ó¶¨£¨±£ÁôC++ÊÂ¼ş£©
+    // ç§»é™¤æ‰€æœ‰è“å›¾ç»‘å®šï¼ˆä¿ç•™C++äº‹ä»¶ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveAllBlueprintBindings();
 
-    // ¼ì²éÊÂ¼şÊÇ·ñ´æÔÚ¼àÌı
+    // æ£€æŸ¥äº‹ä»¶æ˜¯å¦å­˜åœ¨ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     bool HasEventListeners(FName EventName) const;
 
-    // ¼ì²éÌØ¶¨Ã¶¾ÙÀàĞÍÊÂ¼şÊÇ·ñ´æÔÚ¼àÌı
+    // æ£€æŸ¥ç‰¹å®šæšä¸¾ç±»å‹äº‹ä»¶æ˜¯å¦å­˜åœ¨ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     bool HasEventListenersByType(EGameEventType EventType) const;
 
-    // »ñÈ¡ÊÂ¼ş¼àÌıÊıÁ¿
+    // è·å–äº‹ä»¶ç›‘å¬æ•°é‡
     UFUNCTION(BlueprintCallable, Category = "Event")
     int32 GetEventListenerCount(FName EventName) const;
 
-    // »ñÈ¡ÌØ¶¨Ã¶¾ÙÀàĞÍÊÂ¼şµÄ¼àÌıÊıÁ¿
+    // è·å–ç‰¹å®šæšä¸¾ç±»å‹äº‹ä»¶çš„ç›‘å¬æ•°é‡
     UFUNCTION(BlueprintCallable, Category = "Event")
     int32 GetEventListenerCountByType(EGameEventType EventType) const;
 
-    // ´òÓ¡ËùÓĞÊÂ¼şĞÅÏ¢£¨µ÷ÊÔÓÃ£©
+    // æ‰“å°æ‰€æœ‰äº‹ä»¶ä¿¡æ¯ï¼ˆè°ƒè¯•ç”¨ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Event")
     void PrintAllEvents() const;
 
-    // ========== C++ÊÂ¼ş½Ó¿Ú ==========
+    // ========== C++äº‹ä»¶æ¥å£ ==========
 
-    // ×¢²áC++ÊÂ¼ş¼àÌıÆ÷£¨Ä£°å·½·¨£¬Ö§³Ö0-4¸öÈÎÒâÀàĞÍ²ÎÊı£©
+    // æ³¨å†ŒC++äº‹ä»¶ç›‘å¬å™¨ï¼ˆæ¨¡æ¿æ–¹æ³•ï¼Œæ”¯æŒ0-4ä¸ªä»»æ„ç±»å‹å‚æ•°ï¼‰
     template<typename T, typename... TArgs>
     void RegisterCppEvent(FName EventName, T* Object, void (T::* Function)(TArgs...));
 
     template<typename T, typename... TArgs>
     void RegisterCppEventByType(EGameEventType EventType, T* Object, void (T::* Function)(TArgs...));
 
-    // ´¥·¢C++ÊÂ¼ş£¨Ä£°å·½·¨£¬Ö§³Ö0-4¸öÈÎÒâÀàĞÍ²ÎÊı£©
+    // è§¦å‘C++äº‹ä»¶ï¼ˆæ¨¡æ¿æ–¹æ³•ï¼Œæ”¯æŒ0-4ä¸ªä»»æ„ç±»å‹å‚æ•°ï¼‰
     template<typename... TArgs>
     void TriggerCppEventByType(EGameEventType EventType, TArgs... Args);
 
     template<typename... TArgs>
     void TriggerCppEvent(FName EventName, TArgs... Args);
 
-    // ÒÆ³ıC++ÊÂ¼ş¼àÌıÆ÷
+    // ç§»é™¤C++äº‹ä»¶ç›‘å¬å™¨
     template<typename T, typename... TArgs>
     void UnregisterCppEventByType(EGameEventType EventType, T* Object, void (T::* Function)(TArgs...));
 
     template<typename T, typename... TArgs>
     void UnregisterCppEvent(FName EventName, T* Object, void (T::* Function)(TArgs...));
 
-    // ÒÆ³ıÌØ¶¨C++ÊÂ¼şµÄËùÓĞ¼àÌı
+    // ç§»é™¤ç‰¹å®šC++äº‹ä»¶çš„æ‰€æœ‰ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveCppEvent(FName EventName);
 
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveCppEventByType(EGameEventType EventType);
 
-    // ÒÆ³ıËùÓĞC++ÊÂ¼ş¼àÌı
+    // ç§»é™¤æ‰€æœ‰C++äº‹ä»¶ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     void RemoveAllCppEvents();
 
-    // ¼ì²éC++ÊÂ¼şÊÇ·ñ´æÔÚ¼àÌı
+    // æ£€æŸ¥C++äº‹ä»¶æ˜¯å¦å­˜åœ¨ç›‘å¬
     UFUNCTION(BlueprintCallable, Category = "Event")
     bool HasCppEventListeners(FName EventName) const;
 
-    // »ñÈ¡C++ÊÂ¼ş¼àÌıÊıÁ¿
+    // è·å–C++äº‹ä»¶ç›‘å¬æ•°é‡
     int32 GetCppEventListenerCount(FName EventName) const;
 
 private:
-    // C++ÊÂ¼ş×Öµä - Ê¹ÓÃvoid*´æ´¢²»Í¬ÀàĞÍµÄÎ¯ÍĞ
+    // C++äº‹ä»¶å­—å…¸ - ä½¿ç”¨void*å­˜å‚¨ä¸åŒç±»å‹çš„å§”æ‰˜
     TMap<FName, TSharedPtr<void>> CppEvents;
 
-    // ÄÚ²¿¸¨Öú·½·¨
+    // å†…éƒ¨è¾…åŠ©æ–¹æ³•
     template<typename T>
     T* GetCppEventDelegate(FName EventName)
     {
@@ -290,11 +289,11 @@ private:
         return NewDelegate;
     }
 
-    // ÄÚ²¿´¥·¢·½·¨
+    // å†…éƒ¨è§¦å‘æ–¹æ³•
     void InternalTriggerGameEvent(EGameEventType EventType, const FGameEventData& EventData);
 };
 
-// Ä£°åº¯ÊıÊµÏÖ£¨±ØĞëÔÚÍ·ÎÄ¼şÖĞ£©
+// æ¨¡æ¿å‡½æ•°å®ç°ï¼ˆå¿…é¡»åœ¨å¤´æ–‡ä»¶ä¸­ï¼‰
 template<typename T, typename... TArgs>
 void UMyEventManager::RegisterCppEvent(FName EventName, T* Object, void (T::* Function)(TArgs...))
 {
@@ -302,7 +301,7 @@ void UMyEventManager::RegisterCppEvent(FName EventName, T* Object, void (T::* Fu
     DelegateType* EventDelegate = GetOrCreateCppEventDelegate<DelegateType>(EventName);
     if (EventDelegate)
     {
-        // Ê¹ÓÃUEµÄÎ¯ÍĞ°ó¶¨ÏµÍ³
+        // ä½¿ç”¨UEçš„å§”æ‰˜ç»‘å®šç³»ç»Ÿ
         typename DelegateType::FDelegate Delegate;
         Delegate.BindUObject(Object, Function);
         EventDelegate->Add(Delegate);
@@ -342,7 +341,7 @@ void UMyEventManager::TriggerCppEventByType(EGameEventType EventType, TArgs... A
     TriggerCppEvent<TArgs...>(EventName, Args);
 }
 
-// È¡Ïû×¢²áC++ÊÂ¼ş¼àÌıÆ÷£¨¶ÔÏóºÍ³ÉÔ±º¯ÊıÖ¸Õë°æ±¾£©
+// å–æ¶ˆæ³¨å†ŒC++äº‹ä»¶ç›‘å¬å™¨ï¼ˆå¯¹è±¡å’Œæˆå‘˜å‡½æ•°æŒ‡é’ˆç‰ˆæœ¬ï¼‰
 template<typename T, typename... TArgs>
 void UMyEventManager::UnregisterCppEvent(FName EventName, T* Object, void (T::* Function)(TArgs...))
 {
@@ -350,14 +349,14 @@ void UMyEventManager::UnregisterCppEvent(FName EventName, T* Object, void (T::* 
     DelegateType* EventDelegate = GetCppEventDelegate<DelegateType>(EventName);
     if (EventDelegate)
     {
-        // ´´½¨Ò»¸öÁÙÊ±Î¯ÍĞÓÃÓÚ±È½Ï
+        // åˆ›å»ºä¸€ä¸ªä¸´æ—¶å§”æ‰˜ç”¨äºæ¯”è¾ƒ
         typename DelegateType::FDelegate TempDelegate;
         TempDelegate.BindUObject(Object, Function);
 
-        // ÒÆ³ıÆ¥ÅäµÄÎ¯ÍĞ
+        // ç§»é™¤åŒ¹é…çš„å§”æ‰˜
         EventDelegate->Remove(TempDelegate);
 
-        // Èç¹ûÃ»ÓĞ¼àÌıÆ÷ÁË£¬ÒÆ³ıÊÂ¼ş
+        // å¦‚æœæ²¡æœ‰ç›‘å¬å™¨äº†ï¼Œç§»é™¤äº‹ä»¶
         if (!EventDelegate->IsBound())
         {
             CppEvents.Remove(EventName);

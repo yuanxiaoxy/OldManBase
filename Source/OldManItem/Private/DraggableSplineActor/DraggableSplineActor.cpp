@@ -53,23 +53,10 @@ void ADraggableSplineActor::Tick(float DeltaTime)
     {
         MovementAlpha = 0.0f;
 
-        //判断是否匀速变化
-        if (IfAutoBackUniformSpeed)//匀速
-        {
-            //更新t
-            AutoBackTimer = FMath::Min(AutoBackTimer + DeltaTime / AutoBackRateOrTime, 1.0f);
-            // 更新位置
-            CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
-        }
-        else//先快后慢
-        {
-            //更新t
-            //AutoBackTimer = FMath::Min(DeltaTime * AutoBackRateOrTime, 1.0f);
-            AutoBackTimer = FMath::Min(DeltaTime * AutoBackRateOrTime, 1.0f);
-            //更新位置
-            CurrentSplinePosition = FMath::Lerp(CurrentSplinePosition, DragStartPos, AutoBackTimer);
-        }
-        
+        AutoBackTimer = FMath::Min(AutoBackTimer + DeltaTime * AutoBackRate, 1.0f);
+        // 更新位置
+        CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
+
         // 计算新位置和旋转
         TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
         TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);

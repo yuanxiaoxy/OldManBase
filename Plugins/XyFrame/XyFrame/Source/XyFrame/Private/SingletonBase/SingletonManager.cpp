@@ -1,11 +1,10 @@
-ï»¿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SingletonBase/SingletonManager.h"
 #include "SingletonBase/SingletonBase.h"
 #include "Engine/Engine.h"
 
 USingletonManager* USingletonManager::ManagerInstance = nullptr;
-UWorld* USingletonManager::CurrentWorldContext = nullptr;
 
 USingletonManager* USingletonManager::GetInstance()
 {
@@ -20,15 +19,8 @@ USingletonManager* USingletonManager::GetInstance()
 
 void USingletonManager::Initialize()
 {
-    GetInstance(); // ç¡®ä¿å®ä¾‹å­˜åœ¨
+    GetInstance(); // È·±£ÊµÀı´æÔÚ
     UE_LOG(LogTemp, Log, TEXT("SingletonManager initialized"));
-}
-
-void USingletonManager::SetWorldContext(UWorld* World)
-{
-    CurrentWorldContext = World;
-    UE_LOG(LogTemp, Log, TEXT("SingletonManager world context set: %s"),
-        World ? *World->GetName() : TEXT("None"));
 }
 
 void USingletonManager::Shutdown()
@@ -39,7 +31,6 @@ void USingletonManager::Shutdown()
         ManagerInstance->RemoveFromRoot();
         ManagerInstance->ConditionalBeginDestroy();
         ManagerInstance = nullptr;
-        CurrentWorldContext = nullptr;
         UE_LOG(LogTemp, Log, TEXT("SingletonManager shutdown"));
     }
 }
@@ -78,28 +69,21 @@ UObject* USingletonManager::GetSingleton(UClass* SingletonClass) const
 
 void USingletonManager::DestroySingleton(UClass* SingletonClass)
 {
-    UObject* Singleton = GetSingleton(SingletonClass);
+    USingletonBase* Singleton = Cast<USingletonBase>(GetSingleton(SingletonClass));
     if (Singleton && IsValid(Singleton))
     {
-        // ä½¿ç”¨æ¥å£è¿›è¡Œé”€æ¯
-        if (ISingletonInterface* SingletonInterface = Cast<ISingletonInterface>(Singleton))
+        // ²éÕÒ²¢µ÷ÓÃ¶ÔÓ¦µ¥ÀıÀàµÄDestroyInstance·½·¨
+        UFunction* DestroyFunc = Singleton->FindFunction(FName("DestroyCurSingleton"));
+        if (DestroyFunc)
         {
-            SingletonInterface->DestroySingleton();
+            Singleton->ProcessEvent(DestroyFunc, nullptr);
         }
         else
         {
-            // å›é€€åˆ°ç±»å‹ç‰¹å®šçš„é”€æ¯æ–¹å¼
-            if (AActor* ActorSingleton = Cast<AActor>(Singleton))
-            {
-                ActorSingleton->Destroy();
-            }
-            else
-            {
-                Singleton->ConditionalBeginDestroy();
-            }
+            Singleton->RemoveFromRoot();
+            Singleton->ConditionalBeginDestroy();
+            UnregisterSingleton(SingletonClass);
         }
-
-        UnregisterSingleton(SingletonClass);
     }
 }
 
@@ -107,7 +91,7 @@ void USingletonManager::DestroyAllSingletons()
 {
     UE_LOG(LogTemp, Log, TEXT("Destroying all %d singletons"), SingletonInstances.Num());
 
-    // åˆ›å»ºä¸´æ—¶æ•°ç»„ï¼Œé¿å…åœ¨è¿­ä»£è¿‡ç¨‹ä¸­ä¿®æ”¹å®¹å™¨
+    // ´´½¨ÁÙÊ±Êı×é£¬±ÜÃâÔÚµü´ú¹ı³ÌÖĞĞŞ¸ÄÈİÆ÷
     TArray<UClass*> SingletonClasses;
     SingletonInstances.GetKeys(SingletonClasses);
 
@@ -130,8 +114,7 @@ void USingletonManager::PrintAllSingletons() const
     for (const auto& Pair : SingletonInstances)
     {
         FString Status = (Pair.Value && IsValid(Pair.Value)) ? "Valid" : "Invalid";
-        FString Type = Pair.Value->IsA<AActor>() ? "Actor" : "UObject";
-        UE_LOG(LogTemp, Log, TEXT("  %s: %s (%s)"), *Pair.Key->GetName(), *Status, *Type);
+        UE_LOG(LogTemp, Log, TEXT("  %s: %s"), *Pair.Key->GetName(), *Status);
     }
     UE_LOG(LogTemp, Log, TEXT("=== End Singletons ==="));
 }

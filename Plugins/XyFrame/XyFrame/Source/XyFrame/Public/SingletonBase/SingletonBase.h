@@ -1,336 +1,106 @@
-ï»¿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "Engine/Engine.h"
-#include "Engine/World.h"
-#include "EngineUtils.h"
-#include "SingletonManager.h"
+#include "SingletonManager.h"  // Ö±½Ó°üº¬Í·ÎÄ¼ş
 #include "SingletonBase.generated.h"
 
 /**
- * å•ä¾‹æ¥å£ç±» - æ‰€æœ‰å•ä¾‹ç±»éƒ½åº”è¯¥å®ç°è¿™ä¸ªæ¥å£
+ * µ¥Àı»ùÀà - ËùÓĞµ¥ÀıÀà¶¼Ó¦¸Ã¼Ì³ĞÕâ¸öÀà
  */
-UINTERFACE(MinimalAPI, Blueprintable)
-class USingletonInterface : public UInterface
-{
-    GENERATED_BODY()
-};
-
-class ISingletonInterface
+UCLASS(Abstract)
+class XYFRAME_API USingletonBase : public UObject
 {
     GENERATED_BODY()
 
 public:
+    virtual ~USingletonBase() {}
+
+    // Ğéº¯Êı£¬ÓÃÓÚ×ÓÀàÖØĞ´ÒÔ½øĞĞ³õÊ¼»¯
     virtual void InitializeSingleton() {}
-    virtual void DestroySingleton() {}
+
+    // Ğéº¯Êı£¬ÓÃÓÚ×ÓÀàÖØĞ´ÒÔ½øĞĞÏú»Ù
+    UFUNCTION()
+    virtual void DestroyCurSingleton() {}
 };
 
 /**
- * éActorå•ä¾‹åŸºç±»
- */
-UCLASS(Abstract)
-class XYFRAME_API USingletonBase : public UObject, public ISingletonInterface
-{
-    GENERATED_BODY()
-
-public:
-    virtual ~USingletonBase() override {}
-
-    // ISingletonInterface implementation
-    virtual void InitializeSingleton() override {}
-    virtual void DestroySingleton() override
-    {
-        ConditionalBeginDestroy();
-    }
-};
-
-/**
- * Actorå•ä¾‹åŸºç±»
- */
-UCLASS(Abstract)
-class XYFRAME_API ASingletonActor : public AActor, public ISingletonInterface
-{
-    GENERATED_BODY()
-
-public:
-    ASingletonActor()
-    {
-        // è®¾ç½®Actoråœ¨æ¸¸æˆè¿è¡Œæ—¶ä¸è¢«æ‰“åŒ…
-        bReplicates = false;
-        SetActorTickEnabled(false);
-    }
-
-    // ISingletonInterface implementation
-    virtual void InitializeSingleton() override {}
-    virtual void DestroySingleton() override
-    {
-        Destroy();
-    }
-
-protected:
-    virtual void BeginPlay() override
-    {
-        Super::BeginPlay();
-        InitializeSingleton();
-    }
-
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override
-    {
-        Super::EndPlay(EndPlayReason);
-    }
-};
-
-/**
- * å¢å¼ºçš„å•ä¾‹æ¨¡æ¿ - æ”¯æŒActorå’ŒéActorç±»å‹
+ * ÔöÇ¿µÄµ¥ÀıÄ£°å - ×Ô¶¯×¢²áµ½¹ÜÀíÆ÷
  */
 template <typename T>
 class TSingleton
 {
 public:
-    // è·å–å•ä¾‹å®ä¾‹
+    // »ñÈ¡µ¥ÀıÊµÀı
     static T* GetInstance()
     {
         if (!SingletonInstance || !IsValid(SingletonInstance))
         {
-            CreateSingletonInstance();
+            // ´´½¨µ¥ÀıÊµÀı
+            SingletonInstance = NewObject<T>();
+            if (SingletonInstance)
+            {
+                SingletonInstance->AddToRoot(); // ·ÀÖ¹GC
+
+                // ×Ô¶¯×¢²áµ½µ¥Àı¹ÜÀíÆ÷
+                if (USingletonManager* Manager = USingletonManager::GetInstance())
+                {
+                    Manager->RegisterSingleton(SingletonInstance);
+                }
+
+                // µ÷ÓÃ³õÊ¼»¯·½·¨
+                SingletonInstance->InitializeSingleton();
+
+                UE_LOG(LogTemp, Log, TEXT("Singleton created and registered: %s"), *SingletonInstance->GetClass()->GetName());
+            }
         }
         return SingletonInstance;
     }
 
-    // é”€æ¯å•ä¾‹å®ä¾‹
+    // Ïú»Ùµ¥ÀıÊµÀı
     static void DestroyInstance()
     {
         if (SingletonInstance && IsValid(SingletonInstance))
         {
-            // è°ƒç”¨å•ä¾‹çš„é”€æ¯æ–¹æ³•
-            if (ISingletonInterface* SingletonInterface = Cast<ISingletonInterface>(SingletonInstance))
-            {
-                SingletonInterface->DestroySingleton();
-            }
-            else
-            {
-                // å¦‚æœæ²¡æœ‰å®ç°æ¥å£ï¼Œä½¿ç”¨é»˜è®¤é”€æ¯æ–¹å¼
-                if constexpr (TIsDerivedFrom<T, AActor>::Value)
-                {
-                    Cast<AActor>(SingletonInstance)->Destroy();
-                }
-                else
-                {
-                    SingletonInstance->ConditionalBeginDestroy();
-                }
-            }
-
-            // ä»ç®¡ç†å™¨æ³¨é”€
+            // ´Ó¹ÜÀíÆ÷×¢Ïú
             if (USingletonManager* Manager = USingletonManager::GetInstance())
             {
                 Manager->UnregisterSingleton(SingletonInstance->GetClass());
             }
 
+            SingletonInstance->RemoveFromRoot();
+            SingletonInstance->ConditionalBeginDestroy();
             SingletonInstance = nullptr;
-            UE_LOG(LogTemp, Log, TEXT("Singleton destroyed: %s"), *T::StaticClass()->GetName());
+
+            UE_LOG(LogTemp, Log, TEXT("Singleton destroyed and unregistered"));
         }
     }
 
-    // æ£€æŸ¥å•ä¾‹æ˜¯å¦å­˜åœ¨ä¸”æœ‰æ•ˆ
+    // ¼ì²éµ¥ÀıÊÇ·ñ´æÔÚ
     static bool IsInstanceValid()
     {
         return SingletonInstance != nullptr && IsValid(SingletonInstance);
-    }
-
-    // è®¾ç½®ä¸–ç•Œä¸Šä¸‹æ–‡ï¼ˆå¯¹äºActorå•ä¾‹ï¼‰
-    static void SetWorldContext(UWorld* World)
-    {
-        WorldContext = World;
-    }
-
-    // è·å–å½“å‰ä¸–ç•Œä¸Šä¸‹æ–‡
-    static UWorld* GetWorldContext()
-    {
-        return WorldContext;
     }
 
 protected:
     TSingleton() = default;
 
 private:
-    // åˆ›å»ºå•ä¾‹å®ä¾‹
-    static void CreateSingletonInstance()
-    {
-        // åˆ¤æ–­ç±»å‹
-        if constexpr (TIsDerivedFrom<T, AActor>::Value)
-        {
-            SingletonInstance = CreateActorInstance();
-        }
-        else
-        {
-            SingletonInstance = CreateUObjectInstance();
-        }
-
-        if (SingletonInstance)
-        {
-            // æ³¨å†Œåˆ°ç®¡ç†å™¨
-            if (USingletonManager* Manager = USingletonManager::GetInstance())
-            {
-                Manager->RegisterSingleton(SingletonInstance);
-            }
-
-            // è°ƒç”¨åˆå§‹åŒ–
-            if (ISingletonInterface* SingletonInterface = Cast<ISingletonInterface>(SingletonInstance))
-            {
-                SingletonInterface->InitializeSingleton();
-            }
-
-            UE_LOG(LogTemp, Log, TEXT("Singleton created: %s"), *SingletonInstance->GetClass()->GetName());
-        }
-    }
-
-    // åˆ›å»ºUObjectå®ä¾‹
-    static T* CreateUObjectInstance()
-    {
-        UObject* Outer = GetTransientPackage();
-        T* Instance = NewObject<T>(Outer);
-        if (Instance)
-        {
-            Instance->AddToRoot(); // é˜²æ­¢GC
-        }
-        return Instance;
-    }
-
-    // åˆ›å»ºActorå®ä¾‹
-    static T* CreateActorInstance()
-    {
-        if (!WorldContext)
-        {
-            WorldContext = GetGameWorld();
-            if (!WorldContext)
-            {
-                UE_LOG(LogTemp, Error, TEXT("No world context available for actor singleton: %s"), *T::StaticClass()->GetName());
-                return nullptr;
-            }
-        }
-
-        // æŸ¥æ‰¾ç°æœ‰å®ä¾‹
-        T* ExistingActor = FindExistingActor();
-        if (ExistingActor)
-        {
-            return ExistingActor;
-        }
-
-        // åˆ›å»ºæ–°å®ä¾‹
-        return SpawnNewActor();
-    }
-
-    // æŸ¥æ‰¾ç°æœ‰çš„Actorå®ä¾‹
-    static T* FindExistingActor()
-    {
-        TArray<T*> FoundActors;
-        for (TActorIterator<T> It(WorldContext); It; ++It)
-        {
-            T* Actor = *It;
-            if (IsValid(Actor))
-            {
-                FoundActors.Add(Actor);
-            }
-        }
-
-        if (FoundActors.Num() > 0)
-        {
-            T* PrimaryActor = FoundActors[0];
-
-            // é”€æ¯é‡å¤çš„å®ä¾‹
-            for (int32 i = 1; i < FoundActors.Num(); i++)
-            {
-                if (FoundActors[i] && IsValid(FoundActors[i]))
-                {
-                    UE_LOG(LogTemp, Warning, TEXT("Destroying duplicate actor singleton: %s"), *FoundActors[i]->GetName());
-                    FoundActors[i]->Destroy();
-                }
-            }
-
-            UE_LOG(LogTemp, Log, TEXT("Found existing actor singleton: %s"), *PrimaryActor->GetName());
-            return PrimaryActor;
-        }
-
-        return nullptr;
-    }
-
-    // ç”Ÿæˆæ–°çš„Actorå®ä¾‹
-    static T* SpawnNewActor()
-    {
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        SpawnParams.ObjectFlags = RF_Transactional;
-        SpawnParams.Name = FName(*FString::Printf(TEXT("%s_Singleton"), *T::StaticClass()->GetName()));
-
-        T* NewActor = WorldContext->SpawnActor<T>(T::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-        if (NewActor)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Spawned new actor singleton: %s"), *NewActor->GetName());
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn actor singleton: %s"), *T::StaticClass()->GetName());
-        }
-
-        return NewActor;
-    }
-
-    // è·å–æ¸¸æˆä¸–ç•Œ
-    static UWorld* GetGameWorld()
-    {
-        if (GEngine)
-        {
-            for (const FWorldContext& Context : GEngine->GetWorldContexts())
-            {
-                if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
-                {
-                    return Context.World();
-                }
-            }
-
-            for (const FWorldContext& Context : GEngine->GetWorldContexts())
-            {
-                if (Context.World())
-                {
-                    return Context.World();
-                }
-            }
-        }
-
-        return nullptr;
-    }
-
-private:
     static T* SingletonInstance;
-    static UWorld* WorldContext;
 };
 
-// é™æ€æˆå‘˜å®šä¹‰
+// ¾²Ì¬³ÉÔ±¶¨Òå
 template <typename T>
 T* TSingleton<T>::SingletonInstance = nullptr;
 
-template <typename T>
-UWorld* TSingleton<T>::WorldContext = nullptr;
-
 /**
- * éActorå•ä¾‹å£°æ˜å®
+ * µ¥ÀıÉùÃ÷ºê - °üº¬À¶Í¼¿Éµ÷ÓÃ·½·¨
  */
 #define DECLARE_SINGLETON(ClassName) \
 public: \
+    /* C++¾²Ì¬·½·¨ */ \
     static ClassName* GetInstance() { return TSingleton<ClassName>::GetInstance(); } \
     static void DestroyInstance() { TSingleton<ClassName>::DestroyInstance(); } \
-    static bool IsInstanceValid() { return TSingleton<ClassName>::IsInstanceValid(); } \
-    static void SetWorldContext(UWorld* World) { TSingleton<ClassName>::SetWorldContext(World); } \
-    UFUNCTION(BlueprintCallable, Category = "Singleton") \
-    static ClassName* GetSingletonInstance() { return GetInstance(); }
-
- /**
-  * Actorå•ä¾‹å£°æ˜å®
-  */
-#define DECLARE_ACTOR_SINGLETON(ClassName) \
-    DECLARE_SINGLETON(ClassName) \
-    UFUNCTION(BlueprintCallable, Category = "Singleton") \
-    static void InitializeActorSingleton(UWorld* World) { SetWorldContext(World); GetInstance(); }
+    static bool IsInstanceValid() { return TSingleton<ClassName>::IsInstanceValid(); } 

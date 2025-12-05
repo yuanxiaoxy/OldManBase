@@ -2,9 +2,16 @@
 
 #pragma once
 
+#include "Runtime/MediaAssets/Public/MediaPlayer.h"
+#include "Runtime/MediaAssets/Public/MediaTexture.h"
+#include "Runtime/MediaAssets/Public/MediaSoundComponent.h"
+#include "Runtime/MediaAssets/Public/FileMediaSource.h"
+#include "Runtime/Engine/Classes/Components/AudioComponent.h"
+#include "Engine/StaticMeshActor.h"
 #include "CoreMinimal.h"
 #include "ItemBase/OldManInterectItemBase.h"
 #include "OldManAnimationBall.generated.h"
+
 
 UENUM(BlueprintType)
 enum class E_AniBallType : uint8
@@ -22,9 +29,28 @@ class OLDMANITEM_API AOldManAnimationBall : public AOldManInterectItemBase
 {
 	GENERATED_BODY()
 public:
+	// 文件媒体源，指定视频文件路径[citation:1]
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UFileMediaSource* FileMediaSource;
+
+	// 媒体播放器组件
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UMediaPlayer* MediaPlayer;
+
+	// 媒体纹理，用于在材质中显示视频
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UMediaTexture* MediaTexture;
+
+	// 媒体声音组件，用于播放视频声音
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UMediaSoundComponent* MediaSound;
+
 	//动画球播放类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	E_AniBallType myType = E_AniBallType::playOnScene;
+	//视频时长
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
+	float time = 0.0f;
 	//是否循环
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	bool Loop = false;
@@ -33,8 +59,12 @@ public:
 	bool PlayerInputCancel = true;
 	//对话框是否自动播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
-		meta = (EditCondition = "myType == AniBallType::playAsText"))
+		meta = (EditCondition = "myType == E_AniBallType::playAsText"))
 	bool IsAutoText = true;
+	//在场景中播放的物体
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
+		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
+	AStaticMeshActor* PlayWall;
 
 
 
@@ -42,8 +72,10 @@ private:
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();
+	void PlayOver();
+	void BeforePreparation();
 
 protected:
+	virtual void BeginPlay();//BeginPlay
 	virtual void OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
-
 };

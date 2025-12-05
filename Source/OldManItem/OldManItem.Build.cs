@@ -1,9 +1,11 @@
-using UnrealBuildTool;
+﻿using UnrealBuildTool;
 
 public class OldManItem : ModuleRules
 {
     public OldManItem(ReadOnlyTargetRules Target) : base(Target)
     {
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
         //Public module names that this module uses.
         //In case you would like to add various classes that you're going to use in your game
         //you should add the core,coreuobject and engine dependencies.
@@ -15,6 +17,9 @@ public class OldManItem : ModuleRules
             "Engine",
             "OldManConfig",
             "ProceduralMeshComponent",
+            "InputCore",
+            "MediaAssets",
+            "MediaUtils",
             "XyFrame"
         });
 

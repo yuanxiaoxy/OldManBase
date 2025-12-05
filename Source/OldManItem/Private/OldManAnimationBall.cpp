@@ -64,8 +64,14 @@ void AOldManAnimationBall::PlayOver()
 void AOldManAnimationBall::BeforePreparation()
 {
 	//启用计时器
-	//判断循环
+	if (CountdownTime > 0)
+	{
+		UMonoManager::GetInstance()->SetTimeout(CountdownTime - BeginTime, this, &AOldManAnimationBall::PlayOver);
+	}
+	//设置循环
+	MediaPlayer->SetLooping(Loop);
 	//判断是否启用玩家输入
+	
 	//判断对话框是否自动播放
 
 }

@@ -7,6 +7,7 @@
 #include "Runtime/MediaAssets/Public/MediaSoundComponent.h"
 #include "Runtime/MediaAssets/Public/FileMediaSource.h"
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
+#include "XyFrame/Public/MonoManager/MonoManager.h"
 #include "Engine/StaticMeshActor.h"
 #include "CoreMinimal.h"
 #include "ItemBase/OldManInterectItemBase.h"
@@ -49,8 +50,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	E_AniBallType myType = E_AniBallType::playOnScene;
 	//视频时长
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
-	float time = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
+	float CountdownTime= 0.0f;
+	//从几秒开始播放
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
+	float BeginTime= 0.0f;
 	//是否循环
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	bool Loop = false;

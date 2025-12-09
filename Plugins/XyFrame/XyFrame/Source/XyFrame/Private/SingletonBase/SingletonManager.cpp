@@ -5,7 +5,6 @@
 #include "Engine/Engine.h"
 
 USingletonManager* USingletonManager::ManagerInstance = nullptr;
-UWorld* USingletonManager::CurrentWorldContext = nullptr;
 
 USingletonManager* USingletonManager::GetInstance()
 {
@@ -24,13 +23,6 @@ void USingletonManager::Initialize()
     UE_LOG(LogTemp, Log, TEXT("SingletonManager initialized"));
 }
 
-void USingletonManager::SetWorldContext(UWorld* World)
-{
-    CurrentWorldContext = World;
-    UE_LOG(LogTemp, Log, TEXT("SingletonManager world context set: %s"),
-        World ? *World->GetName() : TEXT("None"));
-}
-
 void USingletonManager::Shutdown()
 {
     if (ManagerInstance)
@@ -39,7 +31,6 @@ void USingletonManager::Shutdown()
         ManagerInstance->RemoveFromRoot();
         ManagerInstance->ConditionalBeginDestroy();
         ManagerInstance = nullptr;
-        CurrentWorldContext = nullptr;
         UE_LOG(LogTemp, Log, TEXT("SingletonManager shutdown"));
     }
 }
@@ -89,16 +80,8 @@ void USingletonManager::DestroySingleton(UClass* SingletonClass)
         }
         else
         {
-            // 对于Actor类型，需要特殊处理
-            if (AActor* ActorSingleton = Cast<AActor>(Singleton))
-            {
-                ActorSingleton->Destroy();
-            }
-            else
-            {
-                Singleton->RemoveFromRoot();
-                Singleton->ConditionalBeginDestroy();
-            }
+            Singleton->RemoveFromRoot();
+            Singleton->ConditionalBeginDestroy();
             UnregisterSingleton(SingletonClass);
         }
     }
@@ -131,8 +114,7 @@ void USingletonManager::PrintAllSingletons() const
     for (const auto& Pair : SingletonInstances)
     {
         FString Status = (Pair.Value && IsValid(Pair.Value)) ? "Valid" : "Invalid";
-        FString Type = Pair.Value->IsA<AActor>() ? "Actor" : "UObject";
-        UE_LOG(LogTemp, Log, TEXT("  %s: %s (%s)"), *Pair.Key->GetName(), *Status, *Type);
+        UE_LOG(LogTemp, Log, TEXT("  %s: %s"), *Pair.Key->GetName(), *Status);
     }
     UE_LOG(LogTemp, Log, TEXT("=== End Singletons ==="));
 }

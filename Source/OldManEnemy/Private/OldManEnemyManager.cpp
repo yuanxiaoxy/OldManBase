@@ -14,7 +14,7 @@ UOldManEnemyManager* TSingleton<UOldManEnemyManager>::SingletonInstance = nullpt
 // Sets default values
 UOldManEnemyManager::UOldManEnemyManager()
 {
-    
+
 }
 
 void UOldManEnemyManager::InitializeSingleton()
@@ -84,7 +84,7 @@ void UOldManEnemyManager::GenerateEnemy()
         return;
     }
 
-    
+
 
     // 遍历所有敌人生成信息
     for (int32 i = 0; i < EnemyInfos.Num(); ++i)

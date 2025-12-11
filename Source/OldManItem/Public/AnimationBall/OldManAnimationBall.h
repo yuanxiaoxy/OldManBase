@@ -42,10 +42,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
 	UMediaTexture* MediaTexture;
 
-	// 媒体声音组件，用于播放视频声音
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
-	UMediaSoundComponent* MediaSound;
-
 	//动画球播放类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	E_AniBallType myType = E_AniBallType::playOnScene;
@@ -69,6 +65,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
 		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	AStaticMeshActor* PlayWall;
+	//在场景中播放的物体上的材质
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
+		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
+	UMaterial* PlayWallMaterial;
 
 
 
@@ -78,6 +78,8 @@ private:
 	void PlayText();
 	void PlayOver();
 	void BeforePreparation();
+	void Print(FString text);
+
 
 protected:
 	virtual void BeginPlay();//BeginPlay

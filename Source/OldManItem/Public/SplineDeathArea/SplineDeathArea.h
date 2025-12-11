@@ -20,8 +20,8 @@ public:
     float Radius = 50.f;
 
     /* 每厘米多少段碰撞 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pipe", meta = (ClampMin = 1))
-    int SegmentsPerMeter = 20;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pipe", meta = (ClampMin = 0.01f))
+    float SegmentsPerMeter = 0.1f;   // 0.1 = 每 10 m 一段
 
     /* 是否实时更新 */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pipe")

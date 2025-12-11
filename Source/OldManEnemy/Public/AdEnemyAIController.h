@@ -38,17 +38,22 @@ protected:
     
 
 
-    UPROPERTY()
-    AAdEnemyCharacter* EnemyCharacter;
 
 public:
     // 获取Blackboard
     UBlackboardComponent* GetBlackboard() const { return BlackboardComponent; }
 
+    UPROPERTY()
+    AAdEnemyCharacter* EnemyCharacter;
+
     EAdMonsterState GetCurrentState();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool hasTracked = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    AAdEnemyCharacter* PossessedEnemy;
+
 
     // 通知其他怪物
     UFUNCTION(BlueprintCallable, Category = "AI")
@@ -56,6 +61,12 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "AI")
     void ChangeState(EAdMonsterState state);
+
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void OnEnemyDeath();
+
+    UFUNCTION(BlueprintCallable, Category = "AI")
+    void OnEnemySpawn();
 
 };
 

@@ -4,6 +4,9 @@
 #include "AdEnemyStateTypes.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "FEnemyLocationInfo.h"
+#include "ObjectPool/ObjectPoolManager.h"
+#include "EnemyInitializationInterface.h"
 #include "AdEnemyCharacter.generated.h"
 
 
@@ -11,32 +14,54 @@
 // 前向声明放在这里
 class UBehaviorTree;
 class AOldManCharacter;
+class AEnemyPatrolPoint;
+class AAdEnemyAIController;
 
 UCLASS(Blueprintable)
-class OLDMANENEMY_API AAdEnemyCharacter : public ACharacter
+class OLDMANENEMY_API AAdEnemyCharacter : public ACharacter, public IObjectPoolInterface, public IEnemyInitializationInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
-	AAdEnemyCharacter();
+    // Sets default values for this character's properties
+    AAdEnemyCharacter();
+
+
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+    // Called when the game starts or when spawned
+    virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+
+
+public:
+
+    virtual void OnSpawn_Implementation() override;
+    virtual void OnDespawn_Implementation() override;
+
+    // Called every frame
+    virtual void Tick(float DeltaTime) override;
 
 
     // 状态变量
     UPROPERTY(BlueprintReadWrite, Category = "AI|State")
     EAdMonsterState CurrentState = EAdMonsterState::Patrol;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enmey")
+    TArray<AEnemyPatrolPoint*> Path;
+
     // 基础数据
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 Health = 1;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    int32 CurrentHealth;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    bool bIsDead;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    AAdEnemyAIController* AIController;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 AttackPower = 1;
@@ -66,15 +91,15 @@ public:
 
     // 圆锥攻击检测
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    bool DectectPlayer();  
+    bool DectectPlayer();
     // 激光攻击
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    void PerformLaserAttack();  
+    void PerformLaserAttack();
     // 受到多少伤害
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void TakeDamage(int32 DamageAmount);
 
-
+    virtual void InitializeEnemy_Implementation(const FEnemyLocationInfo& EnemyInfo) override;
 };
 
 

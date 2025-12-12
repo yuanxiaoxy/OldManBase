@@ -17,7 +17,7 @@ void UOldManOnSlopeJumpState::Enter()
             // ÖØÖÃ¶þ¶ÎÌø
             Character->hasIntoDoubleJump = false;
 
-            GetCharacterMovement()->JumpZVelocity = Character->CharacterAttributes->MoveSpeedInJumpInSlope;
+            GetCharacterMovement()->JumpZVelocity = Character->CharacterAttributes->JumpForceInSlope;
             Jump();
         }
 

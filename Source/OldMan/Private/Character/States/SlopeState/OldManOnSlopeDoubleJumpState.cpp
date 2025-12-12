@@ -15,7 +15,7 @@ void UOldManOnSlopeDoubleJumpState::Enter()
         // 应用二段跳速度
         if (GetCharacterMovement() && Character->CharacterAttributes)
         {
-            GetCharacterMovement()->JumpZVelocity = Character->CharacterAttributes->MoveSpeedInDoubleJumpInSlope;
+            GetCharacterMovement()->JumpZVelocity = Character->CharacterAttributes->DoubleJumpForceInSlope;
             Jump();
             ResetJumpInput(false);
         }

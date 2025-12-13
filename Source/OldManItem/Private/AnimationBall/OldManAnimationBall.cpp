@@ -39,6 +39,8 @@ void AOldManAnimationBall::BeginPlay()
 		if (!PlayWall->IsHidden())
 		{
 			PlayWall->SetActorHiddenInGame(true);
+			PlayWall->SetActorEnableCollision(false);
+			PlayWall->SetActorTickEnabled(false);
 		}
 	}
 	//MediaPlayer->OpenSource(FileMediaSource);
@@ -52,6 +54,9 @@ void AOldManAnimationBall::PlayAniInScene()
 	if (PlayWall->IsHidden())
 	{
 		PlayWall->SetActorHiddenInGame(false);
+		PlayWall->SetActorEnableCollision(true);
+		PlayWall->SetActorTickEnabled(true);
+
 	}
 	//为场景物体添加材质
 	PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
@@ -77,12 +82,20 @@ void AOldManAnimationBall::PlayOver()
 	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
 	//终止播放
 	MediaPlayer->Close();
+	//恢复玩家输入
+	if (PlayerInputCancel)
+	{
+		Player->SetPlayerInput(true);
+	}
 	//若是场景物体播放模式 失活PlayWall
 	if (myType == E_AniBallType::playOnScene)
 	{
 		if (!PlayWall->IsHidden())
 		{
 			PlayWall->SetActorHiddenInGame(true);
+			PlayWall->SetActorEnableCollision(false);
+			PlayWall->SetActorTickEnabled(false);
+
 		}
 	}
 }
@@ -103,11 +116,7 @@ void AOldManAnimationBall::BeforePreparation()
 	//判断是否启用玩家输入
 	if (PlayerInputCancel)
 	{
-
-	}
-	else
-	{
-
+		Player->SetPlayerInput(false);
 	}
 	//判断对话框是否自动播放
 	if (myType == E_AniBallType::playAsText)
@@ -127,6 +136,7 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 {
 	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	BeforePreparation();
+	Player = OtherActor->GetComponentByClass<AOldManCharacter>();
 	switch (myType)
 	{
 		case E_AniBallType::playOnScene:

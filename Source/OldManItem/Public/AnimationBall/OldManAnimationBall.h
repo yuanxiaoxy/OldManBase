@@ -11,6 +11,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "CoreMinimal.h"
 #include "ItemBase/OldManInterectItemBase.h"
+#include "OldMan/Public/Character/OldManCharacter.h"
 #include "OldManAnimationBall.generated.h"
 
 
@@ -42,6 +43,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
 	UMediaTexture* MediaTexture;
 
+	//在场景中播放的物体上的材质
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UMaterial* PlayWallMaterial;
+
+
 	//动画球播放类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	E_AniBallType myType = E_AniBallType::playOnScene;
@@ -65,14 +71,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
 		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	AStaticMeshActor* PlayWall;
-	//在场景中播放的物体上的材质
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
-		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
-	UMaterial* PlayWallMaterial;
+
 
 
 
 private:
+	//进入触发框的玩家
+	AOldManCharacter* Player;
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();

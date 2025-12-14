@@ -16,5 +16,5 @@ public:
 	static const FName Key_Player_OnRespawn;
 
 	static const FName Key_Player_OnChangeGrivity;
-	static const FName Key_Player_InputActive;
+	static const FName Key_Player_FInputActiveUpdate;
 };

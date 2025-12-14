@@ -85,7 +85,9 @@ void AOldManAnimationBall::PlayOver()
 	//恢复玩家输入
 	if (PlayerInputCancel)
 	{
-		Player->SetPlayerInput(true);
+		//Player->SetPlayerInput(true);
+		UMyEventManager::GetEventManager()->TriggerCppEvent("FInputActiveUpdate", true);
+
 	}
 	//若是场景物体播放模式 失活PlayWall
 	if (myType == E_AniBallType::playOnScene)
@@ -116,7 +118,8 @@ void AOldManAnimationBall::BeforePreparation()
 	//判断是否启用玩家输入
 	if (PlayerInputCancel)
 	{
-		Player->SetPlayerInput(false);
+		//Player->SetPlayerInput(false);
+		UMyEventManager::GetEventManager()->TriggerCppEvent("FInputActiveUpdate",false);
 	}
 	//判断对话框是否自动播放
 	if (myType == E_AniBallType::playAsText)
@@ -136,7 +139,7 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 {
 	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	BeforePreparation();
-	Player = OtherActor->GetComponentByClass<AOldManCharacter>();
+	//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
 	switch (myType)
 	{
 		case E_AniBallType::playOnScene:

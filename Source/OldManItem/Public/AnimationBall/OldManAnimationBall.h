@@ -8,10 +8,11 @@
 #include "Runtime/MediaAssets/Public/FileMediaSource.h"
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "XyFrame/Public/MonoManager/MonoManager.h"
+#include "EventManager/MyEventManager.h"
 #include "Engine/StaticMeshActor.h"
 #include "CoreMinimal.h"
 #include "ItemBase/OldManInterectItemBase.h"
-#include "OldMan/Public/Character/OldManCharacter.h"
+//#include "OldMan/Public/Character/OldManCharacter.h"
 #include "OldManAnimationBall.generated.h"
 
 
@@ -77,7 +78,7 @@ public:
 
 private:
 	//进入触发框的玩家
-	AOldManCharacter* Player;
+	//AOldManCharacter* Player;
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();

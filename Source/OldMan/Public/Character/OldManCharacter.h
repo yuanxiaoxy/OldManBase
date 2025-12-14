@@ -29,10 +29,6 @@ class OLDMAN_API AOldManCharacter : public AXyCharacterBase, public IStateMachin
 
 public:
     AOldManCharacter(const FObjectInitializer& ObjectInitializer);
-    //设置玩家输入
-    UFUNCTION(BlueprintCallable, Category = "MyCategory")
-    void SetPlayerInput(bool active);
-
 
 protected:
     virtual void BeginPlay() override;
@@ -41,8 +37,12 @@ protected:
     virtual bool CanJumpInternal_Implementation() const override;
 
 private:
+    //是否断掉玩家输入相关
     //是否执行Update
     bool Active = true;
+    //改变Active的值
+    void ChangeInputActive(bool active);
+
     // 玩家控制器引用
     UPROPERTY()
     AOldManPersonPlayerController* OldManController;

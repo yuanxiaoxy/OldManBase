@@ -4,6 +4,8 @@
 //初始化
 void AOldManAnimationBall::BeginPlay()
 {
+	Disposable = true;
+
 	//检测媒体源是否存在
 	if (FileMediaSource == nullptr)
 	{
@@ -136,23 +138,34 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-	BeforePreparation();
-	//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
-	switch (myType)
+	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) > -1)
 	{
-		case E_AniBallType::playOnScene:
-			PlayAniInScene();
-			break;
-		case E_AniBallType::playOnUI:
-			PlayAniInUI();
-			break;
-		case E_AniBallType::playAsText:
-			PlayText();
-			break;
-		default:
-			UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢"));
-			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢"));
-			break;
+		if (Disposable)
+		{
+			//判断是否为一次性
+			if (IsDisposable)
+			{
+				Disposable = false;
+			}
+			BeforePreparation();
+			//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
+			switch (myType)
+			{
+			case E_AniBallType::playOnScene:
+				PlayAniInScene();
+				break;
+			case E_AniBallType::playOnUI:
+				PlayAniInUI();
+				break;
+			case E_AniBallType::playAsText:
+				PlayText();
+				break;
+			default:
+				UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢"));
+				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢"));
+				break;
+			}
+		}
 	}
 }
 

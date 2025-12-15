@@ -1,6 +1,6 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "GlobalEventName.h"
 #include "AnimationBall/OldManAnimationBall.h"
 
 //初始化
@@ -86,7 +86,7 @@ void AOldManAnimationBall::PlayOver()
 	if (PlayerInputCancel)
 	{
 		//Player->SetPlayerInput(true);
-		UMyEventManager::GetEventManager()->TriggerCppEvent("FInputActiveUpdate", true);
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true);
 
 	}
 	//若是场景物体播放模式 失活PlayWall
@@ -119,7 +119,7 @@ void AOldManAnimationBall::BeforePreparation()
 	if (PlayerInputCancel)
 	{
 		//Player->SetPlayerInput(false);
-		UMyEventManager::GetEventManager()->TriggerCppEvent("FInputActiveUpdate",false);
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(),false);
 	}
 	//判断对话框是否自动播放
 	if (myType == E_AniBallType::playAsText)

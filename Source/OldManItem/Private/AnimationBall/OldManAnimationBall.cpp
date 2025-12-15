@@ -1,7 +1,5 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
-#include "AnimationBall/OldManAnimationBall.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()

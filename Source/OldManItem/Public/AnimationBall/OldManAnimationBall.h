@@ -8,9 +8,11 @@
 #include "Runtime/MediaAssets/Public/FileMediaSource.h"
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "XyFrame/Public/MonoManager/MonoManager.h"
+#include "EventManager/MyEventManager.h"
 #include "Engine/StaticMeshActor.h"
 #include "CoreMinimal.h"
 #include "ItemBase/OldManInterectItemBase.h"
+//#include "OldMan/Public/Character/OldManCharacter.h"
 #include "OldManAnimationBall.generated.h"
 
 
@@ -42,9 +44,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
 	UMediaTexture* MediaTexture;
 
-	// 媒体声音组件，用于播放视频声音
+	//在场景中播放的物体上的材质
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
-	UMediaSoundComponent* MediaSound;
+	UMaterial* PlayWallMaterial;
+
 
 	//动画球播放类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
@@ -72,12 +75,17 @@ public:
 
 
 
+
 private:
+	//进入触发框的玩家
+	//AOldManCharacter* Player;
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();
 	void PlayOver();
 	void BeforePreparation();
+	void Print(FString text);
+
 
 protected:
 	virtual void BeginPlay();//BeginPlay

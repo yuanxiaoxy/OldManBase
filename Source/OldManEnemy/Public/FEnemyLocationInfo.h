@@ -18,6 +18,11 @@ struct FEnemyLocationInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Info")
     bool bIsGenerateOnce = false;
 
+    UPROPERTY(BlueprintReadWrite, Category = "Enemy Info")
+    int32 maxCount = 4;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Info")
+    int32 ID = -1;
 
     UPROPERTY()
     bool isActive = true;
@@ -26,16 +31,20 @@ struct FEnemyLocationInfo
     {
         if (!World) return;
         FColor pointColor;
+        bool bisLast = false;
         FColor pathColor;
+        FColor spawnColor;
         if (bIsGenerateOnce)
         {
             pointColor = FColor::Red;
             pathColor = FColor::Yellow;
+            spawnColor = FColor::Orange;
         }
         else
         {
             pointColor = FColor::Blue;
             pathColor = FColor::Purple;
+            spawnColor = FColor::Green;
         }
         // 绘制生成点圆圈（绿色）
         if (SpawnPoint)
@@ -48,8 +57,8 @@ struct FEnemyLocationInfo
                 SpawnLocation,
                 100.0f,  // 圆圈半径
                 32,      // 分段数
-                FColor::Green,
-                false,   // 不持久化
+                spawnColor,
+                bisLast,   // 不持久化
                 lastTime,   // 持续到下一帧
                 0,       // 深度优先级
                 3.0f,    // 线条粗细
@@ -63,8 +72,8 @@ struct FEnemyLocationInfo
                 World,
                 SpawnLocation,
                 15.0f,   // 点的大小
-                FColor::Green,
-                false,
+                spawnColor,
+                true,
                 lastTime
             );
         }
@@ -84,7 +93,7 @@ struct FEnemyLocationInfo
                     CurrentLocation,
                     10.0f,
                     pointColor,
-                    false,
+                    bisLast,
                     lastTime
                 );
 
@@ -109,7 +118,7 @@ struct FEnemyLocationInfo
                         CurrentLocation,
                         NextLocation,
                         pathColor,
-                        false,  // 不持久化
+                        bisLast,  // 不持久化
                         lastTime,  // 持续到下一帧
                         0,       // 深度优先级
                         2.0f     // 线条粗细
@@ -142,7 +151,7 @@ struct FEnemyLocationInfo
                 Location,
                 10.0f,
                 pointColor,
-                false,
+                bisLast,
                 lastTime
             );
         }

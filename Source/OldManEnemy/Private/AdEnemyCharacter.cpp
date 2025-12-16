@@ -166,7 +166,6 @@ void AAdEnemyCharacter::OnSpawn_Implementation()
     SetActorTickEnabled(true);
     CurrentHealth = Health; // 重置生命值
     bIsDead = false;
-
     // 确保 Controller 正确设置 - 原始指针版本
     if (!AIController) // 直接检查指针是否为nullptr
     {
@@ -174,7 +173,6 @@ void AAdEnemyCharacter::OnSpawn_Implementation()
     }
     AIController->OnEnemySpawn();
     AIController->EnemyCharacter = this;
-    TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Add(AIController); // 直接使用指针
 }
 
 void AAdEnemyCharacter::OnDespawn_Implementation()

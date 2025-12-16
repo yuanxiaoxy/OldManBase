@@ -77,7 +77,7 @@ void AAdEnemyAIController::OnEnemyDeath()
 	BehaviorTreeComponent->StopTree();
 	StopMovement();
 	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
-	TSingleton<UOldManEnemyManager>::GetInstance()->Enemys.Remove(this);
+	TSingleton<UOldManEnemyManager>::GetInstance()->RecycleAdEnemy(this);
 	/*UnPossess();*/
 }
 

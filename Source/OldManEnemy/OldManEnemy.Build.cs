@@ -16,6 +16,7 @@ public class OldManEnemy : ModuleRules
             "OldManConfig",
             "OldMan",
             "XyFrame",
+            "InputCore",
         });
 
         //The path for the header files

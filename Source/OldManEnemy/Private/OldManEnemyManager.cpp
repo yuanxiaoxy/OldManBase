@@ -168,6 +168,7 @@ void UOldManEnemyManager::RecycleAdEnemy(AAdEnemyAIController* target)
 }
 
 
+
 #pragma endregion
 
 
@@ -179,6 +180,7 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
     // 验证蓝图类是否设置
     if (ApproachEnemyBPClass)
     {
+        UE_LOG(LogTemp, Log, TEXT("StartApproachEnemyGenerator()"));
         // 立即生成一批敌人
         GenerateApproachEnemy();
         //FTimerSimpleDelegate timerDelegate;
@@ -213,7 +215,7 @@ void UOldManEnemyManager::GenerateApproachEnemy()
 {
     if (CurrentApEnemyCount >= MaxApproachEnemyCount) return;
 
-    
+    UE_LOG(LogTemp, Log, TEXT("GenerateApproachEnemy()"))
     AActor* SpawnedEnemy = PoolManager->Spawn(
         ApproachEnemyBPClass,  // 这里会自动转换为 TSubclassOf<AActor>
         FVector::ZeroVector,
@@ -251,6 +253,7 @@ void UOldManEnemyManager::GenerateApproachEnemy()
 // 回收屏幕敌人
 void UOldManEnemyManager::RecycleApproachEnemy(AApproachEnemyCharacter* target)
 {
+    CurrentApEnemyCount--;
     PoolManager->Despawn(target);
     ApproachEnemies.Remove(target);
 }

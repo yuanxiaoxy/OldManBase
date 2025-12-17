@@ -30,10 +30,10 @@ struct FEnemyLocationInfo
     void DrawDebugInfo(UWorld* World, float lastTime = -1.0f) const
     {
         if (!World) return;
-        FColor pointColor;
-        bool bisLast = false;
-        FColor pathColor;
-        FColor spawnColor;
+        FColor pointColor = FColor::Red;
+        bool bisLast = true;
+        FColor pathColor = FColor::Red;
+        FColor spawnColor = FColor::Orange;
         if (bIsGenerateOnce)
         {
             pointColor = FColor::Red;
@@ -51,7 +51,7 @@ struct FEnemyLocationInfo
         {
             FVector SpawnLocation = SpawnPoint->GetActorLocation();
             
-            // 绘制一个绿色圆圈表示生成点
+            
             DrawDebugCircle(
                 World,
                 SpawnLocation,

@@ -79,6 +79,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "EnemyManager")
     void SetSpawnActive(FEnemyLocationInfo& infoRef, bool active);
 
+    
+
 
 
 #pragma endregion

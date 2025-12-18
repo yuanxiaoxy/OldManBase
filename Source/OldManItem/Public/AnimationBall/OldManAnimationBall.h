@@ -61,6 +61,9 @@ public:
 	//是否循环
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	bool Loop = false;
+	//是否是一次性的
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
+	bool IsDisposable = true;
 	//是否取消玩家输入
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	bool PlayerInputCancel = true;
@@ -79,6 +82,9 @@ public:
 private:
 	//进入触发框的玩家
 	//AOldManCharacter* Player;
+	//一次性
+	bool Disposable = true;
+
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();
@@ -88,6 +94,7 @@ private:
 
 
 protected:
+
 	virtual void BeginPlay();//BeginPlay
 	virtual void OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 };

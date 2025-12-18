@@ -3,3 +3,24 @@
 
 #include "SettingPanel/SettingPanel.h"
 
+
+void USettingPanel::UpdateBGMToUI(float BGMVol)
+{
+	BGMVolume = BGMVol;
+}
+
+void USettingPanel::UpdateEffectToUI(float EffectVol)
+{
+	EffectVolume = EffectVol;
+}
+
+void USettingPanel::UpdateBGMToGame()
+{
+
+}
+
+void USettingPanel::UpdateEffectToGame()
+{
+
+}
+

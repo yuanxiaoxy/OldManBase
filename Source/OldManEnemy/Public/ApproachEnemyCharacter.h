@@ -47,8 +47,7 @@ public:
 
     // 初始化
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
-    void InitializeEnemy(const FVector2D& InScreenPosition, float InitialDistance,
-        float InAttackDistance, float InApproachSpeed);
+    void InitializeEnemy(const FVector2D& InScreenPosition);
 
     // 更新屏幕位置
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
@@ -65,6 +64,15 @@ public:
 
 public:
     // 可配置参数
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ApproachEnemy")
+    float AttackDistance = 500.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ApproachEnemy")
+    float InitialDistance = 2000.0f;     // 当前距离摄像机距离
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ApproachEnemy")
+    float ApproachSpeed = 100.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     float BaseClickRadius = 50.0f;  // 基础点击半径（像素）
 
@@ -86,23 +94,20 @@ private:
     UStaticMeshComponent* DebugSphere;  // 调试用，显示点击范围
 
     // 状态
-    FVector2D ScreenPosition;  // 屏幕位置（0-1标准化坐标）
-    float CurrentDistance;     // 当前距离摄像机距离
-    float CurrentClickRadius;  // 当前点击半径
+    FVector2D _ScreenPosition;  // 屏幕位置（0-1标准化坐标）
+    float _CurrentClickRadius;  // 当前点击半径
 
-    bool bIsDead;
-    float DeathTimer;
+    bool _bIsDead;
+    float _DeathTimer;
 
      UPROPERTY()
-    APlayerController* PlayerController;
+    APlayerController* _PlayerController;
     
     UPROPERTY()
-    APawn* PlayerPawn;
-    float MaxDistance;
-    float ApproachSpeed;
-    float AttackDistance;
-
- 
+    APawn* _PlayerPawn;
+    float _CurrentDistance;
+    FVector _OriginScale;
+    
 
 
     // 动态材质用于视觉效果

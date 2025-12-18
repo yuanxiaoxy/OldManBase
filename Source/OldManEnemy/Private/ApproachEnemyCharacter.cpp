@@ -10,11 +10,8 @@ AApproachEnemyCharacter::AApproachEnemyCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    bIsDead = false;
-    DeathTimer = 0.0f;
-    CurrentDistance = 1000.0f;  // 初始距离
-    ApproachSpeed = 100.0f;     // 靠近速度（单位/秒）
-    AttackDistance = 200.0f;    // 攻击距离
+    _bIsDead = false;
+    _DeathTimer = 0.0f;
 
     // 设置碰撞
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -41,12 +38,12 @@ void AApproachEnemyCharacter::BeginPlay()
     GetCapsuleComponent()->SetGenerateOverlapEvents(true);
 
     // 获取玩家控制器
-    PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    _PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    _PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 
     // 绑定点击事件
     OnClicked.AddDynamic(this, &AApproachEnemyCharacter::HandleOnClicked);
-
+    _OriginScale = GetActorScale3D();
     // 设置动态材质
     if (GetMesh())
     {
@@ -63,18 +60,18 @@ void AApproachEnemyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (bIsDead)
+    if (_bIsDead)
     {
         // 死亡处理
-        DeathTimer -= DeltaTime;
-        if (DeathTimer <= 0.0f)
+        _DeathTimer -= DeltaTime;
+        if (_DeathTimer <= 0.0f)
         {
             Recycle();
         }
         else
         {
-            float Alpha = 1.0f - (DeathTimer / DeathEffectDuration);
-            SetActorScale3D(FVector(1.0f - Alpha));
+            float Alpha = 1.0f - (_DeathTimer / DeathEffectDuration);
+            SetActorScale3D((1.0f - Alpha) * _OriginScale);
             if (DynamicMaterial)
             {
                 DynamicMaterial->SetScalarParameterValue("Dissolve", Alpha);
@@ -97,24 +94,24 @@ void AApproachEnemyCharacter::Tick(float DeltaTime)
 // 核心函数：更新屏幕空间位置
 void AApproachEnemyCharacter::UpdateScreenSpacePosition(float DeltaTime)
 {
-    if (!PlayerController || !PlayerPawn) return;
+    if (!_PlayerController || !_PlayerPawn) return;
     
     // 1. 逐渐减小距离（靠近玩家）
-    CurrentDistance = FMath::FInterpConstantTo(
-        CurrentDistance,
+    _CurrentDistance = FMath::FInterpConstantTo(
+        _CurrentDistance,
         AttackDistance,  // 目标距离是攻击距离
         DeltaTime,
         ApproachSpeed
     );
     
     // 2. 保持相同的屏幕位置，计算新的世界坐标
-    FVector NewWorldLocation = GetWorldPositionFromScreen(ScreenPosition, CurrentDistance);
+    FVector NewWorldLocation = GetWorldPositionFromScreen(_ScreenPosition, _CurrentDistance);
     
     // 3. 应用新位置
     SetActorLocation(NewWorldLocation);
     
     // 4. 使敌人面向摄像机
-    FVector CameraLocation = PlayerPawn->GetActorLocation();
+    FVector CameraLocation = _PlayerPawn->GetActorLocation();
     FVector ToCamera = (CameraLocation - NewWorldLocation).GetSafeNormal();
     FRotator LookAtRotation = ToCamera.Rotation();
     SetActorRotation(LookAtRotation);
@@ -123,16 +120,16 @@ void AApproachEnemyCharacter::UpdateScreenSpacePosition(float DeltaTime)
 // 从屏幕坐标获取世界坐标
 FVector AApproachEnemyCharacter::GetWorldPositionFromScreen(const FVector2D& ScreenPos, float Distance)
 {
-    if (!PlayerController) return FVector::ZeroVector;
+    if (!_PlayerController) return FVector::ZeroVector;
     
     // 获取摄像机信息
     FVector CameraLocation;
     FRotator CameraRotation;
-    PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+    _PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
     
     // 获取视口大小
     int32 ViewportSizeX, ViewportSizeY;
-    PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+    _PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
     
     // 转换为像素坐标
     FVector2D PixelPos(
@@ -142,7 +139,7 @@ FVector AApproachEnemyCharacter::GetWorldPositionFromScreen(const FVector2D& Scr
     
     // 屏幕坐标转世界坐标
     FVector WorldLocation, WorldDirection;
-    if (PlayerController->DeprojectScreenPositionToWorld(
+    if (_PlayerController->DeprojectScreenPositionToWorld(
         PixelPos.X, PixelPos.Y, 
         WorldLocation, WorldDirection))
     {
@@ -156,9 +153,9 @@ FVector AApproachEnemyCharacter::GetWorldPositionFromScreen(const FVector2D& Scr
 // 检查并造成伤害
 void AApproachEnemyCharacter::CheckAndApplyDamage()
 {
-    if (bIsDead || !PlayerPawn) return;
+    if (_bIsDead || !_PlayerPawn) return;
     
-    float DistanceToPlayer = FVector::Distance(GetActorLocation(), PlayerPawn->GetActorLocation());
+    float DistanceToPlayer = FVector::Distance(GetActorLocation(), _PlayerPawn->GetActorLocation());
     
     if (DistanceToPlayer <= AttackDistance)
     {
@@ -172,7 +169,7 @@ void AApproachEnemyCharacter::CheckAndApplyDamage()
 
 void AApproachEnemyCharacter::HandleOnClicked(AActor* TouchedActor, FKey ButtonPressed)
 {
-    if (bIsDead || ButtonPressed != EKeys::LeftMouseButton || TouchedActor != this) 
+    if (_bIsDead || ButtonPressed != EKeys::LeftMouseButton || TouchedActor != this) 
         return;
 
     APlayerController* PC = GetWorld()->GetFirstPlayerController();
@@ -189,41 +186,38 @@ void AApproachEnemyCharacter::HandleOnClicked(AActor* TouchedActor, FKey ButtonP
 }
 
 // 初始化敌人（由管理器调用）
-void AApproachEnemyCharacter::InitializeEnemy(const FVector2D& InScreenPosition, float InitialDistance, 
-                                             float InAttackDistance, float InApproachSpeed)
+void AApproachEnemyCharacter::InitializeEnemy(const FVector2D& InScreenPosition)
 {
-    MaxDistance = InitialDistance;
-    ScreenPosition = InScreenPosition;
-    CurrentDistance = InitialDistance;
-    AttackDistance = InAttackDistance;
-    ApproachSpeed = InApproachSpeed;
+    _CurrentDistance = InitialDistance;
+    _ScreenPosition = InScreenPosition;
+    
     
     SetActorHiddenInGame(false);
     SetActorEnableCollision(true);
     SetActorTickEnabled(true);
-    bIsDead = false;
+    _bIsDead = false;
 
 
     // 设置初始位置
-    FVector StartLocation = GetWorldPositionFromScreen(ScreenPosition, CurrentDistance);
+    FVector StartLocation = GetWorldPositionFromScreen(_ScreenPosition, _CurrentDistance);
     SetActorLocation(StartLocation);
 }
 
 void AApproachEnemyCharacter::SetScreenPosition(const FVector2D& InScreenPos, float InCurrentDistance)
 {
-    ScreenPosition = InScreenPos;
-    CurrentDistance = InCurrentDistance;
+    _ScreenPosition = InScreenPos;
+    _CurrentDistance = InCurrentDistance;
     UpdateClickCollision();
 }
 
 float AApproachEnemyCharacter::GetClickRadius() const
 {
-    return CurrentClickRadius;
+    return _CurrentClickRadius;
 }
 
 bool AApproachEnemyCharacter::IsMouseOverlapping(const FVector2D& MousePosition) const
 {
-    if (bIsDead) return false;
+    if (_bIsDead) return false;
 
     APlayerController* PC = GetWorld()->GetFirstPlayerController();
     if (!PC) return false;
@@ -232,20 +226,20 @@ bool AApproachEnemyCharacter::IsMouseOverlapping(const FVector2D& MousePosition)
     PC->GetViewportSize(ViewportSizeX, ViewportSizeY);
 
     FVector2D EnemyPixelPos = FVector2D(
-        ScreenPosition.X * ViewportSizeX,
-        ScreenPosition.Y * ViewportSizeY
+        _ScreenPosition.X * ViewportSizeX,
+        _ScreenPosition.Y * ViewportSizeY
     );
 
     float Distance = FVector2D::Distance(MousePosition, EnemyPixelPos);
-    return Distance <= CurrentClickRadius;
+    return Distance <= _CurrentClickRadius;
 }
 
 void AApproachEnemyCharacter::KillEnemy()
 {
-    if (bIsDead) return;
+    if (_bIsDead) return;
 
-    bIsDead = true;
-    DeathTimer = DeathEffectDuration;
+    _bIsDead = true;
+    _DeathTimer = DeathEffectDuration;
 
     // 禁用碰撞
     ClickCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -259,27 +253,28 @@ void AApproachEnemyCharacter::Recycle()
     SetActorHiddenInGame(true);
     SetActorEnableCollision(false);
     SetActorTickEnabled(false);
+    SetActorScale3D(_OriginScale);
     UOldManEnemyManager::GetInstance()->RecycleApproachEnemy(this);
 }
 
 void AApproachEnemyCharacter::UpdateClickCollision()
 {
     // 计算点击半径：距离越近，点击半径越大
-    float DistanceFactor = 1.0f - (CurrentDistance / MaxDistance);
+    float DistanceFactor = 1.0f - (_CurrentDistance / InitialDistance);
     DistanceFactor = FMath::Clamp(DistanceFactor, 0.0f, 1.0f);
 
-    CurrentClickRadius = FMath::Lerp(BaseClickRadius, MaxClickRadius, DistanceFactor);
+    _CurrentClickRadius = FMath::Lerp(BaseClickRadius, MaxClickRadius, DistanceFactor);
 
     // 更新碰撞体大小
     if (ClickCollision)
     {
-        ClickCollision->SetSphereRadius(CurrentClickRadius);
+        ClickCollision->SetSphereRadius(_CurrentClickRadius);
     }
     
     // 更新调试球体大小
     if (DebugSphere)
     {
-        DebugSphere->SetWorldScale3D(FVector(CurrentClickRadius / 50.0f));
+        DebugSphere->SetWorldScale3D(FVector(_CurrentClickRadius / 50.0f));
     }
 }
 
@@ -287,7 +282,7 @@ void AApproachEnemyCharacter::UpdateVisualEffects(float DeltaTime)
 {
     if (!DynamicMaterial) return;
 
-    float DistanceFactor = 1.0f - (CurrentDistance / 1000.0f);
+    float DistanceFactor = 1.0f - (_CurrentDistance / 1000.0f);
     DistanceFactor = FMath::Clamp(DistanceFactor, 0.0f, 1.0f);
 
     // 距离越近，效果越强烈

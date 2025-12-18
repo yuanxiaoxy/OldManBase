@@ -228,13 +228,8 @@ void UOldManEnemyManager::GenerateApproachEnemy()
         AApproachEnemyCharacter* ApproachEnemy = Cast<AApproachEnemyCharacter>(SpawnedEnemy);
         if (ApproachEnemy)
         {
-            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.1f, 0.9f), FMath::FRandRange(0.1f, 0.9f));
-            ApproachEnemy->InitializeEnemy(
-                ScreenPos,           // 屏幕位置
-                800.0f,              // 初始距离
-                200.0f,              // 攻击距离
-                100.0f               // 靠近速度
-            );
+            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.5f));
+            ApproachEnemy->InitializeEnemy(ScreenPos);
             ApproachEnemies.Add(ApproachEnemy);
             CurrentApEnemyCount++;
         }

@@ -115,20 +115,7 @@ public:
     int32 MaxApproachEnemyCount = 6;  // 最大ApproachEnemy数量
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
-    float ApproachEnemySpawnInterval = 3.0f;
-
-    // 初始距离
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
-    float ApproachEnemyDistance = 800;
-
-    // 攻击距离
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
-    float ApproachEnemyAttackDis = 200;
-
-    // 靠近速度
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
-    float ApproachEnemySpeed = 100;
-
+    float ApproachEnemySpawnInterval = 2.0f;
 
 #pragma endregion
 

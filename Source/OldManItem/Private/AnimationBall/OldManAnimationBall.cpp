@@ -27,7 +27,7 @@ void AOldManAnimationBall::BeginPlay()
 	if (myType == E_AniBallType::playOnScene)
 	{
 		//检测场景中播放的物体是否存在
-		if (PlayWall == nullptr)
+		if (!PlayWall)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体不存在"));
 		}

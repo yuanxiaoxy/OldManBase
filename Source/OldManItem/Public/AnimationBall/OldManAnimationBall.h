@@ -76,9 +76,6 @@ public:
 		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	AStaticMeshActor* PlayWall;
 
-
-
-
 private:
 	//进入触发框的玩家
 	//AOldManCharacter* Player;

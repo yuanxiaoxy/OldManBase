@@ -1,5 +1,6 @@
 ﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
+#include "UIManager/UIManager.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()
@@ -26,7 +27,7 @@ void AOldManAnimationBall::BeginPlay()
 	if (myType == E_AniBallType::playOnScene)
 	{
 		//检测场景中播放的物体是否存在
-		if (PlayWall == nullptr)
+		if (!PlayWall)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体不存在"));
 		}
@@ -68,6 +69,8 @@ void AOldManAnimationBall::PlayAniInScene()
 void AOldManAnimationBall::PlayAniInUI()
 {
 	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
+	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", nullptr);
+	MediaPlayer->OpenSource(FileMediaSource);
 }
 
 //对话框
@@ -99,6 +102,11 @@ void AOldManAnimationBall::PlayOver()
 			PlayWall->SetActorTickEnabled(false);
 
 		}
+	}
+	//若是UI物体，关闭UI
+	if (myType == E_AniBallType::playOnUI)
+	{
+		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel");
 	}
 }
 

@@ -81,8 +81,6 @@ void AOldManCharacter::BeginPlay()
     {
         AnimBlueprintClass = Cast<UOldManAnimInstance>(GetMesh()->GetAnimInstance());
     }
-    //添加事件
-    UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
 
 }
 
@@ -731,6 +729,8 @@ void AOldManCharacter::InitializeAnimationCameraComponent()
 void AOldManCharacter::InitializeEvent()
 {
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool>(UGlobalEventName::Key_Player_OnChangeGrivity, this, &AOldManCharacter::ChangeSlopeState);
+
+    UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, FGameEventData>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
 }

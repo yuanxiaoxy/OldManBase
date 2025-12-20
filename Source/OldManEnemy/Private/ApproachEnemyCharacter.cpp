@@ -203,12 +203,7 @@ void AApproachEnemyCharacter::InitializeEnemy(const FVector2D& InScreenPosition)
     SetActorLocation(StartLocation);
 }
 
-void AApproachEnemyCharacter::SetScreenPosition(const FVector2D& InScreenPos, float InCurrentDistance)
-{
-    _ScreenPosition = InScreenPos;
-    _CurrentDistance = InCurrentDistance;
-    UpdateClickCollision();
-}
+
 
 float AApproachEnemyCharacter::GetClickRadius() const
 {

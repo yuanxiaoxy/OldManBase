@@ -26,9 +26,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
     void HandleOnClicked(AActor* TouchedActor, FKey ButtonPressed);
 
-    // 设置屏幕位置（由管理器调用）
-    UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
-    void SetScreenPosition(const FVector2D& InScreenPos, float InCurrentDistance);
+
 
     // 获取点击判定半径
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")

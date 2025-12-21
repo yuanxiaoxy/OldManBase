@@ -47,20 +47,20 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "AI|State")
     EAdMonsterState CurrentState = EAdMonsterState::Patrol;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enmey")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AdEnmey")
     TArray<AEnemyPatrolPoint*> Path;
 
     // 基础数据
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 Health = 1;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    UPROPERTY(BlueprintReadOnly, Category = "AdEnmey")
     int32 CurrentHealth;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    UPROPERTY(BlueprintReadOnly, Category = "AdEnmey")
     bool bIsDead;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Enmey")
+    UPROPERTY(BlueprintReadOnly, Category = "AdEnmey")
     AAdEnemyAIController* AIController;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")

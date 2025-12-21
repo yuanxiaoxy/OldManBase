@@ -5,6 +5,10 @@
 #include "AdEnemyAIController.h"
 #include "AdEnemyStateTypes.h"
 #include "MonoManager/MonoManager.h"
+#include "ApproachEnemyCharacter.h"
+
+
+int32 UOldManEnemyManager::nextID = 0;
 
 template<>
 UOldManEnemyManager* TSingleton<UOldManEnemyManager>::SingletonInstance = nullptr;
@@ -22,30 +26,32 @@ void UOldManEnemyManager::InitializeSingleton()
     UE_LOG(LogTemp, Log, TEXT("敌人管理器初始化 start"));
     PoolManager = UObjectPoolManager::GetInstance();
     PoolManager->InitializeSingleton();
-    PoolManager->Preload(EnemyBlueprintClass, 5);
+    PoolManager->Preload(AdEnemyBPClass, 10);
+    PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
+    StartAdEnemyGenerator();
+}
+
+
+
+
+
+
+#pragma region AdEnemy
+
+// 开始周期生成广告敌人
+void UOldManEnemyManager::StartAdEnemyGenerator()
+{
     // 验证蓝图类是否设置
-    if (EnemyBlueprintClass)
+    if (AdEnemyBPClass)
     {
         // 立即生成一批敌人
-        GenerateEnemy();
-        _hasInitialze = true;
+        GenerateAdEnemy();
+        _hasGeneAdOnce = true;
         //FTimerSimpleDelegate timerDelegate;
         //timerDelegate.BindUFunction(this, "GenerateEnemy");
-        FString timerID = UMonoManager::GetInstance()->
-            SetInterval(SpawnInterval, this, &UOldManEnemyManager::GenerateEnemy);
-        // 设置定时器，每隔SpawnInterval秒生成一次[1](@ref)
-        //if (UWorld* World = GetWorld())
-        //{
-        //    World->GetTimerManager().SetTimer(
-        //        EnemySpawnTimerHandle,
-        //        this,
-        //        &UOldManEnemyManager::GenerateEnemy,
-        //        SpawnInterval,
-        //        true  // 循环执行
-        //    );
-        //}
+        _timerID_AdEnemy = UMonoManager::GetInstance()->
+            SetInterval(AdEnemySpawnInterval, this, &UOldManEnemyManager::GenerateAdEnemy);
 
-        //UE_LOG(LogTemp, Log, TEXT("Enemy spawn system initialized with interval: %f seconds"), SpawnInterval);
     }
     else
     {
@@ -53,10 +59,25 @@ void UOldManEnemyManager::InitializeSingleton()
     }
 }
 
+// 停止生成广告敌人
+void UOldManEnemyManager::StopAdEnemyGenerator()
+{
+    UMonoManager::GetInstance()->ClearTimer(_timerID_AdEnemy);
+}
 
+// 清理所有广告敌人
+void UOldManEnemyManager::ClearAllAdEnemies()
+{
+    for (int32 i = 0; i < AdEnemyControls.Num(); i++)
+    {
+        AdEnemyControls[i]->EnemyCharacter->OnDespawn_Implementation();
+    }
+}
+
+// 通知其他广告敌人追击玩家
 void UOldManEnemyManager::NotifyMonstersTracking()
 {
-    for (AAdEnemyAIController* enemy : Enemys)
+    for (AAdEnemyAIController* enemy : AdEnemyControls)
     {
         if (enemy != nullptr && !enemy->hasTracked) // 重要的空指针检查！
         {
@@ -66,19 +87,22 @@ void UOldManEnemyManager::NotifyMonstersTracking()
     }
 }
 
-
-
-
-
-void UOldManEnemyManager::AddInfos(FEnemyLocationInfo info)
+// 添加位置信息到列表
+void UOldManEnemyManager::AddInfo(FEnemyLocationInfo info)
 {
-    EnemyInfos.Add(info);
+    int32 currID = nextID++;
+    info.ID = currID;
+    if (!_AdEnemySpawnCounts.Contains(currID))
+        _AdEnemySpawnCounts.Add(currID, 0);
+    else
+        UE_LOG(LogTemp, Error, TEXT("AdEnemy的计数字典key值：%d 冲突"), currID);
+    AdEnemyInfos.Add(info);
 }
 
-
-void UOldManEnemyManager::GenerateEnemy()
+// 按照信息表生成一批广告敌人
+void UOldManEnemyManager::GenerateAdEnemy()
 {
-    if (!EnemyBlueprintClass)
+    if (!AdEnemyBPClass)
     {
         UE_LOG(LogTemp, Error, TEXT("EnemyBlueprintClass is not set in UOldManEnemyManager!"));
         return;
@@ -87,11 +111,11 @@ void UOldManEnemyManager::GenerateEnemy()
 
 
     // 遍历所有敌人生成信息
-    for (int32 i = 0; i < EnemyInfos.Num(); ++i)
+    for (int32 i = 0; i < AdEnemyInfos.Num(); ++i)
     {
 
-        const FEnemyLocationInfo& EnemyInfo = EnemyInfos[i];
-        if (_hasInitialze && EnemyInfo.bIsGenerateOnce)
+        const FEnemyLocationInfo& EnemyInfo = AdEnemyInfos[i];
+        if (_hasGeneAdOnce && EnemyInfo.bIsGenerateOnce)
             continue;
         if (!EnemyInfo.IsValid())
         {
@@ -101,22 +125,32 @@ void UOldManEnemyManager::GenerateEnemy()
 
         if (!EnemyInfo.isActive)
             continue;
+
         FVector SpawnLocation = EnemyInfo.SpawnPoint->GetActorLocation();
         FRotator SpawnRotation = FRotator::ZeroRotator;
+        int32 ID = EnemyInfo.ID;
+
+        if (!_AdEnemySpawnCounts.Contains(ID)) 
+            _AdEnemySpawnCounts.Add(ID, 0);
+        // 检查出生点怪物数量
+        if (_AdEnemySpawnCounts[ID] >= EnemyInfo.maxCount)
+            continue;
+
         AActor* SpawnedEnemy = PoolManager->Spawn
         (
-            EnemyBlueprintClass,  // 参数之间用逗号分隔
+            AdEnemyBPClass,  // 参数之间用逗号分隔
             SpawnLocation,
             SpawnRotation,
             nullptr
         );
-
-        if (SpawnedEnemy)
+        AAdEnemyCharacter* AdEnemy = Cast<AAdEnemyCharacter>(SpawnedEnemy);
+        if (AdEnemy)
         {
             UE_LOG(LogTemp, Log, TEXT("Successfully spawned enemy at location: %s"), *SpawnLocation.ToString());
-
-            // 调用敌人的初始化方法
-            IEnemyInitializationInterface::Execute_InitializeEnemy(SpawnedEnemy, EnemyInfo);
+            AdEnemy->InitializeEnemy_Implementation(EnemyInfo);
+            AdEnemy->OnSpawn_Implementation();
+            _AdEnemySpawnCounts[ID]++;
+            AdEnemyControls.Add(AdEnemy->AIController);
         }
         else
         {
@@ -124,6 +158,101 @@ void UOldManEnemyManager::GenerateEnemy()
         }
     }
 }
+
+// 回收广告敌人
+void UOldManEnemyManager::RecycleAdEnemy(AAdEnemyAIController* target)
+{
+    PoolManager->Despawn(target->EnemyCharacter);
+    AdEnemyControls.Remove(target);
+}
+
+
+
+#pragma endregion
+
+
+#pragma region ApproachEnemy
+
+// 开始周期生成屏幕敌人
+void UOldManEnemyManager::StartApproachEnemyGenerator()
+{
+    // 验证蓝图类是否设置
+    if (ApproachEnemyBPClass)
+    {
+        UE_LOG(LogTemp, Log, TEXT("StartApproachEnemyGenerator()"));
+        // 立即生成一批敌人
+        GenerateApproachEnemy();
+        //FTimerSimpleDelegate timerDelegate;
+        //timerDelegate.BindUFunction(this, "GenerateEnemy");
+        _timerID_ApproachEnemy = UMonoManager::GetInstance()->
+            SetInterval(ApproachEnemySpawnInterval, this, &UOldManEnemyManager::GenerateApproachEnemy);
+
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("EnemyBlueprintClass is not set - enemy spawn system cannot start"));
+    }
+}
+
+// 停止生成屏幕敌人
+void UOldManEnemyManager::StopApproachEnemyGenerator()
+{
+    UMonoManager::GetInstance()->ClearTimer(_timerID_ApproachEnemy);
+}
+
+// 清理所有屏幕敌人
+void UOldManEnemyManager::ClearAllApproachEnemies()
+{
+    for (int32 i = 0; i < ApproachEnemies.Num(); i++)
+    {
+        ApproachEnemies[i]->KillEnemy();
+    }
+}
+
+// 生成单只屏幕敌人
+void UOldManEnemyManager::GenerateApproachEnemy()
+{
+    if (CurrentApEnemyCount >= MaxApproachEnemyCount) return;
+
+    UE_LOG(LogTemp, Log, TEXT("GenerateApproachEnemy()"))
+    AActor* SpawnedEnemy = PoolManager->Spawn(
+        ApproachEnemyBPClass,  // 这里会自动转换为 TSubclassOf<AActor>
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        nullptr
+    );
+    if (SpawnedEnemy)
+    {
+        // 转换为具体类型
+        AApproachEnemyCharacter* ApproachEnemy = Cast<AApproachEnemyCharacter>(SpawnedEnemy);
+        if (ApproachEnemy)
+        {
+            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.5f));
+            ApproachEnemy->InitializeEnemy(ScreenPos);
+            ApproachEnemies.Add(ApproachEnemy);
+            CurrentApEnemyCount++;
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to Cast 'Actor' to 'ApproachEnemy' at location"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to spawn ApproachEnemy at location"));
+    }
+
+}
+
+// 回收屏幕敌人
+void UOldManEnemyManager::RecycleApproachEnemy(AApproachEnemyCharacter* target)
+{
+    CurrentApEnemyCount--;
+    PoolManager->Despawn(target);
+    ApproachEnemies.Remove(target);
+}
+
+#pragma endregion
 
 
 void UOldManEnemyManager::SetSpawnActive(FEnemyLocationInfo& infoRef, bool active)
@@ -135,15 +264,3 @@ void UOldManEnemyManager::SetSpawnActive(FEnemyLocationInfo& infoRef, bool activ
 
 
 
-//UWorld* UOldManEnemyManager::GetWorld() const
-//{
-//    // 通过Outer链获取World上下文
-//    if (HasAnyFlags(RF_ClassDefaultObject))
-//    {
-//        // 如果是CDO（类默认对象），返回nullptr
-//        return nullptr;
-//    }
-//
-//    // 通过Outer链向上查找World
-//    return GetOuter() ? GetOuter()->GetWorld() : nullptr;
-//}

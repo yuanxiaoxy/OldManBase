@@ -81,8 +81,6 @@ void AOldManCharacter::BeginPlay()
     {
         AnimBlueprintClass = Cast<UOldManAnimInstance>(GetMesh()->GetAnimInstance());
     }
-    //添加事件
-    UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
 
 }
 
@@ -372,6 +370,23 @@ void AOldManCharacter::SetCameraInSlopeMode()
     }
 }
 
+void AOldManCharacter::SetCameraMouseCursorMode()
+{
+    if (CameraComponent)
+    {
+        CameraComponent->SetMouseCursorMode();
+    }
+}
+
+ECameraMode AOldManCharacter::GetCurrentCameraMode() const
+{
+    if (CameraComponent)
+    {
+        return CameraComponent->GetCurrentCameraMode();
+    }
+    return ECameraMode::ThirdPersonMode;
+}
+
 void AOldManCharacter::ShakeCamera(float Intensity, float Duration)
 {
     if (CameraComponent)
@@ -528,6 +543,35 @@ void AOldManCharacter::PlayFollowPlayerAnimation(const FVector& PositionOffset, 
     }
 }
 
+void AOldManCharacter::PlayFollowPlayerWithMouseExposure(
+    const FVector& PositionOffset,
+    bool bWithRotation,
+    bool bExposeMousePosition,
+    bool bDisablePlayerInput)
+{
+    if (CameraAnimationComponent)
+    {
+        FOldManCameraAnimationData AnimationData;
+        AnimationData.AnimationType = ECameraAnimationType::FollowPlayer;
+        AnimationData.FollowCameraOffset = PositionOffset;
+        AnimationData.FollowOffsetSpace = ECameraOffsetSpace::Local;
+        AnimationData.bFollowWithRotation = bWithRotation;
+        AnimationData.bExposeMousePosition = bExposeMousePosition;
+        AnimationData.RuntimeFollowTarget = this; // 跟随玩家自己
+
+        // 设置混合参数
+        AnimationData.BlendInTime = 0.5f;
+        AnimationData.BlendOutTime = 0.5f;
+
+        // 行为设置
+        AnimationData.bDisablePlayerInput = bDisablePlayerInput;
+        AnimationData.bHidePlayer = false;
+        AnimationData.bUseAnimationCameraForMovement = true; // 使用动画相机控制移动方向
+
+        CameraAnimationComponent->StartCameraAnimation(AnimationData);
+    }
+}
+
 void AOldManCharacter::UpdateFollowPlayerTarget(AActor* NewTarget)
 {
     if (CameraAnimationComponent && CameraAnimationComponent->IsCameraAnimationPlaying())
@@ -644,7 +688,82 @@ void AOldManCharacter::DectedActors()
     TArray<AActor*> OutActors;
     TArray<float> OutDistances;
     TArray<float> OutAngles;
-    CameraComponent->GetActorsInCone(CharacterAttributes->OldManDetectionData, UGlobalTagName::Tag_BeDetcedItem, OutActors, OutDistances, OutAngles);
+
+    // 检查是否正在播放相机动画，并且该动画启用了鼠标位置暴露
+    if (CameraAnimationComponent && CameraAnimationComponent->IsCameraAnimationPlaying())
+    {
+        FOldManCameraAnimationData CurrentData = CameraAnimationComponent->GetCurrentAnimationData();
+
+        // 如果当前动画是FollowPlayer并且启用了鼠标位置暴露
+        if (CurrentData.AnimationType == ECameraAnimationType::FollowPlayer && CurrentData.bExposeMousePosition)
+        {
+            // 使用鼠标位置进行检测
+            APlayerController* PlayerController = GetOldManController();
+            if (PlayerController)
+            {
+                float MouseX, MouseY;
+                if (PlayerController->GetMousePosition(MouseX, MouseY))
+                {
+                    FVector2D MousePosition(MouseX, MouseY);
+                    CameraComponent->GetActorsInConeByMousePosition(
+                        MousePosition,
+                        CharacterAttributes->OldManDetectionData,
+                        UGlobalTagName::Tag_BeDetcedItem,
+                        OutActors,
+                        OutDistances,
+                        OutAngles
+                    );
+                }
+            }
+        }
+        else
+        {
+            // 其他情况使用常规检测
+            CameraComponent->GetActorsInCone(
+                CharacterAttributes->OldManDetectionData,
+                UGlobalTagName::Tag_BeDetcedItem,
+                OutActors,
+                OutDistances,
+                OutAngles
+            );
+        }
+    }
+    else
+    {
+        // 没有动画时，根据当前相机模式选择检测方法
+        if (CameraComponent && CameraComponent->GetCurrentCameraMode() == ECameraMode::MouseCursorMode)
+        {
+            // 鼠标光标模式下，使用鼠标位置进行检测
+            APlayerController* PlayerController = GetOldManController();
+            if (PlayerController)
+            {
+                float MouseX, MouseY;
+                if (PlayerController->GetMousePosition(MouseX, MouseY))
+                {
+                    FVector2D MousePosition(MouseX, MouseY);
+                    CameraComponent->GetActorsInConeByMousePosition(
+                        MousePosition,
+                        CharacterAttributes->OldManDetectionData,
+                        UGlobalTagName::Tag_BeDetcedItem,
+                        OutActors,
+                        OutDistances,
+                        OutAngles
+                    );
+                }
+            }
+        }
+        else
+        {
+            // 常规模式下，使用相机位置和方向进行检测
+            CameraComponent->GetActorsInCone(
+                CharacterAttributes->OldManDetectionData,
+                UGlobalTagName::Tag_BeDetcedItem,
+                OutActors,
+                OutDistances,
+                OutAngles
+            );
+        }
+    }
 
     if (OutActors.Num() != OutDistances.Num() || OutActors.Num() != OutAngles.Num())
     {
@@ -731,6 +850,8 @@ void AOldManCharacter::InitializeAnimationCameraComponent()
 void AOldManCharacter::InitializeEvent()
 {
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool>(UGlobalEventName::Key_Player_OnChangeGrivity, this, &AOldManCharacter::ChangeSlopeState);
+
+    UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, FGameEventData>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
 }

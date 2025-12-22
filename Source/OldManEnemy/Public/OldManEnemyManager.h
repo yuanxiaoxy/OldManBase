@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FActiveInk.h"
 #include "Containers/Array.h"
 #include "CoreMinimal.h"
 #include "AdEnemyCharacter.h"
@@ -18,7 +19,7 @@ class  AAdEnemyAIController;
 class  ACharacter;
 class  UEnemyObjectPool;
 class  AApproachEnemyCharacter;
-
+class  AOldManHUD;
 
 
 
@@ -49,6 +50,13 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
     void StopApproachEnemyGenerator();
+
+    // 更新屏幕敌人的属性，值为-1就保持原来的值不修改
+    UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
+    void UpdateApproachEnemySettings(float newspawnInterval = -1, float newSpeed = -1, float newDistance = -1);
+
+    UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
+    void ShootInk();
 
     // 清理所有ApproachEnemy
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
@@ -108,11 +116,24 @@ public:
 #pragma endregion
 
 #pragma region ApproachEnemySettings
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    FActiveInk InkSettings;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     TSubclassOf<AApproachEnemyCharacter> ApproachEnemyBPClass;  // 新的敌人蓝图类
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     int32 MaxApproachEnemyCount = 6;  // 最大ApproachEnemy数量
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy", meta = (AllowPrivateAccess = "true"))
+    float ApEnemyInitialDistance = 2000.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy", meta = (AllowPrivateAccess = "true"))
+    float ApEnemyApproachSpeed = 100.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy", meta = (AllowPrivateAccess = "true"))
+    float ApEnemyAttackDistance = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     float ApproachEnemySpawnInterval = 2.0f;
@@ -137,12 +158,18 @@ private:
     FString _timerID_AdEnemy;
 
 
+
+
+
     void GenerateApproachEnemy();
     int32 CurrentApEnemyCount = 0;
     TArray<AApproachEnemyCharacter*> ApproachEnemies;
-    FString _timerID_ApproachEnemy;
+    FString m_timerID_ApproachEnemy;
 
+    
 
+    APlayerController* PC;
+    AOldManHUD* InkHUD;
 
 
 };

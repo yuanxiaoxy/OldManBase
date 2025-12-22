@@ -185,7 +185,7 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
         GenerateApproachEnemy();
         //FTimerSimpleDelegate timerDelegate;
         //timerDelegate.BindUFunction(this, "GenerateEnemy");
-        _timerID_ApproachEnemy = UMonoManager::GetInstance()->
+        m_timerID_ApproachEnemy = UMonoManager::GetInstance()->
             SetInterval(ApproachEnemySpawnInterval, this, &UOldManEnemyManager::GenerateApproachEnemy);
 
     }
@@ -198,7 +198,26 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
 // 停止生成屏幕敌人
 void UOldManEnemyManager::StopApproachEnemyGenerator()
 {
-    UMonoManager::GetInstance()->ClearTimer(_timerID_ApproachEnemy);
+    UMonoManager::GetInstance()->ClearTimer(m_timerID_ApproachEnemy);
+}
+
+void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, float newSpeed , float newDistance )
+{
+    if (newSpawnInterval != -1)
+    {
+        StopApproachEnemyGenerator();
+        ApproachEnemySpawnInterval = newSpawnInterval;
+        StartApproachEnemyGenerator();
+    }
+    if (newSpeed != -1)
+        ApEnemyApproachSpeed = newSpeed;
+    if (newDistance != -1)
+        ApEnemyInitialDistance = newDistance;
+}
+
+void UOldManEnemyManager::ShootInk()
+{
+
 }
 
 // 清理所有屏幕敌人
@@ -228,8 +247,11 @@ void UOldManEnemyManager::GenerateApproachEnemy()
         AApproachEnemyCharacter* ApproachEnemy = Cast<AApproachEnemyCharacter>(SpawnedEnemy);
         if (ApproachEnemy)
         {
-            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.5f));
-            ApproachEnemy->InitializeEnemy(ScreenPos);
+            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.4f));
+            ApproachEnemy->InitializeEnemy(ScreenPos, 
+                ApEnemyAttackDistance, 
+                ApEnemyApproachSpeed, 
+                ApEnemyInitialDistance);
             ApproachEnemies.Add(ApproachEnemy);
             CurrentApEnemyCount++;
         }

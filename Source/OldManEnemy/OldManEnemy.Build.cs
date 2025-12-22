@@ -15,8 +15,6 @@ public class OldManEnemy : ModuleRules
             "Engine",
             "OldManConfig",
             "OldMan",
-            "UnrealEd",           // 包含FEditorViewportClient
-            "LevelEditor",        // 包含GCurrentLevelEditingViewportClient
             "XyFrame",
             "InputCore",
         });

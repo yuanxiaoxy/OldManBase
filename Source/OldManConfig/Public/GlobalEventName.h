@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -11,8 +11,25 @@ class OLDMANCONFIG_API UGlobalEventName : public UObject
 {
 	GENERATED_BODY()
 
-public:
+public:  
 	static const FName Key_Player_OnDeath;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Player_OnDeath() { return Key_Player_OnDeath; }
+
+	static const FName Key_Player_OnRespawn;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Player_OnRespawn() { return Key_Player_OnRespawn; }
 
 	static const FName Key_Player_OnChangeGrivity;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Player_OnChangeGrivity() { return Key_Player_OnChangeGrivity; }
+
+	static const FName Key_Player_ChangeInputActive;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Player_ChangeInputActive() { return Key_Player_ChangeInputActive; }
+	
+	static const FName Key_Save_SavePointActive;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName") 
+	static FName GetKey_Save_SavePointActive() { return Key_Save_SavePointActive; }
+
 };

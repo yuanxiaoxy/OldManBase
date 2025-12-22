@@ -29,7 +29,6 @@ void UOldManEnemyManager::InitializeSingleton()
     PoolManager->Preload(AdEnemyBPClass, 10);
     PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
     StartAdEnemyGenerator();
-    StartApproachEnemyGenerator();
 }
 
 

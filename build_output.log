@@ -1,0 +1,33 @@
+Using bundled DotNet SDK version: 6.0.302
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" OldManEditor Win64 DebugGame -Project="F:\GitClone\OldMan\OldManBase\OldMan.uproject" -WaitMutex -FromMsBuild -architecture=x64
+Log file: C:\Users\bingtangxveli\AppData\Local\UnrealBuildTool\Log.txt
+Using 'git status' to determine working set for adaptive non-unity build (F:\GitClone\OldMan\OldManBase).
+Creating makefile for OldManEditor (command line arguments changed)
+F:\GitClone\OldMan\OldManBase\Source\OldMan\OldMan.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Public' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManItem\OldManItem.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Public' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManItem\OldManItem.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Private' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManEnemy\OldManEnemy.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Public' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManEnemy\OldManEnemy.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Private' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManUI\OldManUI.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Public' does not exist.
+F:\GitClone\OldMan\OldManBase\Source\OldManUI\OldManUI.Build.cs: warning: Referenced directory 'F:\GitClone\OldMan\OldManBase\Source\XyFrame\Private' does not exist.
+Warning: Plugin 'XyFrame' does not list plugin 'Niagara' as a dependency, but module 'XyFrame' depends on module 'Niagara'.
+Parsing headers for OldManEditor
+  Running Internal UnrealHeaderTool F:\GitClone\OldMan\OldManBase\OldMan.uproject F:\GitClone\OldMan\OldManBase\Intermediate\Build\Win64\OldManEditor\DebugGame\OldManEditor.uhtmanifest -WarningsAsErrors -installed
+Total of 0 written
+Reflection code generated for OldManEditor in 5.0055993 seconds
+Building OldManEditor...
+Using Visual Studio 2022 14.38.33144 toolchain (F:\game making\vs\VC\Tools\MSVC\14.38.33130) and Windows 10.0.22621.0 SDK (F:\Windows Kits\10).
+[Adaptive Build] Excluded from OldMan unity file: OldManCharacter.cpp
+[Adaptive Build] Excluded from OldManItem unity file: OldManAnimationBall.cpp
+[Adaptive Build] Excluded from OldManConfig unity file: GlobalEventName.cpp
+Determining max actions to execute in parallel (8 physical cores, 16 logical cores)
+  Executing up to 8 processes, one per physical core
+  Requested 1.5 GB memory per action, 5.64 GB available: limiting max parallel actions to 3
+Using Parallel executor to run 5 action(s)
+------ Building 5 action(s) started ------
+[1/5] Compile [x64] OldManCharacter.cpp
+F:\GitClone\OldMan\OldManBase\Source\OldMan\Private\Character\OldManCharacter.cpp(87): error C3867: “AOldManCharacter::ChangeInputActive”: 非标准语法；请使用 "&" 来创建指向成员的指针
+F:\GitClone\OldMan\OldManBase\Source\OldMan\Private\Character\OldManCharacter.cpp(87): error C2672: “UMyEventManager::RegisterCppEvent”: 未找到匹配的重载函数
+F:\GitClone\OldMan\OldManBase\Plugins\XyFrame\XyFrame\Source\XyFrame\Public\EventManager\MyEventManager.h(260): note: 可能是“void UMyEventManager::RegisterCppEvent(const FName &,T *,void (__cdecl T::* )(TArgs...))”
+Total time in Parallel executor: 4.94 seconds
+Total execution time: 25.08 seconds

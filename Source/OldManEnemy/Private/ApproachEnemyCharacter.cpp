@@ -162,6 +162,7 @@ void AApproachEnemyCharacter::CheckAndApplyDamage()
         // 造成伤害
         // UGameplayStatics::ApplyDamage(PlayerPawn, DamagePerSecond, nullptr, this, nullptr);
         UE_LOG(LogTemp, Warning, TEXT("Enemy deals damage to player!")); 
+        UOldManEnemyManager::GetInstance()->ShootInk(m_screenPosition, m_playerController);
         KillEnemy();
 
     }

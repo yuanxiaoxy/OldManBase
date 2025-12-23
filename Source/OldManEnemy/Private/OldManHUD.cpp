@@ -4,6 +4,23 @@
 #include "OldManHUD.h"
 #include "Engine/Canvas.h"
 
+
+void AOldManHUD::BeginPlay()
+{
+    Super::BeginPlay();
+    UE_LOG(LogTemp, Log, TEXT("✅ HUD BeginPlay: %p, World: %s"),
+        this, *GetWorld()->GetName());
+}
+
+void AOldManHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    UE_LOG(LogTemp, Log, TEXT("❌ HUD EndPlay: %p, 原因: %d"),
+        this, (int32)EndPlayReason);
+    Super::EndPlay(EndPlayReason);
+}
+
+
+
 void AOldManHUD::DrawHUD() {
     Super::DrawHUD();
     if (!Canvas) return;
@@ -40,10 +57,21 @@ void AOldManHUD::DrawHUD() {
     }
 }
 
-void AOldManHUD::AddInk(UTexture2D* InkTexture, FVector2D ScreenPosition,float DisplayTime) {
-    FActiveInk NewInk;
+void AOldManHUD::AddInk(FActiveInk NewInk) 
+{
+    // 验证this指针有效性
+    if (!this || !IsValid(this))
+    {
+        UE_LOG(LogTemp, Fatal, TEXT("AddInk: HUD实例无效! this=%p"), this);
+        return;
+    }
 
-
-    // 初始化 NewInk 的各个属性...
+    // 验证World上下文
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("AddInk: 无法获取World"));
+        return;
+    }
     ActiveInks.Add(NewInk);
 }

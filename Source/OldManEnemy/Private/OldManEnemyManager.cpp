@@ -1,10 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "Kismet/GameplayStatics.h"
 #include "OldManEnemyManager.h"
 #include "AdEnemyAIController.h"
 #include "AdEnemyStateTypes.h"
 #include "MonoManager/MonoManager.h"
+#include "OldManHUD.h"
 #include "ApproachEnemyCharacter.h"
 
 
@@ -28,7 +29,9 @@ void UOldManEnemyManager::InitializeSingleton()
     PoolManager->InitializeSingleton();
     PoolManager->Preload(AdEnemyBPClass, 10);
     PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
+    
     StartAdEnemyGenerator();
+    StartApproachEnemyGenerator();
 }
 
 
@@ -214,9 +217,29 @@ void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, fl
         ApEnemyInitialDistance = newDistance;
 }
 
-void UOldManEnemyManager::ShootInk()
+void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
 {
+    if (!PC)
+    {
+        if (!OldManHUD)
+        {
+            OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
+        }
+    }
+    if (!PC)
+    {
 
+        UE_LOG(LogTemp, Warning, TEXT("UOldManEnemyManager::ShootInk: Failed to get PlayerController via Input."));
+        return;
+    }
+        
+    
+    
+    
+    FActiveInk NewInk = InkSettings;
+    NewInk.NormalizedPosition = pos;
+    OldManHUD->AddInk(NewInk);
+    
 }
 
 // 清理所有屏幕敌人

@@ -14,7 +14,9 @@ class OLDMANENEMY_API AOldManHUD : public AHUD
 	GENERATED_BODY()
 public:
 	virtual void DrawHUD() override;
-	void AddInk(UTexture2D* InkTexture, FVector2D ScreenPosition, float DisplayTime);
+	void AddInk(FActiveInk NewInk);
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 private:
 	TArray<FActiveInk> ActiveInks; // 存储所有活跃墨渍
 	

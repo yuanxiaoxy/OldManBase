@@ -56,7 +56,7 @@ public:
     void UpdateApproachEnemySettings(float newspawnInterval = -1, float newSpeed = -1, float newDistance = -1);
 
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
-    void ShootInk();
+    void ShootInk(FVector2D pos, APlayerController* PC);
 
     // 清理所有ApproachEnemy
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
@@ -168,8 +168,8 @@ private:
 
     
 
-    APlayerController* PC;
-    AOldManHUD* InkHUD;
+  
+    AOldManHUD* OldManHUD;
 
 
 };

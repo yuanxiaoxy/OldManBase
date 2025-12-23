@@ -28,6 +28,37 @@ AApproachEnemyCharacter::AApproachEnemyCharacter()
     DebugSphere->SetVisibility(false);
 }
 
+
+// 初始化敌人（由管理器调用）
+void AApproachEnemyCharacter::InitializeEnemy(
+    const FVector2D& InScreenPosition,
+    float attackDistance,
+    float approachSpeed,
+    float initialDistacne)
+{
+    m_initialDistance = initialDistacne;
+    m_currentDistance = m_initialDistance;
+    m_screenPosition = InScreenPosition;
+    m_attackDistance = attackDistance;
+    m_approachSpeed = approachSpeed;
+    
+    SetActorHiddenInGame(false);
+    SetActorEnableCollision(true);
+    SetActorTickEnabled(true);
+    m_bIsDead = false;
+
+
+    // 设置初始位置
+    FVector StartLocation = GetWorldPositionFromScreen(m_screenPosition, m_currentDistance);
+    SetActorLocation(StartLocation);
+
+    if(!MeshComponent)
+        MeshComponent = FindComponentByClass<UStaticMeshComponent>();
+    ApplyRandomMaterial();
+
+}
+
+
 void AApproachEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
@@ -55,6 +86,7 @@ void AApproachEnemyCharacter::BeginPlay()
         }
     }
 }
+
 
 void AApproachEnemyCharacter::Tick(float DeltaTime)
 {
@@ -188,31 +220,6 @@ void AApproachEnemyCharacter::CheckAndApplyDamage()
 //    }
 //}
 
-// 初始化敌人（由管理器调用）
-void AApproachEnemyCharacter::InitializeEnemy(
-    const FVector2D& InScreenPosition,
-    float attackDistance,
-    float approachSpeed,
-    float initialDistacne)
-{
-    m_initialDistance = initialDistacne;
-    m_currentDistance = m_initialDistance;
-    m_screenPosition = InScreenPosition;
-    m_attackDistance = attackDistance;
-    m_approachSpeed = approachSpeed;
-    
-    SetActorHiddenInGame(false);
-    SetActorEnableCollision(true);
-    SetActorTickEnabled(true);
-    m_bIsDead = false;
-
-
-    // 设置初始位置
-    FVector StartLocation = GetWorldPositionFromScreen(m_screenPosition, m_currentDistance);
-    SetActorLocation(StartLocation);
-}
-
-
 
 //float AApproachEnemyCharacter::GetClickRadius() const
 //{
@@ -238,12 +245,13 @@ void AApproachEnemyCharacter::InitializeEnemy(
 //    return Distance <= m_currentClickRadius;
 //}
 
+
 void AApproachEnemyCharacter::KillEnemy()
 {
     if (m_bIsDead) return;
 
     m_bIsDead = true;
-    m_deathTimer = DeathEffectDuration;
+    //m_deathTimer = DeathEffectDuration;
 
     // 禁用碰撞
     ClickCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -251,6 +259,7 @@ void AApproachEnemyCharacter::KillEnemy()
     
 
 }
+
 
 void AApproachEnemyCharacter::Recycle()
 {
@@ -260,6 +269,7 @@ void AApproachEnemyCharacter::Recycle()
     SetActorScale3D(m_originScale);
     UOldManEnemyManager::GetInstance()->RecycleApproachEnemy(this);
 }
+
 
 //void AApproachEnemyCharacter::UpdateClickCollision()
 //{
@@ -282,6 +292,7 @@ void AApproachEnemyCharacter::Recycle()
 //    }
 //}
 
+
 void AApproachEnemyCharacter::UpdateVisualEffects(float DeltaTime)
 {
     if (!DynamicMaterial) return;
@@ -296,4 +307,46 @@ void AApproachEnemyCharacter::UpdateVisualEffects(float DeltaTime)
     // 根据距离调整大小
     float Scale = 0.5f + DistanceFactor * 1.5f;  // 0.5倍到2.0倍
     SetActorScale3D(FVector(Scale));
+}
+
+// 获取随机材质
+UMaterialInterface* AApproachEnemyCharacter::GetRandomMaterial() const
+{
+    if (MaterialList.Num() == 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("材质列表为空"));
+        return nullptr;
+    }
+
+    if (MaterialList.Num() == 1)
+    {
+        return MaterialList[0];
+    }
+
+    // 随机选择一个索引
+    int32 RandomIndex = FMath::RandRange(0, MaterialList.Num() - 1);
+    return MaterialList[RandomIndex];
+}
+
+// 应用随机材质
+void AApproachEnemyCharacter::ApplyRandomMaterial()
+{
+    UMaterialInterface* RandomMaterial = GetRandomMaterial();
+    if (!RandomMaterial)
+    {
+        return; // 没有有效的材质
+    }
+
+    
+    if (!MeshComponent)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("没有找到StaticMeshComponent"));
+        return;
+    }
+
+    // 应用材质
+    MeshComponent->SetMaterial(0, RandomMaterial);
+    CurrentMaterial = RandomMaterial;
+
+    UE_LOG(LogTemp, Log, TEXT("应用随机材质: %s"), *RandomMaterial->GetName());
 }

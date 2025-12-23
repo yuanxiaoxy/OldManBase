@@ -67,13 +67,17 @@ public:
 
 public:
    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Approach/Materials")
+    TArray<UMaterialInterface*> MaterialList;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Approach/Materials")
+    UStaticMeshComponent* MeshComponent;
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     //float BaseClickRadius = 50.0f;  // 基础点击半径（像素）
 
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
-    float DeathEffectDuration = 0.5f;  // 死亡特效持续时间
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
+    //float DeathEffectDuration = 0.5f;  // 死亡特效持续时间
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     //float MaxClickRadius = 200.0f;  // 最大点击半径
@@ -85,6 +89,9 @@ private:
     // 组件
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
     USphereComponent* ClickCollision;
+
+    UPROPERTY()
+    UMaterialInterface* CurrentMaterial = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
     UStaticMeshComponent* DebugSphere;  // 调试用，显示点击范围
@@ -126,6 +133,10 @@ private:
     // 更新视觉效果
     void UpdateVisualEffects(float DeltaTime);
 
+    void ApplyRandomMaterial();
 
+
+
+    UMaterialInterface* GetRandomMaterial() const;
 
 };

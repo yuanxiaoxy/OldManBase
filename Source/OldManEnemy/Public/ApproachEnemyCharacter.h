@@ -19,6 +19,7 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
+
     /*virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;*/
 
 public:
@@ -35,6 +36,10 @@ public:
     //// 检查鼠标是否在点击范围内
     //UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
     //bool IsMouseOverlapping(const FVector2D& MousePosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Param")
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+        class AController* EventInstigator, AActor* DamageCauser) override;
 
     // 击杀敌人
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")

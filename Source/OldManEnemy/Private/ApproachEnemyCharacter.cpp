@@ -261,6 +261,13 @@ void AApproachEnemyCharacter::KillEnemy()
 }
 
 
+float AApproachEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+    class AController* EventInstigator, AActor* DamageCauser)
+{
+    KillEnemy();
+}
+
+
 void AApproachEnemyCharacter::Recycle()
 {
     SetActorHiddenInGame(true);

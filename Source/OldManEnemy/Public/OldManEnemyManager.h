@@ -149,13 +149,13 @@ private:
     UObjectPoolManager* PoolManager;
 
     UOldManEnemyManager();
-    bool _hasGeneAdOnce = false;
+    bool m_hasGeneAdOnce = false;
 
     void GenerateAdEnemy();
     TArray<AAdEnemyAIController*> AdEnemyControls;
     TMap<int32, int32> _AdEnemySpawnCounts;
     static int32 nextID;
-    FString _timerID_AdEnemy;
+    FString m_timerID_AdEnemy;
 
 
 

@@ -5,11 +5,11 @@
 #include "Engine/Engine.h"
 #include "TimerManager.h"
 
-// ¾²Ì¬ÊµÀı¶¨Òå
+// é™æ€å®ä¾‹å®šä¹‰
 template<>
 UObjectPoolManager* TSingleton<UObjectPoolManager>::SingletonInstance = nullptr;
 
-// ========== UObjectPool ÊµÏÖ ==========
+// ========== UObjectPool å®ç° ==========
 
 void UObjectPool::Initialize(TSubclassOf<AActor> InActorClass, int32 InCapacity)
 {
@@ -29,30 +29,30 @@ AActor* UObjectPool::Spawn(UWorld* World, const FVector& Location, const FRotato
 
     AActor* Actor = nullptr;
 
-    // ´ÓÎ´Ê¹ÓÃÁĞ±íÖĞ»ñÈ¡¶ÔÏó
+    // ä»æœªä½¿ç”¨åˆ—è¡¨ä¸­è·å–å¯¹è±¡
     if (UnusedActors.Num() > 0)
     {
         Actor = UnusedActors[0];
         UnusedActors.RemoveAt(0);
 
-        // ÉèÖÃÎ»ÖÃºÍĞı×ª
+        // è®¾ç½®ä½ç½®å’Œæ—‹è½¬
         Actor->SetActorLocationAndRotation(Location, Rotation);
 
-        // ÉèÖÃOwnerºÍInstigator
+        // è®¾ç½®Ownerå’ŒInstigator
         Actor->SetOwner(Owner);
         if (APawn* PawnActor = Cast<APawn>(Actor))
         {
             PawnActor->SetInstigator(Instigator);
         }
 
-        // ¼¤»î¶ÔÏó
+        // æ¿€æ´»å¯¹è±¡
         Actor->SetActorHiddenInGame(false);
         Actor->SetActorEnableCollision(true);
         Actor->SetActorTickEnabled(true);
     }
     else
     {
-        // ´´½¨ĞÂ¶ÔÏó
+        // åˆ›å»ºæ–°å¯¹è±¡
         FActorSpawnParameters SpawnParams;
         SpawnParams.Owner = Owner;
         SpawnParams.Instigator = Instigator;
@@ -65,20 +65,20 @@ AActor* UObjectPool::Spawn(UWorld* World, const FVector& Location, const FRotato
     {
         UsedActors.Add(Actor);
 
-        // µ÷ÓÃOnSpawn»Øµ÷ - ĞŞ¸´½Ó¿Úµ÷ÓÃ·½Ê½
+        // è°ƒç”¨OnSpawnå›è°ƒ - ä¿®å¤æ¥å£è°ƒç”¨æ–¹å¼
         if (Actor->GetClass()->ImplementsInterface(UObjectPoolInterface::StaticClass()))
         {
             IObjectPoolInterface::Execute_OnSpawn(Actor);
         }
 
-        // ³¢ÊÔµ÷ÓÃÀ¶Í¼ÊÂ¼ş
+        // å°è¯•è°ƒç”¨è“å›¾äº‹ä»¶
         UFunction* OnSpawnFunc = Actor->FindFunction(FName("OnSpawn"));
         if (OnSpawnFunc)
         {
             Actor->ProcessEvent(OnSpawnFunc, nullptr);
         }
 
-        // ³¢ÊÔµ÷ÓÃÀ¶Í¼ÊµÏÖµÄ½Ó¿Ú·½·¨
+        // å°è¯•è°ƒç”¨è“å›¾å®ç°çš„æ¥å£æ–¹æ³•
         UFunction* OnSpawnInterfaceFunc = Actor->FindFunction(FName("Execute_OnSpawn"));
         if (OnSpawnInterfaceFunc)
         {
@@ -98,7 +98,7 @@ void UObjectPool::Despawn(AActor* Actor, float DelayTime)
 
     if (DelayTime > 0.0f)
     {
-        // Ê¹ÓÃ¶¨Ê±Æ÷ÑÓ³Ù»ØÊÕ
+        // ä½¿ç”¨å®šæ—¶å™¨å»¶è¿Ÿå›æ”¶
         if (UWorld* World = Actor->GetWorld())
         {
             FTimerHandle TimerHandle;
@@ -109,7 +109,7 @@ void UObjectPool::Despawn(AActor* Actor, float DelayTime)
     }
     else
     {
-        // Á¢¼´»ØÊÕ
+        // ç«‹å³å›æ”¶
         DespawnImmediate(Actor);
     }
 }
@@ -126,10 +126,10 @@ void UObjectPool::DespawnImmediate(AActor* Actor)
         return;
     }
 
-    // ¼ì²éÈİÁ¿ÏŞÖÆ
+    // æ£€æŸ¥å®¹é‡é™åˆ¶
     if (Capacity >= 0 && UnusedActors.Num() >= Capacity)
     {
-        // ³¬¹ıÈİÁ¿£¬Ïú»Ù×îÀÏµÄ¶ÔÏó
+        // è¶…è¿‡å®¹é‡ï¼Œé”€æ¯æœ€è€çš„å¯¹è±¡
         if (UnusedActors.Num() > 0)
         {
             AActor* OldActor = UnusedActors[0];
@@ -141,32 +141,32 @@ void UObjectPool::DespawnImmediate(AActor* Actor)
         }
     }
 
-    // Í£ÓÃ¶ÔÏó
+    // åœç”¨å¯¹è±¡
     Actor->SetActorHiddenInGame(true);
     Actor->SetActorEnableCollision(false);
     Actor->SetActorTickEnabled(false);
 
-    // ÖØÖÃÎ»ÖÃµ½Ô¶Àë³¡¾°µÄµØ·½
+    // é‡ç½®ä½ç½®åˆ°è¿œç¦»åœºæ™¯çš„åœ°æ–¹
     Actor->SetActorLocation(FVector(0, 0, -10000));
 
-    // ÒÆ¶¯µ½Î´Ê¹ÓÃÁĞ±í
+    // ç§»åŠ¨åˆ°æœªä½¿ç”¨åˆ—è¡¨
     UnusedActors.Add(Actor);
     UsedActors.Remove(Actor);
 
-    // µ÷ÓÃOnDespawn»Øµ÷ - ĞŞ¸´½Ó¿Úµ÷ÓÃ·½Ê½
+    // è°ƒç”¨OnDespawnå›è°ƒ - ä¿®å¤æ¥å£è°ƒç”¨æ–¹å¼
     if (Actor->GetClass()->ImplementsInterface(UObjectPoolInterface::StaticClass()))
     {
         IObjectPoolInterface::Execute_OnDespawn(Actor);
     }
 
-    // ³¢ÊÔµ÷ÓÃÀ¶Í¼ÊÂ¼ş
+    // å°è¯•è°ƒç”¨è“å›¾äº‹ä»¶
     UFunction* OnDespawnFunc = Actor->FindFunction(FName("OnDespawn"));
     if (OnDespawnFunc)
     {
         Actor->ProcessEvent(OnDespawnFunc, nullptr);
     }
 
-    // ³¢ÊÔµ÷ÓÃÀ¶Í¼ÊµÏÖµÄ½Ó¿Ú·½·¨
+    // å°è¯•è°ƒç”¨è“å›¾å®ç°çš„æ¥å£æ–¹æ³•
     UFunction* OnDespawnInterfaceFunc = Actor->FindFunction(FName("Execute_OnDespawn"));
     if (OnDespawnInterfaceFunc)
     {
@@ -198,7 +198,7 @@ void UObjectPool::Preload(UWorld* World, int32 Amount)
         AActor* Actor = World->SpawnActor<AActor>(ActorClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
         if (Actor)
         {
-            // Á¢¼´Í£ÓÃ²¢·ÅÈëÎ´Ê¹ÓÃÁĞ±í
+            // ç«‹å³åœç”¨å¹¶æ”¾å…¥æœªä½¿ç”¨åˆ—è¡¨
             Actor->SetActorHiddenInGame(true);
             Actor->SetActorEnableCollision(false);
             Actor->SetActorTickEnabled(false);
@@ -216,7 +216,7 @@ FObjectPoolInfo UObjectPool::GetPoolInfo() const
     Info.Capacity = Capacity;
     Info.UsedCount = UsedActors.Num();
     Info.UnusedCount = UnusedActors.Num();
-    Info.PreloadCount = UnusedActors.Num(); // Ô¤¼ÓÔØÊıÁ¿µÈÓÚµ±Ç°Î´Ê¹ÓÃÊıÁ¿
+    Info.PreloadCount = UnusedActors.Num(); // é¢„åŠ è½½æ•°é‡ç­‰äºå½“å‰æœªä½¿ç”¨æ•°é‡
     Info.PoolName = ActorClass ? ActorClass->GetName() : TEXT("Invalid");
 
     return Info;
@@ -226,7 +226,7 @@ void UObjectPool::SetCapacity(int32 NewCapacity)
 {
     Capacity = NewCapacity;
 
-    // Èç¹ûĞÂÈİÁ¿Ğ¡ÓÚµ±Ç°Î´Ê¹ÓÃ¶ÔÏóÊıÁ¿£¬ĞèÒªÏú»Ù¶àÓà¶ÔÏó
+    // å¦‚æœæ–°å®¹é‡å°äºå½“å‰æœªä½¿ç”¨å¯¹è±¡æ•°é‡ï¼Œéœ€è¦é”€æ¯å¤šä½™å¯¹è±¡
     if (Capacity >= 0 && UnusedActors.Num() > Capacity)
     {
         int32 ExcessCount = UnusedActors.Num() - Capacity;
@@ -247,12 +247,13 @@ void UObjectPool::SetCapacity(int32 NewCapacity)
 
 void UObjectPool::ClearPool()
 {
-    // Ïú»ÙËùÓĞ¶ÔÏó
+    // é”€æ¯æ‰€æœ‰å¯¹è±¡
     for (AActor* Actor : UsedActors)
     {
         if (Actor)
         {
-            Actor->Destroy();
+            //if (IsValid(Actor))
+                Actor->Destroy();
         }
     }
 
@@ -260,7 +261,8 @@ void UObjectPool::ClearPool()
     {
         if (Actor)
         {
-            Actor->Destroy();
+            //if (IsValid(Actor))
+                Actor->Destroy();
         }
     }
 
@@ -268,7 +270,7 @@ void UObjectPool::ClearPool()
     UnusedActors.Empty();
 }
 
-// ========== UObjectPoolManager ÊµÏÖ ==========
+// ========== UObjectPoolManager å®ç° ==========
 
 UObjectPoolManager::UObjectPoolManager()
 {
@@ -277,7 +279,7 @@ UObjectPoolManager::UObjectPoolManager()
 
 UObjectPoolManager::~UObjectPoolManager()
 {
-    // ÇåÀíËùÓĞ¶ÔÏó³Ø
+    // æ¸…ç†æ‰€æœ‰å¯¹è±¡æ± 
     for (auto& PoolPair : PoolsMap)
     {
         if (PoolPair.Value)
@@ -299,7 +301,7 @@ void UObjectPoolManager::InitializeObjectPoolManager()
 {
     UE_LOG(LogTemp, Log, TEXT("ObjectPool Manager Initialized"));
 
-    // ´´½¨¶ÔÏó³Ø¸¸¶ÔÏó
+    // åˆ›å»ºå¯¹è±¡æ± çˆ¶å¯¹è±¡
     PoolsParent = NewObject<UObject>(this);
     PoolsParent->SetFlags(RF_Standalone);
 }
@@ -329,7 +331,7 @@ AActor* UObjectPoolManager::Spawn(TSubclassOf<AActor> ActorClass, const FVector&
     AActor* Actor = Pool->Spawn(World, Location, Rotation, Owner, Instigator);
     if (Actor)
     {
-        // ¼ÇÂ¼¶ÔÏóµ½³ØµÄÓ³Éä
+        // è®°å½•å¯¹è±¡åˆ°æ± çš„æ˜ å°„
         ActorToPoolMap.Add(Actor, Pool);
     }
 
@@ -347,7 +349,7 @@ void UObjectPoolManager::Despawn(AActor* Actor, float DelayTime)
     if (Pool)
     {
         Pool->Despawn(Actor, DelayTime);
-        // ×¢Òâ£º²»ÔÚÁ¢¼´´ÓÓ³ÉäÖĞÒÆ³ı£¬ÒòÎª¶ÔÏó¿ÉÄÜ»¹ÔÚÊ¹ÓÃÖĞ
+        // æ³¨æ„ï¼šä¸åœ¨ç«‹å³ä»æ˜ å°„ä¸­ç§»é™¤ï¼Œå› ä¸ºå¯¹è±¡å¯èƒ½è¿˜åœ¨ä½¿ç”¨ä¸­
     }
     else
     {
@@ -484,7 +486,7 @@ UObjectPool* UObjectPoolManager::FindOrCreatePool(TSubclassOf<AActor> ActorClass
         return *PoolPtr;
     }
 
-    // ´´½¨ĞÂ¶ÔÏó³Ø
+    // åˆ›å»ºæ–°å¯¹è±¡æ± 
     UObjectPool* NewPool = NewObject<UObjectPool>(PoolsParent);
     NewPool->Initialize(ActorClass);
     PoolsMap.Add(ActorClass, NewPool);

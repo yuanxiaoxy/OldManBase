@@ -1,10 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "OldManEnemyManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "AdEnemyAIController.h"
 #include "AdEnemyStateTypes.h"
 #include "MonoManager/MonoManager.h"
+#include "OldManHUD.h"
 #include "ApproachEnemyCharacter.h"
 
 
@@ -28,7 +29,9 @@ void UOldManEnemyManager::InitializeSingleton()
     PoolManager->InitializeSingleton();
     PoolManager->Preload(AdEnemyBPClass, 10);
     PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
+    
     StartAdEnemyGenerator();
+    StartApproachEnemyGenerator();
 }
 
 
@@ -184,7 +187,7 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
         GenerateApproachEnemy();
         //FTimerSimpleDelegate timerDelegate;
         //timerDelegate.BindUFunction(this, "GenerateEnemy");
-        _timerID_ApproachEnemy = UMonoManager::GetInstance()->
+        m_timerID_ApproachEnemy = UMonoManager::GetInstance()->
             SetInterval(ApproachEnemySpawnInterval, this, &UOldManEnemyManager::GenerateApproachEnemy);
 
     }
@@ -197,7 +200,45 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
 // 停止生成屏幕敌人
 void UOldManEnemyManager::StopApproachEnemyGenerator()
 {
-    UMonoManager::GetInstance()->ClearTimer(_timerID_ApproachEnemy);
+    UMonoManager::GetInstance()->ClearTimer(m_timerID_ApproachEnemy);
+}
+
+void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, float newSpeed , float newDistance )
+{
+    if (newSpawnInterval != -1)
+    {
+        StopApproachEnemyGenerator();
+        ApproachEnemySpawnInterval = newSpawnInterval;
+        StartApproachEnemyGenerator();
+    }
+    if (newSpeed != -1)
+        ApEnemyApproachSpeed = newSpeed;
+    if (newDistance != -1)
+        ApEnemyInitialDistance = newDistance;
+}
+
+void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
+{
+    
+    
+    if (!PC)
+    {
+
+        UE_LOG(LogTemp, Warning, TEXT("UOldManEnemyManager::ShootInk: Failed to get PlayerController via Input."));
+        return;
+    }
+        
+    if (!OldManHUD)
+    {
+        OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
+    }
+    
+    
+    
+    FActiveInk NewInk = InkSettings;
+    NewInk.NormalizedPosition = pos;
+    OldManHUD->AddInk(NewInk);
+    
 }
 
 // 清理所有屏幕敌人
@@ -227,8 +268,11 @@ void UOldManEnemyManager::GenerateApproachEnemy()
         AApproachEnemyCharacter* ApproachEnemy = Cast<AApproachEnemyCharacter>(SpawnedEnemy);
         if (ApproachEnemy)
         {
-            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.5f));
-            ApproachEnemy->InitializeEnemy(ScreenPos);
+            FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.4f));
+            ApproachEnemy->InitializeEnemy(ScreenPos, 
+                ApEnemyAttackDistance, 
+                ApEnemyApproachSpeed, 
+                ApEnemyInitialDistance);
             ApproachEnemies.Add(ApproachEnemy);
             CurrentApEnemyCount++;
         }

@@ -1,4 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -28,7 +28,8 @@ public class OldMan : ModuleRules
 			new string[] { 
 			"XyFrame/Public",
             "OldManItem/Public",
-            "OldManConfig/Public"
+            "OldManConfig/Public",
+            "OldManEnemy/Public"
             });
     }
 }

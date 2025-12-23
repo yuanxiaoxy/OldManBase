@@ -265,6 +265,7 @@ float AApproachEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEven
     class AController* EventInstigator, AActor* DamageCauser)
 {
     KillEnemy();
+    return 0;
 }
 
 

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Kismet/GameplayStatics.h"
 #include "OldManEnemyManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "AdEnemyAIController.h"
 #include "AdEnemyStateTypes.h"
 #include "MonoManager/MonoManager.h"
@@ -219,13 +219,8 @@ void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, fl
 
 void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
 {
-    if (!PC)
-    {
-        if (!OldManHUD)
-        {
-            OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
-        }
-    }
+    
+    
     if (!PC)
     {
 
@@ -233,6 +228,10 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
         return;
     }
         
+    if (!OldManHUD)
+    {
+        OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
+    }
     
     
     

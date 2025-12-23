@@ -47,14 +47,16 @@ void AOldManHUD::DrawHUD() {
         // 使用 DrawTexture 绘制墨渍
         DrawTexture(
             Ink.Texture, 
-            Ink.NormalizedPosition.X, 
-            Ink.NormalizedPosition.Y, 
-            Ink.NormalizedWidth, 
-            Ink.NormalizedHeight, 
+            ActualPosX,
+            ActualPosY,
+            ActualWidth,
+            ActualHeight,
             0, 0, 1, 1, 
             FLinearColor(1, 1, 1, Alpha), 
             BLEND_Translucent);
     }
+    
+   
 }
 
 void AOldManHUD::AddInk(FActiveInk NewInk) 

@@ -62,8 +62,10 @@ void AApproachEnemyCharacter::Tick(float DeltaTime)
 
     if (m_bIsDead)
     {
+        Recycle();
+
         // 死亡处理
-        m_deathTimer -= DeltaTime;
+        /*m_deathTimer -= DeltaTime;
         if (m_deathTimer <= 0.0f)
         {
             Recycle();
@@ -76,7 +78,7 @@ void AApproachEnemyCharacter::Tick(float DeltaTime)
             {
                 DynamicMaterial->SetScalarParameterValue("Dissolve", Alpha);
             }
-        }
+        }*/
     }
     else
     {

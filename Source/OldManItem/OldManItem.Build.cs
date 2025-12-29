@@ -24,7 +24,11 @@ public class OldManItem : ModuleRules
         });
 
         //The path for the header files
-        PublicIncludePaths.AddRange(new string[] { "OldManItem/Public", "XyFrame/Public", "OldManConfig/Public" });
+        PublicIncludePaths.AddRange(new string[] { 
+            "OldManItem/Public",
+            "XyFrame/Public",
+            "OldMan/Public",
+            "OldManConfig/Public" });
 
         //The path for the source files
         PrivateIncludePaths.AddRange(new string[] { "OldManItem/Private", "XyFrame/Private"});

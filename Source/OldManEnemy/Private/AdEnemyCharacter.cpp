@@ -20,6 +20,14 @@ AAdEnemyCharacter::AAdEnemyCharacter()
 
 }
 
+float AAdEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+    class AController* EventInstigator, AActor* DamageCauser)
+{
+    ChangeState(EAdMonsterState::Dead);
+    OnDespawn_Implementation();
+    return 0;
+}
+
 void AAdEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();

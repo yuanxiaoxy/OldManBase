@@ -116,8 +116,12 @@ void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
         bWasFalling = true;
         UE_LOG(LogTemp, Log, TEXT("Character started falling"));
     }
-    if(OldManController)
+    if (OldManController)
+    {
         OldManController->SetShowMouseCursor(true);
+        FInputModeGameOnly InputMode; // 创建“仅游戏”输入模式
+        OldManController->SetInputMode(InputMode);
+    }
     else
     {
 		UE_LOG(LogTemp, Warning, TEXT("OldManController is null in OnMovementModeChanged"));

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,7 +10,6 @@
 #include "SingletonBase/SingletonBase.h"
 #include "EnemyPatrolPoint.h"
 #include "FEnemyLocationInfo.h"
-#include "EditorUtilityActor.h"
 #include "Containers/Map.h"
 #include "OldManEnemyManager.generated.h"
 

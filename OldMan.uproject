@@ -40,7 +40,6 @@
 				"Engine",
 				"CoreUObject",
 				"AIModule",
-				"Blutility"
 			]
 		},
 		{

@@ -44,15 +44,17 @@ void UOldManEnemyManager::InitializeSingleton()
 // 开始周期生成广告敌人
 void UOldManEnemyManager::StartAdEnemyGenerator()
 {
+    if (!m_timerID_AdEnemy.IsEmpty())
+        return;
     // 验证蓝图类是否设置
     if (AdEnemyBPClass)
     {
         // 立即生成一批敌人
         GenerateAdEnemy();
-        _hasGeneAdOnce = true;
+        m_hasGeneAdOnce = true;
         //FTimerSimpleDelegate timerDelegate;
         //timerDelegate.BindUFunction(this, "GenerateEnemy");
-        _timerID_AdEnemy = UMonoManager::GetInstance()->
+        m_timerID_AdEnemy = UMonoManager::GetInstance()->
             SetInterval(AdEnemySpawnInterval, this, &UOldManEnemyManager::GenerateAdEnemy);
 
     }
@@ -65,7 +67,10 @@ void UOldManEnemyManager::StartAdEnemyGenerator()
 // 停止生成广告敌人
 void UOldManEnemyManager::StopAdEnemyGenerator()
 {
-    UMonoManager::GetInstance()->ClearTimer(_timerID_AdEnemy);
+    if (m_timerID_AdEnemy.IsEmpty())
+        return;
+    UMonoManager::GetInstance()->ClearTimer(m_timerID_AdEnemy);
+    m_timerID_AdEnemy.Empty();
 }
 
 // 清理所有广告敌人
@@ -118,7 +123,7 @@ void UOldManEnemyManager::GenerateAdEnemy()
     {
 
         const FEnemyLocationInfo& EnemyInfo = AdEnemyInfos[i];
-        if (_hasGeneAdOnce && EnemyInfo.bIsGenerateOnce)
+        if (m_hasGeneAdOnce && EnemyInfo.bIsGenerateOnce)
             continue;
         if (!EnemyInfo.IsValid())
         {
@@ -179,6 +184,8 @@ void UOldManEnemyManager::RecycleAdEnemy(AAdEnemyAIController* target)
 // 开始周期生成屏幕敌人
 void UOldManEnemyManager::StartApproachEnemyGenerator()
 {
+    if (!m_timerID_ApproachEnemy.IsEmpty())
+        return;
     // 验证蓝图类是否设置
     if (ApproachEnemyBPClass)
     {
@@ -200,7 +207,10 @@ void UOldManEnemyManager::StartApproachEnemyGenerator()
 // 停止生成屏幕敌人
 void UOldManEnemyManager::StopApproachEnemyGenerator()
 {
+    if (m_timerID_ApproachEnemy.IsEmpty())
+        return;
     UMonoManager::GetInstance()->ClearTimer(m_timerID_ApproachEnemy);
+    m_timerID_ApproachEnemy.Empty();
 }
 
 void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, float newSpeed , float newDistance )

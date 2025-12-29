@@ -116,8 +116,12 @@ void AOldManCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
         bWasFalling = true;
         UE_LOG(LogTemp, Log, TEXT("Character started falling"));
     }
-
-    OldManController->SetShowMouseCursor(true);
+    if(OldManController)
+        OldManController->SetShowMouseCursor(true);
+    else
+    {
+		UE_LOG(LogTemp, Warning, TEXT("OldManController is null in OnMovementModeChanged"));
+    }
 }
 
 bool AOldManCharacter::CanJumpInternal_Implementation() const

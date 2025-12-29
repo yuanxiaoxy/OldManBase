@@ -2,6 +2,8 @@
 
 
 #include "Area/GravityChangeArea.h"
+//#include "Character/OldManPersonPlayerController.h"
+
 
 void AGravityChangeArea::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -10,7 +12,7 @@ void AGravityChangeArea::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent
 		OnEnterTrigger(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
 		UMyEventManager::GetInstance()->TriggerCppEvent(UGlobalEventName::Key_Player_OnChangeGrivity, GetInOrOutCustomGravityArea);
-
+		//A* PlayerController = GetWorld()->GetFirstPlayerController();
 	}
 }
 

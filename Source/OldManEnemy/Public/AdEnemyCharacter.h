@@ -25,7 +25,8 @@ class OLDMANENEMY_API AAdEnemyCharacter : public ACharacter, public IObjectPoolI
 public:
     // Sets default values for this character's properties
     AAdEnemyCharacter();
-
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+        class AController* EventInstigator, AActor* DamageCauser) override;
 
 
 protected:

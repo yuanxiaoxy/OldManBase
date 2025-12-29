@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 #include "InputCoreTypes.h"     
@@ -19,6 +19,7 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
+
     /*virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;*/
 
 public:
@@ -35,6 +36,10 @@ public:
     //// 检查鼠标是否在点击范围内
     //UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
     //bool IsMouseOverlapping(const FVector2D& MousePosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Param")
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+        class AController* EventInstigator, AActor* DamageCauser) override;
 
     // 击杀敌人
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
@@ -67,13 +72,17 @@ public:
 
 public:
    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Approach/Materials")
+    TArray<UMaterialInterface*> MaterialList;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Approach/Materials")
+    UStaticMeshComponent* MeshComponent;
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     //float BaseClickRadius = 50.0f;  // 基础点击半径（像素）
 
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
-    float DeathEffectDuration = 0.5f;  // 死亡特效持续时间
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
+    //float DeathEffectDuration = 0.5f;  // 死亡特效持续时间
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     //float MaxClickRadius = 200.0f;  // 最大点击半径
@@ -86,8 +95,10 @@ private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
     USphereComponent* ClickCollision;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-    UStaticMeshComponent* DebugSphere;  // 调试用，显示点击范围
+    UPROPERTY()
+    UMaterialInterface* CurrentMaterial = nullptr;
+
+
 
     // 状态
     FVector2D m_screenPosition;  // 屏幕位置（0-1标准化坐标）
@@ -126,6 +137,10 @@ private:
     // 更新视觉效果
     void UpdateVisualEffects(float DeltaTime);
 
+    void ApplyRandomMaterial();
 
+
+
+    UMaterialInterface* GetRandomMaterial() const;
 
 };

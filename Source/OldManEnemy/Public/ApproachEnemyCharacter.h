@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 #include "InputCoreTypes.h"     
@@ -98,8 +98,7 @@ private:
     UPROPERTY()
     UMaterialInterface* CurrentMaterial = nullptr;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-    UStaticMeshComponent* DebugSphere;  // 调试用，显示点击范围
+
 
     // 状态
     FVector2D m_screenPosition;  // 屏幕位置（0-1标准化坐标）

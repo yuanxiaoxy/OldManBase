@@ -1,4 +1,4 @@
-#include "ApproachEnemyCharacter.h"
+﻿#include "ApproachEnemyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -22,10 +22,6 @@ AApproachEnemyCharacter::AApproachEnemyCharacter()
     ClickCollision->SetSphereRadius(50.0f);
     ClickCollision->SetCollisionProfileName(FName("UI"));
 
-    // 创建调试球体
-    DebugSphere = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugSphere"));
-    DebugSphere->SetupAttachment(RootComponent);
-    DebugSphere->SetVisibility(false);
 }
 
 
@@ -46,7 +42,7 @@ void AApproachEnemyCharacter::InitializeEnemy(
     SetActorEnableCollision(true);
     SetActorTickEnabled(true);
     m_bIsDead = false;
-
+    ClickCollision->SetCollisionProfileName(TEXT("BeAttackItem"));
 
     // 设置初始位置
     FVector StartLocation = GetWorldPositionFromScreen(m_screenPosition, m_currentDistance);
@@ -264,6 +260,7 @@ void AApproachEnemyCharacter::KillEnemy()
 float AApproachEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
     class AController* EventInstigator, AActor* DamageCauser)
 {
+	UE_LOG(LogTemp, Log, TEXT("ApproachEnemyCharacter received damage: %f"), DamageAmount);
     KillEnemy();
     return 0;
 }

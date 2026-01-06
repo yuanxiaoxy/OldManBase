@@ -1,8 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "OldManEnemyManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "AdEnemyAIController.h"
+#include "Math/UnrealMathUtility.h"
 #include "AdEnemyStateTypes.h"
 #include "MonoManager/MonoManager.h"
 #include "OldManHUD.h"
@@ -244,10 +245,20 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
     }
     
     
+    if (InkTextures.Num() <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("喷墨贴图未设置"))
+    }
+    else
+    {
+        FActiveInk NewInk = InkSettings;
+        NewInk.NormalizedPosition = pos;
+        int32 randomIdx = FMath::RandRange(0, InkTextures.Num() - 1);
+        NewInk.Texture = InkTextures[randomIdx];
+        OldManHUD->AddInk(NewInk);
+    }
     
-    FActiveInk NewInk = InkSettings;
-    NewInk.NormalizedPosition = pos;
-    OldManHUD->AddInk(NewInk);
+   
     
 }
 
@@ -281,8 +292,9 @@ void UOldManEnemyManager::GenerateApproachEnemy()
             FVector2D ScreenPos = FVector2D(FMath::FRandRange(0.2f, 0.8f), FMath::FRandRange(0.1f, 0.4f));
             ApproachEnemy->InitializeEnemy(ScreenPos, 
                 ApEnemyAttackDistance, 
-                ApEnemyApproachSpeed, 
-                ApEnemyInitialDistance);
+                ApEnemyApproachSpeed,
+                ApEnemyInitialDistance,
+                FlashDistance);
             ApproachEnemies.Add(ApproachEnemy);
             CurrentApEnemyCount++;
         }

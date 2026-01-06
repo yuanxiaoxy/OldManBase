@@ -27,6 +27,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pipe")
     bool bLiveUpdate = true;
 
+    /* 节点半径数组 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pipe")
+    TArray<float> NodeRadii;   // 长度必须与 Spline 点数一致
+
 protected:
     virtual void OnConstruction(const FTransform& Transform) override;
     virtual void BeginPlay() override;

@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 #include "FActiveInk.generated.h"
 
 USTRUCT(Blueprintable, BlueprintType)
 struct FActiveInk {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk")
+    
     UTexture2D* Texture; // 墨渍贴图
 
 

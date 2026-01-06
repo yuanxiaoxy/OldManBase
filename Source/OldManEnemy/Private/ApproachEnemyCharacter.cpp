@@ -4,6 +4,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "OldManEnemyManager.h"
 
 AApproachEnemyCharacter::AApproachEnemyCharacter()
@@ -30,13 +32,15 @@ void AApproachEnemyCharacter::InitializeEnemy(
     const FVector2D& InScreenPosition,
     float attackDistance,
     float approachSpeed,
-    float initialDistacne)
+    float initialDistacne,
+    float FlashDist)
 {
     m_initialDistance = initialDistacne;
     m_currentDistance = m_initialDistance;
     m_screenPosition = InScreenPosition;
     m_attackDistance = attackDistance;
     m_approachSpeed = approachSpeed;
+	m_flashDistance = FlashDist;
     
     SetActorHiddenInGame(false);
     SetActorEnableCollision(true);
@@ -72,17 +76,30 @@ void AApproachEnemyCharacter::BeginPlay()
    /* OnClicked.AddDynamic(this, &AApproachEnemyCharacter::HandleOnClicked);*/
     m_originScale = GetActorScale3D();
     // 设置动态材质
-    if (GetMesh())
+    if (!DynamicMaterial)
     {
-        UMaterialInterface* BaseMaterial = GetMesh()->GetMaterial(0);
-        if (BaseMaterial)
+        // 获取Mesh组件
+        USkeletalMeshComponent* MyMesh = GetMesh();
+        if (MyMesh && MyMesh->GetNumMaterials() > 0)
         {
-            DynamicMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, this);
-            GetMesh()->SetMaterial(0, DynamicMaterial);
+            // 获取基础材质
+            UMaterialInterface* BaseMaterial = MyMesh->GetMaterial(0);
+            if (BaseMaterial)
+            {
+                // 创建动态材质实例
+                DynamicMaterial = MyMesh->CreateDynamicMaterialInstance(0, BaseMaterial);
+
+            }
         }
     }
 }
 
+
+void AApproachEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    StopFlashEffect();
+    Super::EndPlay(EndPlayReason);
+}
 
 void AApproachEnemyCharacter::Tick(float DeltaTime)
 {
@@ -110,6 +127,18 @@ void AApproachEnemyCharacter::Tick(float DeltaTime)
     }
     else
     {
+        if (m_flashDistance != -1.0f)
+        {
+            if (!m_bIsFlashing && m_currentDistance <= m_flashDistance)
+            {
+                StartFlashEffect();
+            }
+        }
+        else
+        {
+			UE_LOG(LogTemp, Warning, TEXT("Flash distance not set for enemy."));
+        }
+            
         // 核心：更新屏幕空间位置
         UpdateScreenSpacePosition(DeltaTime);
         
@@ -248,7 +277,7 @@ void AApproachEnemyCharacter::KillEnemy()
 
     m_bIsDead = true;
     //m_deathTimer = DeathEffectDuration;
-
+    StopFlashEffect();
     // 禁用碰撞
     ClickCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -302,12 +331,12 @@ void AApproachEnemyCharacter::UpdateVisualEffects(float DeltaTime)
 {
     if (!DynamicMaterial) return;
 
-    float DistanceFactor = 1.0f - (m_currentDistance / 1000.0f);
+    float DistanceFactor = 1.0f - (m_currentDistance - m_attackDistance / m_initialDistance - m_attackDistance);
     DistanceFactor = FMath::Clamp(DistanceFactor, 0.0f, 1.0f);
 
     // 距离越近，效果越强烈
-    DynamicMaterial->SetScalarParameterValue("Intensity", 1.0f + DistanceFactor * 2.0f);
-    DynamicMaterial->SetScalarParameterValue("PulseSpeed", 1.0f + DistanceFactor * 3.0f);
+  /*  DynamicMaterial->SetScalarParameterValue("Intensity", 1.0f + DistanceFactor * 2.0f);
+    DynamicMaterial->SetScalarParameterValue("PulseSpeed", 4);*/
     
     // 根据距离调整大小
     float Scale = 0.5f + DistanceFactor * 1.5f;  // 0.5倍到2.0倍
@@ -350,8 +379,75 @@ void AApproachEnemyCharacter::ApplyRandomMaterial()
     }
 
     // 应用材质
-    MeshComponent->SetMaterial(0, RandomMaterial);
+    //MeshComponent->SetMaterial(0, RandomMaterial);
     CurrentMaterial = RandomMaterial;
-
+    DynamicMaterial = MeshComponent->CreateDynamicMaterialInstance(0, RandomMaterial);
     UE_LOG(LogTemp, Log, TEXT("应用随机材质: %s"), *RandomMaterial->GetName());
+    UMaterialInterface* c = MeshComponent->GetMaterial(0);
+    UE_LOG(LogTemp, Log, TEXT("Mesh当前材质: %s"),
+        c ? *c->GetName() : TEXT("null"));
+
+    // 检查是否是同一个材质
+    if (c == DynamicMaterial)
+    {
+        UE_LOG(LogTemp, Log, TEXT("✅ Mesh使用的是我们的动态材质"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("❌ Mesh使用的不是我们的动态材质"));
+    }
+}
+
+
+void AApproachEnemyCharacter::StartFlashEffect()
+{
+    if (m_bIsFlashing)
+    {
+		UE_LOG(LogTemp, Warning, TEXT("闪烁效果已在进行中"));
+		return; // 已经在闪烁，避免重复启动
+    }
+    if (!DynamicMaterial)
+    {
+		UE_LOG(LogTemp, Warning, TEXT("无法开始闪烁效果：动态材质未设置"));
+        return;
+    }
+	UE_LOG(LogTemp, Log, TEXT("开始闪烁效果"));
+    m_bIsFlashing = true;
+    // 开始闪烁
+    GetWorld()->GetTimerManager().SetTimer(m_FlashTimer, [this]()
+        {
+            if (!DynamicMaterial) return;
+
+            // 简单闪烁：来回切换红色
+            static bool bRed = false;
+            bRed = !bRed;
+
+            if (bRed)
+            {
+                DynamicMaterial->SetVectorParameterValue("MultiColor", FLinearColor::Red);
+            }
+            else
+            {
+                DynamicMaterial->SetVectorParameterValue("MultiColor", FLinearColor::White);
+            }
+
+        }, 0.05f, true);  // 每0.2秒闪一次
+}
+
+
+void AApproachEnemyCharacter::StopFlashEffect()
+{
+    m_bIsFlashing = false;
+
+    // 停止定时器
+    if (m_FlashTimer.IsValid())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(m_FlashTimer);
+    }
+
+    // 恢复颜色
+    if (DynamicMaterial)
+    {
+        DynamicMaterial->SetVectorParameterValue("BaseColor", FLinearColor::White);
+    }
 }

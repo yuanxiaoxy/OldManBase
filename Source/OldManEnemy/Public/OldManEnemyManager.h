@@ -120,6 +120,12 @@ public:
     FActiveInk InkSettings;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    TArray<UTexture2D*> InkTextures;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    float FlashDistance = -1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     TSubclassOf<AApproachEnemyCharacter> ApproachEnemyBPClass;  // 新的敌人蓝图类
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")

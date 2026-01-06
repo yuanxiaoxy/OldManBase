@@ -19,6 +19,7 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     /*virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;*/
 
@@ -54,8 +55,8 @@ public:
         const FVector2D& InScreenPosition,
         float attackDistance,
         float approachSpeed,
-        float initialDistacne
-    );
+        float initialDistacne,
+		float FlashDist );
 
     // 更新屏幕位置
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
@@ -63,7 +64,17 @@ public:
 
     // 屏幕坐标->世界坐标
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
-     FVector GetWorldPositionFromScreen(const FVector2D& ScreenPos, float Distance);
+    FVector GetWorldPositionFromScreen(const FVector2D& ScreenPos, float Distance);
+
+
+    UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
+	void StartFlashEffect();
+
+    UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
+    void StopFlashEffect();
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|Flash")
+    bool IsFlashing() const { return m_bIsFlashing; }
 
     // 造成伤害
     UFUNCTION(BlueprintCallable, Category = "ApproachEnemy")
@@ -77,6 +88,8 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Approach/Materials")
     UStaticMeshComponent* MeshComponent;
+
+    
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Settings")
     //float BaseClickRadius = 50.0f;  // 基础点击半径（像素）
@@ -121,7 +134,7 @@ private:
     float m_attackDistance = 500.0f;
 
     float m_initialDistance = 2000.0f;     // 当前距离摄像机距离
-
+    float m_flashDistance = -1.0f;
     float m_approachSpeed = 100.0f;
 
 
@@ -129,13 +142,24 @@ private:
 
     // 动态材质用于视觉效果
     UPROPERTY()
-    UMaterialInstanceDynamic* DynamicMaterial;
+    UMaterialInstanceDynamic* DynamicMaterial = nullptr;
+
+    // 计时器相关
+    FTimerHandle m_FlashTimer;  // 闪烁定时器句柄，用于控制闪烁的定时更新
+
+    // 状态标志
+    bool m_bIsFlashing = false;  // 是否正在闪烁的标志
+
+
+
+private:
+    // 更新视觉效果
+    void UpdateVisualEffects(float DeltaTime);
 
     // 更新点击判定大小
     //void UpdateClickCollision();
 
-    // 更新视觉效果
-    void UpdateVisualEffects(float DeltaTime);
+
 
     void ApplyRandomMaterial();
 

@@ -55,6 +55,9 @@ public:
 	//视频时长
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
 	float CountdownTime= 0.0f;
+	//是否只生成物体
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
+	bool IsCreateOnly = false;
 	//从几秒开始播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
 	float BeginTime= 0.0f;

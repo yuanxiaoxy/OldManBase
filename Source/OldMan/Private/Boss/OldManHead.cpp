@@ -171,6 +171,7 @@ void AOldManHead::RandomShake(float DeltaTime)
 
 void AOldManHead::Blink(float progress)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, TEXT("Blink"));
 	// 播放眨眼动画（如有）并增加进度
 	AddProgress(progress);
 }

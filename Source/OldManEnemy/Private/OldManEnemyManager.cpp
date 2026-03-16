@@ -77,9 +77,18 @@ void UOldManEnemyManager::StopAdEnemyGenerator()
 // 清理所有广告敌人
 void UOldManEnemyManager::ClearAllAdEnemies()
 {
-    for (int32 i = 0; i < AdEnemyControls.Num(); i++)
+    const TArray<AAdEnemyAIController*> ControllersToClear = AdEnemyControls;
+    for (AAdEnemyAIController* Controller : ControllersToClear)
     {
-        AdEnemyControls[i]->EnemyCharacter->OnDespawn_Implementation();
+        if (Controller && Controller->EnemyCharacter)
+        {
+            Controller->EnemyCharacter->OnDespawn_Implementation();
+        }
+    }
+
+    for (TPair<int32, int32>& Pair : _AdEnemySpawnCounts)
+    {
+        Pair.Value = 0;
     }
 }
 
@@ -171,6 +180,15 @@ void UOldManEnemyManager::GenerateAdEnemy()
 // 回收广告敌人
 void UOldManEnemyManager::RecycleAdEnemy(AAdEnemyAIController* target)
 {
+    if (!target || !target->EnemyCharacter)
+        return;
+
+    const int32 ID = target->EnemyCharacter->SpawnInfoID;
+    if (_AdEnemySpawnCounts.Contains(ID) && _AdEnemySpawnCounts[ID] > 0)
+    {
+        _AdEnemySpawnCounts[ID]--;
+    }
+
     PoolManager->Despawn(target->EnemyCharacter);
     AdEnemyControls.Remove(target);
 }
@@ -265,10 +283,17 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
 // 清理所有屏幕敌人
 void UOldManEnemyManager::ClearAllApproachEnemies()
 {
-    for (int32 i = 0; i < ApproachEnemies.Num(); i++)
+    const TArray<AApproachEnemyCharacter*> EnemiesToClear = ApproachEnemies;
+    for (AApproachEnemyCharacter* Enemy : EnemiesToClear)
     {
-        ApproachEnemies[i]->KillEnemy();
+        if (Enemy)
+        {
+            Enemy->Recycle();
+        }
     }
+
+    ApproachEnemies.Empty();
+    CurrentApEnemyCount = 0;
 }
 
 // 生成单只屏幕敌人

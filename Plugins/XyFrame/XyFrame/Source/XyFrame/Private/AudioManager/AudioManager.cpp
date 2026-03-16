@@ -4,7 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 
-// ¾²Ì¬ÊµÀı¶¨Òå
+// é™æ€å®ä¾‹å®šä¹‰
 template<>
 UAudioManager* TSingleton<UAudioManager>::SingletonInstance = nullptr;
 
@@ -16,7 +16,7 @@ UAudioManager::UAudioManager()
 
 UAudioManager::~UAudioManager()
 {
-    // ÇåÀíËùÓĞÒôÆµ×é¼ş
+    // æ¸…ç†æ‰€æœ‰éŸ³é¢‘ç»„ä»¶
     StopAllSounds();
 }
 
@@ -30,7 +30,7 @@ void UAudioManager::InitializeAudioManager()
 {
     UE_LOG(LogTemp, Log, TEXT("Audio Manager Initialized"));
 
-    // ³õÊ¼»¯Ä¬ÈÏÒôÁ¿
+    // åˆå§‹åŒ–é»˜è®¤éŸ³é‡
     CategoryVolumes.Add(EAudioCategory::BGM, 0.8f);
     CategoryVolumes.Add(EAudioCategory::SFX, 0.8f);
     CategoryVolumes.Add(EAudioCategory::Ambient, 0.8f);
@@ -40,6 +40,13 @@ void UAudioManager::InitializeAudioManager()
 
 void UAudioManager::Initialize(UDataTable* InAudioDataTable)
 {
+    // å¦‚æœå·²ä½¿ç”¨ç›¸åŒæ•°æ®è¡¨åˆå§‹åŒ–ï¼Œç›´æ¥è¿”å›
+    if (AudioDataTable == InAudioDataTable)
+    {
+        UE_LOG(LogTemp, Log, TEXT("AudioManager already initialized with same data table, skipping."));
+        return;
+    }
+
     AudioDataTable = InAudioDataTable;
     UE_LOG(LogTemp, Log, TEXT("AudioManager initialized with data table"));
 }
@@ -63,7 +70,7 @@ UAudioComponent* UAudioManager::PlaySound(
 {
     if (Delay > 0.0f)
     {
-        // ÑÓ³Ù²¥·Å´¦Àí
+        // å»¶è¿Ÿæ’­æ”¾å¤„ç†
         FTimerDelegate TimerDel;
         FTimerHandle TimerHandle;
 
@@ -99,22 +106,22 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
-    // ´´½¨ÒôÆµ×é¼ş
+    // åˆ›å»ºéŸ³é¢‘ç»„ä»¶
     UAudioComponent* AudioComponent = NewObject<UAudioComponent>(AttachActor ? AttachActor : World->GetWorldSettings());
     if (!AudioComponent) return nullptr;
 
-    // ÅäÖÃÒôÆµ×é¼ş
+    // é…ç½®éŸ³é¢‘ç»„ä»¶
     AudioComponent->SetSound(SoundAsset);
 
-    // ÉèÖÃÒôµ÷
+    // è®¾ç½®éŸ³è°ƒ
     float FinalPitchMultiplier = PitchMultiplier * Config->PitchMultiplier;
     AudioComponent->SetPitchMultiplier(FinalPitchMultiplier);
 
-    // ÉèÖÃÒôÁ¿
+    // è®¾ç½®éŸ³é‡
     float VolumeMultiplier = Config->DefaultVolume * CategoryVolumes[Config->Category];
     AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 
-    // ¿Õ¼ä»¯ÉèÖÃ
+    // ç©ºé—´åŒ–è®¾ç½®
     bool bAllowSpatialization = true;
     switch (Config->Category)
     {
@@ -144,14 +151,14 @@ UAudioComponent* UAudioManager::PlaySound(
         AudioComponent->SetWorldLocation(Location);
     }
 
-    // ×¢²á×é¼ş²¢¿ªÊ¼²¥·Å
+    // æ³¨å†Œç»„ä»¶å¹¶å¼€å§‹æ’­æ”¾
     AudioComponent->RegisterComponent();
     AudioComponent->OnAudioFinished.AddDynamic(this, &UAudioManager::HandleAudioFinished);
 
-    // ¼ÇÂ¼»îÔ¾×é¼ş
+    // è®°å½•æ´»è·ƒç»„ä»¶
     ActiveComponents.Add(AudioComponent, SoundID);
 
-    // µ­Èë»òÖ±½Ó²¥·Å
+    // æ·¡å…¥æˆ–ç›´æ¥æ’­æ”¾
     if (FadeInTime > 0.0f)
     {
         AudioComponent->FadeIn(FadeInTime, VolumeMultiplier);
@@ -161,7 +168,7 @@ UAudioComponent* UAudioManager::PlaySound(
         AudioComponent->Play();
     }
 
-    // ´¥·¢ÊÂ¼ş
+    // è§¦å‘äº‹ä»¶
     OnSoundStarted.Broadcast(SoundID);
 
     UE_LOG(LogTemp, Log, TEXT("Playing sound: %s, Category: %s"),
@@ -173,7 +180,7 @@ UAudioComponent* UAudioManager::PlaySound(
 
 void UAudioManager::HandleAudioFinished()
 {
-    // ÇåÀíÍê³ÉµÄÒôÆµ×é¼ş
+    // æ¸…ç†å®Œæˆçš„éŸ³é¢‘ç»„ä»¶
     TArray<UAudioComponent*> CompletedComponents;
 
     for (auto& Pair : ActiveComponents)
@@ -234,7 +241,7 @@ void UAudioManager::StopAllSounds()
     }
     ActiveComponents.Empty();
 
-    // Í¬Ê±Çå¿Õµ±Ç°BGMÒıÓÃ
+    // åŒæ—¶æ¸…ç©ºå½“å‰BGMå¼•ç”¨
     CurrentBGMComponent = nullptr;
 }
 
@@ -262,14 +269,14 @@ void UAudioManager::StopAllSoundsByCategory(EAudioCategory Category)
         }
     }
 
-    // Èç¹ûÊÇBGMÀà±ğ£¬»¹ĞèÒªÇå¿Õµ±Ç°BGMÒıÓÃ
+    // å¦‚æœæ˜¯BGMç±»åˆ«ï¼Œè¿˜éœ€è¦æ¸…ç©ºå½“å‰BGMå¼•ç”¨
     if (Category == EAudioCategory::BGM)
     {
         CurrentBGMComponent = nullptr;
     }
 }
 
-// ========== SFX ÒôĞ§¹ÜÀíÊµÏÖ ==========
+// ========== SFX éŸ³æ•ˆç®¡ç†å®ç° ==========
 
 void UAudioManager::PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor, FVector Location, float PitchMultiplier)
 {
@@ -278,8 +285,8 @@ void UAudioManager::PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* 
         SoundID,
         AttachActor,
         Location,
-        0.0f,  // ÎŞµ­Èë
-        0.0f,  // ÎŞÑÓ³Ù
+        0.0f,  // æ— æ·¡å…¥
+        0.0f,  // æ— å»¶è¿Ÿ
         PitchMultiplier
     );
 }
@@ -316,7 +323,7 @@ void UAudioManager::StopAllSFX()
     StopAllSoundsByCategory(EAudioCategory::SFX);
 }
 
-// ========== BGM ¹ÜÀíÊµÏÖ ==========
+// ========== BGM ç®¡ç†å®ç° ==========
 
 void UAudioManager::PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime)
 {
@@ -371,7 +378,7 @@ void UAudioManager::ResumeBGM()
     }
 }
 
-// ========== »·¾³Òô¹ÜÀíÊµÏÖ ==========
+// ========== ç¯å¢ƒéŸ³ç®¡ç†å®ç° ==========
 
 void UAudioManager::PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor, float FadeTime)
 {
@@ -423,7 +430,7 @@ void UAudioManager::StopAllAmbient(float FadeTime)
     StopAllSoundsByCategory(EAudioCategory::Ambient);
 }
 
-// ========== ÓïÒô¹ÜÀíÊµÏÖ ==========
+// ========== è¯­éŸ³ç®¡ç†å®ç° ==========
 
 void UAudioManager::PlayVoice(UObject* WorldContextObject, FName SoundID, AActor* AttachActor)
 {
@@ -466,7 +473,7 @@ void UAudioManager::StopAllVoice()
     StopAllSoundsByCategory(EAudioCategory::Voice);
 }
 
-// ========== UIÒôĞ§¹ÜÀíÊµÏÖ ==========
+// ========== UIéŸ³æ•ˆç®¡ç†å®ç° ==========
 
 void UAudioManager::PlayUISound(UObject* WorldContextObject, FName SoundID)
 {
@@ -508,14 +515,14 @@ void UAudioManager::StopUISound(FName SoundID)
     }
 }
 
-// ========== ÒôÁ¿¿ØÖÆÊµÏÖ ==========
+// ========== éŸ³é‡æ§åˆ¶å®ç° ==========
 
 void UAudioManager::SetCategoryVolume(EAudioCategory Category, float NewVolume)
 {
     float ClampedVolume = FMath::Clamp(NewVolume, 0.0f, 1.0f);
     CategoryVolumes.Add(Category, ClampedVolume);
 
-    // ¸üĞÂËùÓĞ»îÔ¾ÒôÆµµÄÒôÁ¿
+    // æ›´æ–°æ‰€æœ‰æ´»è·ƒéŸ³é¢‘çš„éŸ³é‡
     for (auto& Pair : ActiveComponents)
     {
         UAudioComponent* Component = Pair.Key;
@@ -550,7 +557,7 @@ void UAudioManager::ResetAllVolumes()
     SetAllVolumes(0.8f, 0.8f, 0.8f, 0.8f, 0.8f);
 }
 
-// ========== ÒôÆµ×´Ì¬²éÑ¯ÊµÏÖ ==========
+// ========== éŸ³é¢‘çŠ¶æ€æŸ¥è¯¢å®ç° ==========
 
 bool UAudioManager::IsSoundPlaying(FName SoundID) const
 {
@@ -583,17 +590,17 @@ int32 UAudioManager::GetActiveSoundCountByCategory(EAudioCategory Category) cons
     return Count;
 }
 
-// ========== µ÷ÊÔ¹¤¾ßÊµÏÖ ==========
+// ========== è°ƒè¯•å·¥å…·å®ç° ==========
 
 void UAudioManager::PrintAudioSystemStatus()
 {
     UE_LOG(LogTemp, Log, TEXT("=== Audio System Status ==="));
     UE_LOG(LogTemp, Log, TEXT("Total Active Sounds: %d"), ActiveComponents.Num());
 
-    // °´Àà±ğÍ³¼Æ
+    // æŒ‰ç±»åˆ«ç»Ÿè®¡
     TMap<EAudioCategory, int32> CategoryCounts;
 
-    // ÊÖ¶¯¶¨ÒåËùÓĞÒôÆµÀà±ğ½øĞĞµü´ú
+    // æ‰‹åŠ¨å®šä¹‰æ‰€æœ‰éŸ³é¢‘ç±»åˆ«è¿›è¡Œè¿­ä»£
     TArray<EAudioCategory> AllCategories = {
         EAudioCategory::BGM,
         EAudioCategory::SFX,
@@ -644,7 +651,7 @@ void UAudioManager::PrintCategoryStatus(EAudioCategory Category)
     UE_LOG(LogTemp, Log, TEXT("=== End %s Status ==="), *UEnum::GetValueAsString(Category));
 }
 
-// ========== ÄÚ²¿¸¨Öú·½·¨ ==========
+// ========== å†…éƒ¨è¾…åŠ©æ–¹æ³• ==========
 
 UWorld* UAudioManager::GetWorld() const
 {

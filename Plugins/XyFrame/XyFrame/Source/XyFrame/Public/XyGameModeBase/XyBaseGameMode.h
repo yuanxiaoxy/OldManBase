@@ -12,7 +12,12 @@
 #include "Engine/Engine.h"
 #include "XyBaseGameMode.generated.h"
 
-// ÊÀ½ç³õÊ¼»¯×´Ì¬
+// å‰å‘å£°æ˜
+class APlayerController;
+class AController;
+class APawn;
+
+// ä¸–ç•Œåˆå§‹åŒ–çŠ¶æ€
 UENUM(BlueprintType)
 enum class EWorldInitState : uint8
 {
@@ -22,7 +27,7 @@ enum class EWorldInitState : uint8
     Failed         UMETA(DisplayName = "Failed")
 };
 
-// Íæ¼ÒÉú³ÉÅäÖÃ
+// ç©å®¶ç”Ÿæˆé…ç½®
 USTRUCT(BlueprintType)
 struct FPlayerSpawnConfig
 {
@@ -43,6 +48,13 @@ struct FPlayerSpawnConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
     TArray<FTransform> PossibleSpawnPoints;
 
+    // ç›¸æœºå‡ºç”Ÿç‚¹é…ç½®
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Spawn")
+    bool bUseCameraSpawn = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Spawn")
+    FVector CameraSpawnOffset = FVector(0.0f, 0.0f, 0.0f);
+
     FPlayerSpawnConfig()
         : bShouldSpawnPlayer(true)
         , bUseRandomSpawn(false)
@@ -50,7 +62,7 @@ struct FPlayerSpawnConfig
     }
 };
 
-// ÊÀ½çÅäÖÃ
+// ä¸–ç•Œé…ç½®
 USTRUCT(BlueprintType)
 struct FWorldConfig
 {
@@ -82,11 +94,9 @@ struct FWorldConfig
     }
 };
 
-// ÊÀ½ç³õÊ¼»¯Íê³ÉÎ¯ÍĞ
+// å§”æ‰˜
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorldInitialized, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWorldShutdown);
-
-// À¶Í¼»Øµ÷Î¯ÍĞ
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnWorldInitCallback, bool, bSuccess);
 
 UCLASS(Abstract, Blueprintable, BlueprintType)
@@ -98,144 +108,120 @@ public:
     AXyBaseGameMode();
 
 protected:
-    virtual void BeginPlay() override;
+    virtual void StartPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-    // ========== ÊÀ½çÉúÃüÖÜÆÚ¹ÜÀí ==========
-
-    // ³õÊ¼»¯ÊÀ½ç£¨Ö÷Èë¿Úµã£©
+    // ========== ä¸–ç•Œç”Ÿå‘½å‘¨æœŸç®¡ç† ==========
     UFUNCTION(BlueprintCallable, Category = "GameMode|World")
     virtual void InitializeWorld();
 
-    // Òì²½³õÊ¼»¯ÊÀ½ç
     UFUNCTION(BlueprintCallable, Category = "GameMode|World")
     virtual void InitializeWorldAsync();
 
-    // ¹Ø±ÕÊÀ½ç
     UFUNCTION(BlueprintCallable, Category = "GameMode|World")
     virtual void ShutdownWorld();
 
-    // ÖØÆôÊÀ½ç
     UFUNCTION(BlueprintCallable, Category = "GameMode|World")
     virtual void RestartWorld();
 
-    // ========== Íæ¼Ò¹ÜÀí ==========
+    // ========== ç©å®¶ç®¡ç† ==========
+    virtual void RestartPlayer(AController* NewPlayer) override;
 
-    // ÊÇ·ñÓ¦¸ÃÉú³ÉÍæ¼Ò£¨¿ÉÖØĞ´£©
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GameMode|Player")
     bool ShouldSpawnPlayer() const;
     virtual bool ShouldSpawnPlayer_Implementation() const;
 
-    // »ñÈ¡Íæ¼ÒÉú³ÉÅäÖÃ£¨¿ÉÖØĞ´£©
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GameMode|Player")
     FPlayerSpawnConfig GetPlayerSpawnConfig() const;
     virtual FPlayerSpawnConfig GetPlayerSpawnConfig_Implementation() const;
 
-    // Éú³ÉÍæ¼Ò£¨¿ÉÖØĞ´£©
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GameMode|Player")
     APawn* SpawnPlayer(AController* NewPlayer);
     virtual APawn* SpawnPlayer_Implementation(AController* NewPlayer);
 
-    // ×Ô¶¨ÒåÍæ¼ÒÉú³ÉÎ»ÖÃ£¨¿ÉÖØĞ´£©
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GameMode|Player")
     FTransform GetPlayerSpawnTransform(AController* PlayerController);
     virtual FTransform GetPlayerSpawnTransform_Implementation(AController* PlayerController);
 
-    // ========== ÊÀ½çÅäÖÃ ==========
+    UFUNCTION(BlueprintCallable, Category = "Player Spawn")
+    void SpawnPlayerAtCamera(AController* PlayerController = nullptr);
 
-    // »ñÈ¡ÊÀ½çÅäÖÃ£¨¿ÉÖØĞ´£©
+    UFUNCTION(BlueprintCallable, Category = "Camera")
+    FTransform GetCameraTransform() const;
+
+    // ========== ä¸–ç•Œé…ç½® ==========
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GameMode|Config")
     FWorldConfig GetWorldConfig() const;
     virtual FWorldConfig GetWorldConfig_Implementation() const;
 
-    // ÉèÖÃÊÀ½çÅäÖÃ
     UFUNCTION(BlueprintCallable, Category = "GameMode|Config")
     void SetWorldConfig(const FWorldConfig& NewConfig);
 
-    // ========== ¿ò¼Ü¼¯³É ==========
-
-    // »ñÈ¡×ÊÔ´¹ÜÀíÆ÷
+    // ========== æ¡†æ¶é›†æˆ ==========
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GameMode|Framework")
     UResourceManager* GetResourceManager() const;
 
-    // »ñÈ¡¼ÆÊ±Æ÷¹ÜÀíÆ÷
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GameMode|Framework")
     UMonoManager* GetMonoManager() const;
 
-    // »ñÈ¡´æµµ¹¤¾ß
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GameMode|Framework")
     USaveGameTool* GetSaveGameTool() const;
 
-    // ========== ³õÊ¼»¯²½Öè£¨¿ÉÖØĞ´£© ==========
-
-    // Ô¤³õÊ¼»¯£¨ÔÚÖ÷Òª³õÊ¼»¯Ö®Ç°£©
+    // ========== åˆå§‹åŒ–æ­¥éª¤ ==========
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void PreInitializeWorld();
     virtual void PreInitializeWorld_Implementation();
 
-    // ³õÊ¼»¯¿ò¼ÜÏµÍ³
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void InitializeFrameworkSystems();
     virtual void InitializeFrameworkSystems_Implementation();
 
-    // ¼ÓÔØÊÀ½ç×ÊÔ´
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void LoadWorldResources();
     virtual void LoadWorldResources_Implementation();
 
-    // ³õÊ¼»¯ÊÀ½ç×´Ì¬
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void InitializeWorldState();
     virtual void InitializeWorldState_Implementation();
 
-    // ³õÊ¼»¯Íæ¼Ò
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void InitializePlayers();
     virtual void InitializePlayers_Implementation();
 
-    // ºó³õÊ¼»¯£¨ÔÚÖ÷Òª³õÊ¼»¯Ö®ºó£©
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Initialization")
     void PostInitializeWorld();
     virtual void PostInitializeWorld_Implementation();
 
-    // ========== ¹Ø±Õ²½Öè£¨¿ÉÖØĞ´£© ==========
-
-    // Ô¤¹Ø±Õ
+    // ========== å…³é—­æ­¥éª¤ ==========
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Shutdown")
     void PreShutdownWorld();
     virtual void PreShutdownWorld_Implementation();
 
-    // ±£´æÊÀ½ç×´Ì¬
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Shutdown")
     void SaveWorldState();
     virtual void SaveWorldState_Implementation();
 
-    // ÇåÀí×ÊÔ´
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Shutdown")
     void CleanupWorldResources();
     virtual void CleanupWorldResources_Implementation();
 
-    // ºó¹Ø±Õ
     UFUNCTION(BlueprintNativeEvent, Category = "GameMode|Shutdown")
     void PostShutdownWorld();
     virtual void PostShutdownWorld_Implementation();
 
-    // ========== ÊÂ¼şÎ¯ÍĞ ==========
-
+    // ========== äº‹ä»¶å§”æ‰˜ ==========
     UPROPERTY(BlueprintAssignable, Category = "GameMode|Events")
     FOnWorldInitialized OnWorldInitialized;
 
     UPROPERTY(BlueprintAssignable, Category = "GameMode|Events")
     FOnWorldShutdown OnWorldShutdown;
 
-    // ========== ´ø»Øµ÷µÄÒì²½³õÊ¼»¯ ==========
-
+    // ========== å¸¦å›è°ƒçš„å¼‚æ­¥åˆå§‹åŒ– ==========
     UFUNCTION(BlueprintCallable, Category = "GameMode|World")
     void InitializeWorldWithCallback(const FOnWorldInitCallback& Callback);
 
-    // ========== ×´Ì¬²éÑ¯ ==========
-
+    // ========== çŠ¶æ€æŸ¥è¯¢ ==========
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GameMode|World")
     EWorldInitState GetWorldInitState() const { return WorldInitState; }
 
@@ -246,36 +232,25 @@ public:
     bool IsWorldInitializing() const { return WorldInitState == EWorldInitState::Initializing; }
 
 protected:
-    // ========== ÄÚ²¿ÊµÏÖ ==========
-
-    // ÄÚ²¿³õÊ¼»¯Íê³É´¦Àí - ÒÆ³ıUFUNCTION£¬ÒòÎª²»ĞèÒªÀ¶Í¼µ÷ÓÃ
     void HandleWorldInitialized(bool bSuccess);
-
-    // Òì²½³õÊ¼»¯¼ÆÊ±Æ÷»Øµ÷ - ÒÆ³ıUFUNCTION
     void ExecuteAsyncInitialization();
-
-    // Éú³ÉÄ¬ÈÏÍæ¼Ò
+    FTransform GetRandomSpawnTransform() const;
     APawn* SpawnDefaultPlayer(AController* NewPlayer);
 
-    // »ñÈ¡Ëæ»úÉú³Éµã
-    FTransform GetRandomSpawnTransform() const;
+#if WITH_EDITOR
+    FTransform GetEditorViewportCameraTransform() const;
+#endif
 
 private:
-    // ÊÀ½ç³õÊ¼»¯×´Ì¬
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GameMode|State", meta = (AllowPrivateAccess = "true"))
     EWorldInitState WorldInitState;
 
-    // ÊÀ½çÅäÖÃ
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameMode|Config", meta = (AllowPrivateAccess = "true"))
     FWorldConfig WorldConfiguration;
 
-    // Íæ¼ÒÉú³ÉÅäÖÃ
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameMode|Player", meta = (AllowPrivateAccess = "true"))
     FPlayerSpawnConfig PlayerSpawnConfiguration;
 
-    // »Øµ÷´æ´¢
     TArray<FOnWorldInitCallback> InitCallbacks;
-
-    // Òì²½³õÊ¼»¯¼ÆÊ±Æ÷ID
     FString AsyncInitTimerId;
 };

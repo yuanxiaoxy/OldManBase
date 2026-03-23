@@ -25,12 +25,10 @@ protected:
     virtual void LoadWorldResources_Implementation() override;
     virtual void InitializeWorldState_Implementation() override;
     virtual void InitializePlayers_Implementation() override;
-    virtual bool ShouldSpawnPlayer_Implementation() const override;
     virtual APawn* SpawnPlayer_Implementation(AController* NewPlayer) override;
 
     // 重写配置方法
     virtual FWorldConfig GetWorldConfig_Implementation() const override;
-    virtual FPlayerSpawnConfig GetPlayerSpawnConfig_Implementation() const override;
 
     // 事件处理
     UFUNCTION()
@@ -42,9 +40,6 @@ protected:
     // UI相关
     UFUNCTION(BlueprintCallable, Category = "GameMode|UI")
     void ShowStartUI();
-
-    UFUNCTION(BlueprintCallable, Category = "GameMode|UI")
-    void HideStartUIAndStartGame();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OldManWorldBase")
     bool IsStartWorld = false;

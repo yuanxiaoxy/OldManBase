@@ -44,17 +44,6 @@ void AOldManGameMode::BeginPlay()
     UIManager = UUIManager::GetInstance();
 }
 
-bool AOldManGameMode::ShouldSpawnPlayer_Implementation() const
-{
-    // 如果是起始世界，我们可能不立即生成玩家，等待UI操作
-    if (IsStartWorld)
-    {
-        return false; // UI显示期间不生成玩家
-    }
-
-    return Super::ShouldSpawnPlayer_Implementation();
-}
-
 APawn* AOldManGameMode::SpawnPlayer_Implementation(AController* NewPlayer)
 {
     if (IsStartWorld && !bShouldSpawnPlayerLater)
@@ -136,22 +125,6 @@ FWorldConfig AOldManGameMode::GetWorldConfig_Implementation() const
     return Config;
 }
 
-FPlayerSpawnConfig AOldManGameMode::GetPlayerSpawnConfig_Implementation() const
-{
-    FPlayerSpawnConfig Config = Super::GetPlayerSpawnConfig_Implementation();
-
-    // 自定义玩家生成配置
-    Config.bShouldSpawnPlayer = true;
-    Config.bUseRandomSpawn = true;
-
-    // 添加可能的生成点
-    Config.PossibleSpawnPoints.Add(FTransform(FRotator(0, 0, 0), FVector(100, 200, 300)));
-    Config.PossibleSpawnPoints.Add(FTransform(FRotator(0, 90, 0), FVector(-100, 150, 300)));
-    Config.PossibleSpawnPoints.Add(FTransform(FRotator(0, 180, 0), FVector(50, -200, 300)));
-
-    return Config;
-}
-
 void AOldManGameMode::OnMyWorldInitialized(bool bSuccess)
 {
     if (bSuccess)
@@ -224,31 +197,6 @@ void AOldManGameMode::ShowStartUI()
     else
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to create StartPanel!"));
-    }
-}
-
-void AOldManGameMode::HideStartUIAndStartGame()
-{
-    if (!UIManager)
-        return;
-
-    // 隐藏开始UI
-    UIManager->HideUI("StartPanel");
-    bIsUIShown = false;
-
-    // 设置输入模式为游戏（隐藏鼠标）
-    SetupInputModeForGame();
-
-    // 现在生成玩家
-    bShouldSpawnPlayerLater = true;
-    if (PendingPlayerController)
-    {
-        APawn* PlayerPawn = SpawnDefaultPlayer(PendingPlayerController);
-        if (PlayerPawn)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Player spawned after UI closed: %s"), *PlayerPawn->GetName());
-        }
-        PendingPlayerController = nullptr;
     }
 }
 

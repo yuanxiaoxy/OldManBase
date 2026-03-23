@@ -85,8 +85,12 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 {
     if (!EnhancedInputComponent)
     {
-        UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent is null in BindCharacterInputs"));
-        return;
+        EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+        if (!EnhancedInputComponent)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent is null in BindCharacterInputs"));
+            return;
+        }
     }
 
     if (!DefaultMappingContext)

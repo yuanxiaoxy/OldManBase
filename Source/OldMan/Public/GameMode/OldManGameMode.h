@@ -49,7 +49,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UDataTable* EffectConfig = nullptr;
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UDataTable* AudioConfig = nullptr;  // 音频数据表
+    UDataTable* AudioConfig = nullptr;  
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UDataTable* TaskConfig = nullptr;  
 
 private:
     void SetupInputModeForUI();

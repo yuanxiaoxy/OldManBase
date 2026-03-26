@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UIManager/UIBase.h"
+#include "OldManUIBase.h"
 #include "ExitPanel_Start.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class OLDMANUI_API UExitPanel_Start : public UUIBase
+class OLDMANUI_API UExitPanel_Start : public UOldManUIBase
 {
 	GENERATED_BODY()
 	

@@ -106,10 +106,6 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Camera")
     void ZoomCamera(float Delta);
 
-    // ========== Event Handling ==========
-    virtual void RegisterEventListeners() override;
-    virtual void UnregisterEventListeners() override;
-
     // Override parent class event handling functions
     virtual void OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData) override;
     virtual void HandleCharacterDeath() override;
@@ -146,10 +142,6 @@ public: // Public area
     /** Check whether cursor position should be used for detection (gamepad cursor mode and current device is gamepad) */
     UFUNCTION(BlueprintCallable, Category = "Input|GamepadCursor")
     bool ShouldUseCursorPosition() const;
-
-    /** Set gamepad cursor mode (can be called when UI is opened) */
-    UFUNCTION(BlueprintCallable, Category = "Input|GamepadCursor")
-    void SetGamepadCursorMode(bool bEnable);
 
     /** Update cursor visibility (hide system cursor, show UMG cursor) */
     void UpdateCursorVisibility();

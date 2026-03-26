@@ -1,4 +1,3 @@
-// XyPlayerControllerBase.cpp
 #include "XyCharacter/XyPlayerControllerBase.h"
 #include "XyCharacter/XyCharacterBase.h"
 #include "Engine/Engine.h"
@@ -9,34 +8,25 @@
 AXyPlayerControllerBase::AXyPlayerControllerBase()
 {
     PrimaryActorTick.bCanEverTick = true;
-
     bInputEnabled = true;
     MouseSensitivity = 1.0f;
     ControllerSensitivity = 1.0f;
     CachedInputComponent = nullptr;
     CachedXyCharacter = nullptr;
     bCachedCharacterValid = false;
-
-    // Initialize device type as unknown
     LastHardwareDeviceType = EHardwareDevicePrimaryType::Unspecified;
 }
 
 void AXyPlayerControllerBase::BeginPlay()
 {
     Super::BeginPlay();
-
-    // Set input mode (keep original logic)
     FInputModeGameOnly InputMode;
     SetInputMode(InputMode);
     bShowMouseCursor = false;
-
-    // Register event listeners
     RegisterEventListeners();
 
-    // ========== New: Bind input device change event ==========
     if (UInputDeviceSubsystem* InputDeviceSubsystem = GetGameInstance()->GetEngine()->GetEngineSubsystem<UInputDeviceSubsystem>())
     {
-        // Bind delegate to notify when hardware device changes
         InputDeviceSubsystem->OnInputHardwareDeviceChanged.AddDynamic(this, &AXyPlayerControllerBase::OnInputHardwareDeviceChanged);
         UE_LOG(LogTemp, Log, TEXT("AXyPlayerControllerBase: Bound to InputHardwareDeviceChanged event."));
     }
@@ -45,7 +35,6 @@ void AXyPlayerControllerBase::BeginPlay()
         UE_LOG(LogTemp, Warning, TEXT("AXyPlayerControllerBase: Failed to get InputDeviceSubsystem."));
     }
 
-    // Optional: Immediately get current device type and send initial event
     EHardwareDevicePrimaryType InitialType = GetCurrentHardwareDeviceType();
     if (InitialType != EHardwareDevicePrimaryType::Unspecified)
     {
@@ -57,137 +46,93 @@ void AXyPlayerControllerBase::BeginPlay()
 
 void AXyPlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    // ========== New: Unbind input device change event ==========
     if (UInputDeviceSubsystem* InputDeviceSubsystem = GetGameInstance()->GetEngine()->GetEngineSubsystem<UInputDeviceSubsystem>())
     {
         InputDeviceSubsystem->OnInputHardwareDeviceChanged.RemoveAll(this);
     }
-
-    // Remove event listeners
     UnregisterEventListeners();
-
     Super::EndPlay(EndPlayReason);
 }
 
 void AXyPlayerControllerBase::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
-
-    // Update cached character pointer
     CachedXyCharacter = Cast<AXyCharacterBase>(InPawn);
-    bCachedCharacterValid = IsValid(CachedXyCharacter);  // Set validity flag
-
-    // Bind new character's inputs
+    bCachedCharacterValid = IsValid(CachedXyCharacter);
     BindCharacterInputs();
 }
 
 void AXyPlayerControllerBase::OnUnPossess()
 {
-    // Clear cache
     CachedXyCharacter = nullptr;
-    bCachedCharacterValid = false;  // Reset flag
-
+    bCachedCharacterValid = false;
     Super::OnUnPossess();
 }
 
 void AXyPlayerControllerBase::SetupInputComponent()
 {
     Super::SetupInputComponent();
-
     CachedInputComponent = InputComponent;
     BindCharacterInputs();
 }
 
 void AXyPlayerControllerBase::BindCharacterInputs()
 {
-    if (!CachedInputComponent)
-        return;
-
+    if (!CachedInputComponent) return;
     UE_LOG(LogTemp, Log, TEXT("Character inputs bound"));
 }
 
 void AXyPlayerControllerBase::SetInputEnabled(bool bEnabled)
 {
     bInputEnabled = bEnabled;
-
-    if (bInputEnabled)
+    if (APawn* TempPawn = GetPawn())
     {
-        // Enable input
-        GetPawn()->EnableInput(this);
-    }
-    else
-    {
-        // Disable input
-        GetPawn()->DisableInput(this);
+        if (bEnabled) TempPawn->EnableInput(this);
+        else TempPawn->DisableInput(this);
     }
 }
 
-// Optimized GetXyCharacter method
 AXyCharacterBase* AXyPlayerControllerBase::GetXyCharacter() const
 {
-    // If cache is valid, return directly
-    if (IsValid(CachedXyCharacter))
-    {
-        return CachedXyCharacter;
-    }
-
-    // Re-acquire when cache is invalid
+    if (IsValid(CachedXyCharacter)) return CachedXyCharacter;
     CachedXyCharacter = Cast<AXyCharacterBase>(GetPawn());
     return CachedXyCharacter;
 }
 
 void AXyPlayerControllerBase::RespawnCharacter()
 {
-    if (GetXyCharacter() && !GetXyCharacter()->IsAlive())
-    {
-
-    }
+    if (GetXyCharacter() && !GetXyCharacter()->IsAlive()) {}
 }
 
 void AXyPlayerControllerBase::RegisterEventListeners()
 {
     UMyEventManager* EventMgr = GetEventManager();
-    if (EventMgr)
-    {
-    }
+    if (EventMgr) {}
 }
 
 void AXyPlayerControllerBase::UnregisterEventListeners()
 {
     UMyEventManager* EventMgr = GetEventManager();
-    if (EventMgr)
-    {
-    }
+    if (EventMgr) {}
 }
-
-// ========== Event Callbacks ==========
 
 void AXyPlayerControllerBase::OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData)
 {
     switch (EventType)
     {
-    case EGameEventType::PlayerDied:
-        HandleCharacterDeath();
-        break;
-    case EGameEventType::PlayerSpawned:
-        // Handle character spawn
-        break;
-    case EGameEventType::ItemCollected:
-        // Handle item collection
-        break;
-    default:
-        // Handle other custom events
-        break;
+    case EGameEventType::PlayerDied: HandleCharacterDeath(); break;
+    case EGameEventType::PlayerSpawned: break;
+    case EGameEventType::ItemCollected: break;
+    default: break;
     }
 }
 
 void AXyPlayerControllerBase::HandleCharacterDeath()
 {
-    // Disable input when character dies
     SetInputEnabled(false);
 }
 
-void AXyPlayerControllerBase::SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse)
+void AXyPlayerControllerBase::SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse, bool bEnablePawnInput)
 {
     switch (NewMode)
     {
@@ -195,47 +140,33 @@ void AXyPlayerControllerBase::SetUIInputMode(EUIInputMode NewMode, UUserWidget* 
     {
         FInputModeGameOnly InputMode;
         SetInputMode(InputMode);
-        // Explicitly clear Slate keyboard focus to ensure no widget holds focus
         FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
-        UE_LOG(LogTemp, Log, TEXT("SetUIInputMode - GameOnly, focus cleared."));
         break;
     }
     case EUIInputMode::UIOnly:
     {
         FInputModeUIOnly InputMode;
-        if (FocusWidget)
-        {
-            InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
-        }
+        if (FocusWidget) InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
         SetInputMode(InputMode);
-        // Force focus to UI
         if (FocusWidget)
         {
             TSharedPtr<SWidget> SlateWidget = FocusWidget->GetCachedWidget();
             if (SlateWidget.IsValid())
-            {
                 FSlateApplication::Get().SetKeyboardFocus(SlateWidget.ToSharedRef(), EFocusCause::SetDirectly);
-            }
         }
         break;
     }
     case EUIInputMode::UIAndGame:
     {
         FInputModeGameAndUI InputMode;
-        if (FocusWidget)
-        {
-            InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
-        }
+        if (FocusWidget) InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
         InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
         SetInputMode(InputMode);
-        // Set focus similarly
         if (FocusWidget)
         {
             TSharedPtr<SWidget> SlateWidget = FocusWidget->GetCachedWidget();
             if (SlateWidget.IsValid())
-            {
                 FSlateApplication::Get().SetKeyboardFocus(SlateWidget.ToSharedRef(), EFocusCause::SetDirectly);
-            }
         }
         break;
     }
@@ -243,28 +174,33 @@ void AXyPlayerControllerBase::SetUIInputMode(EUIInputMode NewMode, UUserWidget* 
 
     bShowMouseCursor = bShowMouse;
 
-    // Log: record focus after setting
-    TSharedPtr<SWidget> FocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-    FString FocusedWidgetStr = FocusedWidget.IsValid() ? FocusedWidget->ToString() : TEXT("None");
-    UE_LOG(LogTemp, Log, TEXT("SetUIInputMode - Mode=%s, FocusWidget=%s, ShowMouse=%s, SlateFocus=%s"),
+    if (bEnablePawnInput)
+    {
+        APawn* ControlledPawn = GetPawn();
+        if (ControlledPawn)
+        {
+            if (NewMode == EUIInputMode::GameOnly)
+                ControlledPawn->EnableInput(this);
+            else
+                ControlledPawn->DisableInput(this);
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("SetUIInputMode - Mode=%s, FocusWidget=%s, ShowMouse=%s, PawnInput=%s"),
         *UEnum::GetValueAsString(NewMode),
         FocusWidget ? *FocusWidget->GetName() : TEXT("None"),
         bShowMouse ? TEXT("Yes") : TEXT("No"),
-        *FocusedWidgetStr);
+        (NewMode == EUIInputMode::GameOnly && bEnablePawnInput) ? TEXT("Enabled") : TEXT("Disabled"));
 }
 
 EHardwareDevicePrimaryType AXyPlayerControllerBase::GetCurrentHardwareDeviceType() const
 {
-    if (!GetGameInstance() || !GetGameInstance()->GetEngine())
-    {
-        return EHardwareDevicePrimaryType::Unspecified;
-    }
+    if (!GetGameInstance() || !GetGameInstance()->GetEngine()) return EHardwareDevicePrimaryType::Unspecified;
     if (UInputDeviceSubsystem* InputDeviceSubsystem = GetGameInstance()->GetEngine()->GetEngineSubsystem<UInputDeviceSubsystem>())
     {
         if (GetLocalPlayer())
         {
             FPlatformUserId UserId = GetLocalPlayer()->GetPlatformUserId();
-            // Get most recently used hardware device information
             FHardwareDeviceIdentifier DeviceInfo = InputDeviceSubsystem->GetMostRecentlyUsedHardwareDevice(UserId);
             return DeviceInfo.PrimaryDeviceType;
         }
@@ -274,16 +210,8 @@ EHardwareDevicePrimaryType AXyPlayerControllerBase::GetCurrentHardwareDeviceType
 
 void AXyPlayerControllerBase::OnInputHardwareDeviceChanged(FPlatformUserId UserId, FInputDeviceId DeviceId)
 {
-    // Only handle the player belonging to this controller
-    if (!GetLocalPlayer() || GetLocalPlayer()->GetPlatformUserId() != UserId)
-    {
-        return;
-    }
-
-    // Get new device type
+    if (!GetLocalPlayer() || GetLocalPlayer()->GetPlatformUserId() != UserId) return;
     EHardwareDevicePrimaryType NewDeviceType = GetCurrentHardwareDeviceType();
-
-    // If device type changed, broadcast event (avoid duplicate broadcast)
     if (NewDeviceType != LastHardwareDeviceType)
     {
         BroadcastInputDeviceChanged(NewDeviceType);
@@ -294,28 +222,7 @@ void AXyPlayerControllerBase::OnInputHardwareDeviceChanged(FPlatformUserId UserI
 void AXyPlayerControllerBase::BroadcastInputDeviceChanged(EHardwareDevicePrimaryType NewDeviceType)
 {
     UMyEventManager* EventMgr = GetEventManager();
-    if (!EventMgr)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("AXyPlayerControllerBase: EventManager is null, cannot broadcast input device change."));
-        return;
-    }
-
-    EventMgr->TriggerCppEvent("Key_Input_InputDeviceChanged", NewDeviceType);
-
+    if (EventMgr) EventMgr->TriggerCppEvent("Key_Input_InputDeviceChanged", NewDeviceType);
     const UEnum* EnumPtr = StaticEnum<EHardwareDevicePrimaryType>();
-    if (EnumPtr)
-    {
-        // Convert enum value to string (two options)
-        FString EnumValueString = EnumPtr->GetNameStringByValue(static_cast<int64>(NewDeviceType));
-        // Or use GetDisplayValueAsText (requires #include "Internationalization/Text.h")
-        // FText DisplayText = EnumPtr->GetDisplayValueAsText(NewDeviceType);
-        // FString EnumValueString = DisplayText.ToString();
-
-        // Output log
-        UE_LOG(LogTemp, Log, TEXT("BroadcastInputDeviceChanged - New Device Type: %s"), *EnumValueString);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Failed to get UEnum for EHardwareDevicePrimaryType"));
-    }
+    if (EnumPtr) UE_LOG(LogTemp, Log, TEXT("BroadcastInputDeviceChanged - New Device Type: %s"), *EnumPtr->GetNameStringByValue(static_cast<int64>(NewDeviceType)));
 }

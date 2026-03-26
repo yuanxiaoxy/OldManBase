@@ -179,14 +179,14 @@ void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
     if (LookAxisVector.IsNearlyZero())
         return;
 
-    // Check if in gamepad cursor mode and current device is gamepad
-    if (ShouldUseCursorPosition())
-    {
-        // Move virtual cursor, multiply by speed and delta time
-        float DeltaTime = GetWorld()->GetDeltaSeconds();
-        MoveGamepadCursor(LookAxisVector * GamepadCursorSpeed * DeltaTime);
-        return;
-    }
+    //// Check if in gamepad cursor mode and current device is gamepad
+    //if (ShouldUseCursorPosition())
+    //{
+    //    // Move virtual cursor, multiply by speed and delta time
+    //    float DeltaTime = GetWorld()->GetDeltaSeconds();
+    //    MoveGamepadCursor(LookAxisVector * GamepadCursorSpeed * DeltaTime);
+    //    return;
+    //}
 
     UOldManCameraComponent* CameraComp = GetCameraComponent();
     if (!CameraComp)
@@ -351,36 +351,6 @@ void AOldManPersonPlayerController::ZoomCamera(float Delta)
     CameraComp->SetCameraDistance(NewDistance);
 }
 
-// ========== Event handling ==========
-
-void AOldManPersonPlayerController::RegisterEventListeners()
-{
-    Super::RegisterEventListeners();
-
-    UMyEventManager* EventMgr = GetEventManager();
-    if (EventMgr)
-    {
-        // Register character event listener
-        EventMgr->RegisterCppEvent<AOldManPersonPlayerController, EGameEventType, const FGameEventData&>(
-            FName("OldManCharacterEvents"),
-            this,
-            &AOldManPersonPlayerController::OnCharacterEvent
-        );
-    }
-}
-
-void AOldManPersonPlayerController::UnregisterEventListeners()
-{
-    UMyEventManager* EventMgr = GetEventManager();
-    if (EventMgr)
-    {
-        // Remove event listener
-        EventMgr->RemoveCppEvent(FName("OldManCharacterEvents"));
-    }
-
-    Super::UnregisterEventListeners();
-}
-
 void AOldManPersonPlayerController::OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData)
 {
     switch (EventType)
@@ -491,15 +461,4 @@ bool AOldManPersonPlayerController::ShouldUseCursorPosition() const
     // When gamepad cursor mode is enabled and current input device is gamepad, use virtual cursor position
     EHardwareDevicePrimaryType CurrentDevice = GetCurrentHardwareDeviceType();
     return bGamepadCursorMode && CurrentDevice == EHardwareDevicePrimaryType::Gamepad;
-}
-
-void AOldManPersonPlayerController::SetGamepadCursorMode(bool bEnable)
-{
-    if (bGamepadCursorMode == bEnable)
-        return;
-
-    bGamepadCursorMode = bEnable;
-
-    // Simple cursor display handling: hide system cursor in gamepad cursor mode, otherwise keep hidden
-    bShowMouseCursor = false;
 }

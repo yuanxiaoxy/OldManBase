@@ -1,4 +1,3 @@
-// XyPlayerControllerBase.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,7 +7,6 @@
 #include "UIManager/UIBase.h"
 #include "GameFramework/InputSettings.h"
 #include "GameFramework/InputDeviceSubsystem.h"
-
 #include "XyPlayerControllerBase.generated.h"
 
 UCLASS(Abstract, Blueprintable)
@@ -27,82 +25,65 @@ protected:
     virtual void SetupInputComponent() override;
 
 public:
-    // ========== Input System ==========
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void BindCharacterInputs();
 
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void SetInputEnabled(bool bEnabled);
 
+    /** 设置 UI 输入模式
+     * @param NewMode        新的输入模式
+     * @param FocusWidget    需要获得焦点的 UI 控件（可为 nullptr）
+     * @param bShowMouse     是否显示鼠标光标
+     * @param bEnablePawnInput 是否自动控制 Pawn 的输入启用/禁用（模式为 GameOnly 时启用 Pawn 输入，否则禁用）
+     */
     UFUNCTION()
-    virtual void SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse);
+    virtual void SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse, bool bEnablePawnInput = false);
 
-    // ========== Character Control ==========
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "XyPlayerController")
     class AXyCharacterBase* GetXyCharacter() const;
 
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void RespawnCharacter();
 
-    // ========== Event Handling ==========
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void RegisterEventListeners();
 
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void UnregisterEventListeners();
 
-    // ========== New: Input Device Detection ==========
-    /** Get the hardware device type last used by the current player (e.g., mouse, gamepad) */
     UFUNCTION(BlueprintPure, Category = "XyPlayerController|InputDevice")
     EHardwareDevicePrimaryType GetCurrentHardwareDeviceType() const;
 
 protected:
-    // ========== Input Handling Functions ==========
-
-    // ========== Event Callbacks ==========
     UFUNCTION()
     virtual void OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData);
 
     UFUNCTION()
     virtual void HandleCharacterDeath();
 
-    // ========== New: Hardware Device Change Callback ==========
-    /** Called by InputDeviceSubsystem when input hardware device changes */
     UFUNCTION()
     virtual void OnInputHardwareDeviceChanged(FPlatformUserId UserId, FInputDeviceId DeviceId);
 
-    /** Broadcast input device change event to event manager */
     void BroadcastInputDeviceChanged(EHardwareDevicePrimaryType NewDeviceType);
 
-    // ========== Framework Integration ==========
     UMyEventManager* GetEventManager() const { return UMyEventManager::GetEventManager(); }
     UMonoManager* GetMonoManager() const { return UMonoManager::GetMonoManager(); }
 
 protected:
-    // Whether input is enabled
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     bool bInputEnabled;
 
-    // Mouse sensitivity
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     float MouseSensitivity;
 
-    // Controller sensitivity
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     float ControllerSensitivity;
 
 private:
-    // Cached input component
     UInputComponent* CachedInputComponent;
-
-    // Cache character pointer to avoid frequent Cast (performance optimization)
     UPROPERTY()
     mutable class AXyCharacterBase* CachedXyCharacter;
-
-    // Cache validity flag
     mutable bool bCachedCharacterValid;
-
-    // ========== New: Input Device Detection Related ==========
-    /** Last detected hardware device type, used for change detection */
     EHardwareDevicePrimaryType LastHardwareDeviceType;
 };

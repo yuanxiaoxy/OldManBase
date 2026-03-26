@@ -13,6 +13,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameViewportClient.h"
 #include "Kismet/GameplayStatics.h"
+#include "TaskSystem/MissionManager.h"
 
 AOldManGameMode::AOldManGameMode()
 {
@@ -95,6 +96,12 @@ void AOldManGameMode::InitializeWorldState_Implementation()
         {
             UAudioManager::GetInstance()->Initialize(AudioConfigData);
         }
+    }
+
+    UDataTable* TaskConfigData = Cast<UDataTable>(TaskConfig);
+    if (TaskConfigData)
+    {
+        UMissionManager::GetInstance()->LoadTaskTable(TaskConfigData);
     }
 
     UOldManSavePointManager::GetInstance();

@@ -1,4 +1,4 @@
-﻿using UnrealBuildTool;
+using UnrealBuildTool;
 
 public class OldManUI : ModuleRules
 {
@@ -14,7 +14,8 @@ public class OldManUI : ModuleRules
             "CoreUObject", 
             "Engine",
             "OldManConfig",
-            "UMG"
+            "UMG",
+            "EnhancedInput"
         });
 
         //The path for the header files

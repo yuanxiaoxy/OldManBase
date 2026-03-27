@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UIManager/UIBase.h"
+#include "OldManUIBase.h"
 #include "ChoooseLevelPanel.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class OLDMANUI_API UChoooseLevelPanel : public UUIBase
+class OLDMANUI_API UChoooseLevelPanel : public UOldManUIBase
 {
 	GENERATED_BODY()
 	

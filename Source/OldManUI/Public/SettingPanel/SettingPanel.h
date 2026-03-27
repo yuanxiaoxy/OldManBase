@@ -1,16 +1,16 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UIManager/UIBase.h"
+#include "OldManUIBase.h"
 #include "SettingPanel.generated.h"
 
 /**
  * 
  */
 UCLASS(Blueprintable)
-class OLDMANUI_API USettingPanel : public UUIBase
+class OLDMANUI_API USettingPanel : public UOldManUIBase
 {
 	GENERATED_BODY()
 	

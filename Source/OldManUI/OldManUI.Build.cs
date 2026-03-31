@@ -10,12 +10,15 @@ public class OldManUI : ModuleRules
         //Don't forget to add your project's name as a dependency (GDBlogPost in my case)
         PublicDependencyModuleNames.AddRange(new string[] 
         { 
-            "Core", 
-            "CoreUObject", 
-            "Engine",
             "OldManConfig",
-            "UMG",
-            "EnhancedInput"
+            "EnhancedInput",
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "Slate",
+            "SlateCore",
+            "UMG"
         });
 
         //The path for the header files

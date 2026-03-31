@@ -6,9 +6,21 @@
 #include "OldManUIBase.h"
 #include "SettingPanel.generated.h"
 
-/**
- * 
- */
+UCLASS(Blueprintable)
+class OLDMANUI_API USettingPanelEntryItem : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int Index;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Image", meta = (Tooltip = "设置UI显示的图片"))
+	UTexture2D* IconImage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting Panel")
+	USettingPanel* SettingPanel;
+};
+
 UCLASS(Blueprintable)
 class OLDMANUI_API USettingPanel : public UOldManUIBase
 {
@@ -29,4 +41,10 @@ protected:
 	void UpdateBGMToGame();
 	UFUNCTION(BlueprintCallable, Category = "MyCategory")
 	void UpdateEffectToGame();
+
+	UFUNCTION(BlueprintCallable, Category = "MyCategory")
+	void OnChangeTabSwitch(int index);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void UI_OnChangeTabSwitch(int index);
 };

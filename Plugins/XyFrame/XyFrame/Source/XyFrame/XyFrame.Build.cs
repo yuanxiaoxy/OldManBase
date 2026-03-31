@@ -49,7 +49,8 @@ public class XyFrame : ModuleRules
 				"Slate",
 				"SlateCore",
                 "UMG",
-                "StructUtils"
+                "StructUtils",
+                "EnhancedInput",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

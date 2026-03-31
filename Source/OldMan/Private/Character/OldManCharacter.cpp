@@ -986,6 +986,7 @@ void AOldManCharacter::StopRightMousePull()
     SetPullItemState(false);
     if (curOldManPullItem)
     {
+        curOldManPullItem->OnDismissChecked();
         curOldManPullItem->StopDragging();
         curOldManPullItem = nullptr;
     }

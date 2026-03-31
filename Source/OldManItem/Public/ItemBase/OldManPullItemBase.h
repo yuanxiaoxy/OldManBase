@@ -13,12 +13,11 @@ UCLASS()
 class OLDMANITEM_API AOldManPullItemBase : public AOldManItemBase
 {
 	GENERATED_BODY()
-	
-protected:
+
+public:
 	UPROPERTY(BlueprintReadOnly, Category = "Drag")
 	bool bIsBeingDragged;
 
-public:
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleMouseData(const FVector& ViewDirection, float Intensity);
 
@@ -27,4 +26,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void StopDragging();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBeChecked();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnDismissChecked();
 };

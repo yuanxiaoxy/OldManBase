@@ -12,13 +12,11 @@
 #include "UIBase.h"
 #include "UIManager.generated.h"
 
-// 前向声明
 class UUIConfigDataAsset;
 class UUIBase;
 struct FUIConfigData;
 class AXyPlayerControllerBase;
 
-// UI信息结构
 USTRUCT(BlueprintType)
 struct FUIInfo
 {
@@ -51,7 +49,6 @@ struct FUIInfo
     }
 };
 
-// UI栈节点
 USTRUCT(BlueprintType)
 struct FUILayerNode
 {
@@ -81,7 +78,6 @@ struct FUILayerNode
     }
 };
 
-// UI事件
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIShown, FName, UIName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIHidden, FName, UIName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIClosed, FName, UIName);
@@ -96,7 +92,6 @@ class XYFRAME_API UUIManager : public USingletonBase
     DECLARE_SINGLETON(UUIManager)
 
 public:
-    // 初始化UI管理器
     UFUNCTION(BlueprintCallable, Category = "UI")
     void InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset = nullptr);
 
@@ -229,7 +224,7 @@ private:
     UPROPERTY()
     UWorld* WorldContext;
 
-    // 当前激活输入的UI（改为弱指针）
+    // 当前激活输入的UI（弱指针）
     UPROPERTY()
     TWeakObjectPtr<UUIBase> CurrentInputActiveUI;
 
@@ -237,7 +232,6 @@ private:
     bool bIsShuttingDown;
 
     // 私有方法
-    void CreateLayerPanels();
     void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer);
     void RemoveFromStack(FName UIName);
     void UpdateStackOrder();

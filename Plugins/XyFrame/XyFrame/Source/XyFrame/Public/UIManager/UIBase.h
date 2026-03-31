@@ -13,15 +13,11 @@
 #include "UITypes.h"
 #include "InputActionValue.h"
 #include "InputAction.h"
-#include "EnhancedInputComponent.h"
 #include "UIBase.generated.h"
 
-// 前向声明
-class UEnhancedInputComponent;
 class UInputMappingContext;
 class UInputAction;
 
-// 控件信息
 USTRUCT(BlueprintType)
 struct FUIControlInfo
 {
@@ -43,17 +39,13 @@ struct FUIControlInfo
     }
 };
 
-// UI控件事件
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, const FString&, ControlPath);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCheckBoxChanged, const FString&, ControlPath, bool, IsChecked);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSliderValueChanged, const FString&, ControlPath, float, Value);
 
-// UI输入事件
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIInputAction, UInputAction*, InputAction, EUIInputEvent, InputEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIInputAxis, UInputAction*, InputAction, FVector2D, AxisValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInputModeChanged);
 
-// UI生命周期事件
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUIBaseInitialized);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUIBaseShown, UObject*, Data);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUIBaseHidden);
@@ -68,7 +60,6 @@ class XYFRAME_API UUIBase : public UUserWidget
 public:
     UUIBase(const FObjectInitializer& ObjectInitializer);
 
-    // ========== 生命周期 ==========
     virtual void NativeConstruct() override;
     virtual void NativeDestruct() override;
 
@@ -81,11 +72,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI")
     virtual void CloseUI();
 
-    // ========== 数据设置 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     virtual void SetData(UObject* Data);
 
-    // ========== 控件获取 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     UButton* GetButton(const FString& ControlPath) const;
 
@@ -104,7 +93,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI")
     UProgressBar* GetProgressBar(const FString& ControlPath) const;
 
-    // ========== 控件设置 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     void SetText(const FString& ControlPath, const FString& Content);
 
@@ -114,7 +102,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI")
     void SetProgress(const FString& ControlPath, float Progress);
 
-    // ========== 输入控制 ==========
     UFUNCTION(BlueprintCallable, Category = "UI|Input")
     void SetInputMode(EUIInputMode NewInputMode);
 
@@ -137,17 +124,13 @@ public:
     bool IsInputActivated() const { return bInputActivated; }
 
     UFUNCTION(BlueprintCallable, Category = "UI|Input")
-    TArray<UInputAction*> GetAllInputActions();
-
-    UFUNCTION(BlueprintCallable, Category = "UI|Input")
     bool ShouldShowMouseCursor() const;
 
-    // ========== 输入事件（蓝图可实现） ==========
-    UFUNCTION(BlueprintImplementableEvent, Category = "UI|Input")
-    void OnInputAction(UInputAction* InputAction, EUIInputEvent InputEvent);
+    UFUNCTION(BlueprintCallable, Category = "UI|Input")
+    TArray<UInputAction*> GetAllInputActions() const { return BoundInputActions; }
 
     UFUNCTION(BlueprintImplementableEvent, Category = "UI|Input")
-    void OnInputAxis(UInputAction* InputAction, FVector2D AxisValue);
+    void OnInputAction(UInputAction* InputAction, EUIInputEvent InputEvent);
 
     UFUNCTION(BlueprintImplementableEvent, Category = "UI|Input")
     void OnInputStarted(UInputAction* InputAction);
@@ -161,7 +144,6 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "UI|Input")
     void OnInputCanceled(UInputAction* InputAction);
 
-    // ========== 控件事件 ==========
     UPROPERTY(BlueprintAssignable, Category = "UI|Events")
     FOnButtonClicked OnButtonClicked;
 
@@ -171,17 +153,12 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "UI|Events")
     FOnSliderValueChanged OnSliderValueChanged;
 
-    // ========== 输入事件委托 ==========
     UPROPERTY(BlueprintAssignable, Category = "UI|Input")
     FOnUIInputAction OnInputActionEvent;
 
     UPROPERTY(BlueprintAssignable, Category = "UI|Input")
-    FOnUIInputAxis OnInputAxisEvent;
-
-    UPROPERTY(BlueprintAssignable, Category = "UI|Input")
     FOnInputModeChanged OnInputModeChanged;
 
-    // ========== 生命周期事件（蓝图可用） ==========
     UPROPERTY(BlueprintAssignable, Category = "UI|Lifecycle")
     FOnUIBaseInitialized OnUIInitialized;
 
@@ -197,7 +174,6 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "UI|Lifecycle")
     FOnUIBaseDataSet OnDataSetReceived;
 
-    // ========== 蓝图可重写的生命周期函数 ==========
     UFUNCTION(BlueprintImplementableEvent, Category = "UI|Lifecycle")
     void OnUIInitialize();
 
@@ -220,22 +196,17 @@ public:
     bool bShowMouseCursorWhenActive;
 
 protected:
-    // 控件字典
     UPROPERTY()
     TMap<FString, FUIControlInfo> ControlDictionary;
 
-    // 控件到路径的映射
     UPROPERTY()
     TMap<UWidget*, FString> WidgetPathMap;
 
-    // 当前数据
     UPROPERTY()
     UObject* CurrentData;
 
-    // 初始化标志
     bool bIsInitialized;
 
-    // ========== 输入相关成员 ==========
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Input", meta = (AllowPrivateAccess = "true"))
     EUIInputMode InputMode;
 
@@ -250,15 +221,10 @@ protected:
     bool bOriginalMouseCursorVisible;
 
     UPROPERTY()
-    UEnhancedInputComponent* EnhancedInputComponent;
-
-    UPROPERTY()
     TArray<UInputAction*> BoundInputActions;
 
-    // 按键到输入动作的映射
     TMap<FKey, TArray<UInputAction*>> KeyToActionMap;
 
-    // ========== 事件处理 ==========
     UFUNCTION()
     virtual void HandleButtonClick(const FString& ControlPath);
 
@@ -277,36 +243,21 @@ protected:
     UFUNCTION()
     void HandleSliderValueChangedInternal(float Value);
 
-    // ========== 输入处理 ==========
-    void HandleInputStarted(const FInputActionInstance& Instance);
-    void HandleInputTriggered(const FInputActionInstance& Instance);
-    void HandleInputCompleted(const FInputActionInstance& Instance);
-    void HandleInputCanceled(const FInputActionInstance& Instance);
-
-    // 输入处理（虚函数，供子类重写）
     virtual void ProcessInputAction(const UInputAction* InputAction, EUIInputEvent InputEvent);
-    virtual void ProcessInputAxis(const UInputAction* InputAction, const FVector2D& AxisValue);
-    void BindInputActions();
-    void UnbindInputActions();
+    void BuildKeyToActionMap();
     TArray<UInputAction*> GetInputActionsFromIMC();
     void SaveOriginalInputSettings();
     void RestoreOriginalInputSettings();
 
-    // 构建按键映射
-    void BuildKeyToActionMap();
-
-    // ========== 初始化方法 ==========
     void InitializeControls();
     void FindChildControls();
     void RegisterControlEvents();
 
-    // ========== 辅助方法 ==========
     FString GetControlPath(UWidget* Widget) const;
     void AddControlToDictionary(const FString& Path, UWidget* Widget, EUIControlType Type);
     FString FindControlPathByWidget(UWidget* Widget) const;
     UWidget* GetCurrentEventSourceWidget() const;
 
-    // ========== 按键事件覆盖 ==========
     virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
     virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 

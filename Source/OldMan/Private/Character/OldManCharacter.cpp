@@ -851,6 +851,8 @@ void AOldManCharacter::InitializeAnimationCameraComponent()
 
 void AOldManCharacter::InitializeEvent()
 {
+    UMonoManager::GetInstance()->SetInterval(0.1f, this, &AOldManCharacter::CheckPullItem);
+
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool>(UGlobalEventName::Key_Player_OnChangeGrivity, this, &AOldManCharacter::ChangeSlopeState);
 
     UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
@@ -912,16 +914,10 @@ bool AOldManCharacter::GetIfCouldPullItem()
     return bCouldPullItem;
 }
 
-// ========== Modify StartRightMousePull to use unified cursor position ==========
-void AOldManCharacter::StartRightMousePull()
+AOldManPullItemBase* AOldManCharacter::TryGetPullItem()
 {
-    if (!GetIfCouldPullItem())
-    {
-        return;
-    }
-
     AOldManPersonPlayerController* PC = GetOldManController();
-    if (!PC) return;
+    if (!PC) return nullptr;
 
     // Get effective cursor screen position
     FVector2D CursorScreenPos = PC->GetEffectiveCursorScreenPosition();
@@ -937,22 +933,51 @@ void AOldManCharacter::StartRightMousePull()
 
         FVector TraceEnd = WorldOrigin + WorldDirection * 10000.0f;
 
-        // Debug drawing
-        DrawDebugLine(GetWorld(), WorldOrigin, TraceEnd, FColor::Cyan, false, 5.0f, 0, 2.0f);
-
         if (GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, TraceEnd, ECC_Visibility, QueryParams))
         {
-            AOldManPullItemBase* HitActor = Cast<AOldManPullItemBase>(HitResult.GetActor());
-            if (HitActor)
+            if (AOldManPullItemBase* HitActor = Cast<AOldManPullItemBase>(HitResult.GetActor()))
             {
-                SetPullItemState(true);
-                HitActor->StartDragging();
-                curOldManPullItem = HitActor;
-
-                // Draw hit point
-                DrawDebugSphere(GetWorld(), HitResult.Location, 15.0f, 12, FColor::Magenta, false, 5.0f, 0, 3.0f);
+                return HitActor;
             }
         }
+    }
+
+    return nullptr;
+}
+
+void AOldManCharacter::CheckPullItem()
+{
+    if (AOldManPullItemBase * HitActor = TryGetPullItem())
+    {
+        curOldManPullItem = HitActor;
+        curOldManPullItem->OnBeChecked();
+    }
+    else if (curOldManPullItem)
+    {
+        if (!curOldManPullItem->bIsBeingDragged)
+        {
+            curOldManPullItem->OnDismissChecked();
+            curOldManPullItem = nullptr;
+        }
+    };
+}
+
+// ========== Modify StartRightMousePull to use unified cursor position ==========
+void AOldManCharacter::StartRightMousePull()
+{
+    if (!GetIfCouldPullItem())
+    {
+        return;
+    }
+
+    if (AOldManPullItemBase* HitActor = TryGetPullItem())
+    {
+        SetPullItemState(true);
+        HitActor->StartDragging();
+        curOldManPullItem = HitActor;
+
+        // Draw hit point
+        DrawDebugSphere(GetWorld(), HitActor->GetActorLocation(), 15.0f, 12, FColor::Magenta, false, 5.0f, 0, 3.0f);
     }
 }
 

@@ -9,11 +9,8 @@
 #include "Components/ProgressBar.h"
 #include "Blueprint/WidgetTree.h"
 #include "GameFramework/PlayerController.h"
-#include "EnhancedInputSubsystems.h"
-#include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
-#include "InputActionValue.h"
 #include "Framework/Application/SlateApplication.h"
 
 UUIBase::UUIBase(const FObjectInitializer& ObjectInitializer)
@@ -27,7 +24,6 @@ UUIBase::UUIBase(const FObjectInitializer& ObjectInitializer)
     , bInputActivated(false)
     , OriginalInputMode(EUIInputMode::GameOnly)
     , bOriginalMouseCursorVisible(false)
-    , EnhancedInputComponent(nullptr)
 {
     bIsFocusable = true;
 }
@@ -260,13 +256,13 @@ void UUIBase::SetProgress(const FString& ControlPath, float Progress)
         ProgressBar->SetPercent(Progress);
 }
 
-// ========== 输入控制方法 ==========
 void UUIBase::SetInputMode(EUIInputMode NewInputMode)
 {
     if (InputMode != NewInputMode)
     {
         InputMode = NewInputMode;
         OnInputModeChanged.Broadcast();
+        UE_LOG(LogTemp, Log, TEXT("UUIBase::SetInputMode - UI: %s, NewMode: %s"), *GetName(), *UEnum::GetValueAsString(InputMode));
     }
 }
 
@@ -274,18 +270,14 @@ void UUIBase::SetInputMappingContext(UInputMappingContext* NewIMC, int32 InPrior
 {
     InputMappingContext = NewIMC;
     InputPriority = InPriority;
-    BuildKeyToActionMap();
 
     if (bInputActivated && InputMappingContext)
     {
         DeactivateInput(false);
         ActivateInput();
     }
-}
 
-TArray<UInputAction*> UUIBase::GetAllInputActions()
-{
-    return GetInputActionsFromIMC();
+    UE_LOG(LogTemp, Log, TEXT("UUIBase::SetInputMappingContext - UI: %s, IMC: %s, Priority: %d"), *GetName(), NewIMC ? *NewIMC->GetName() : TEXT("None"), InPriority);
 }
 
 bool UUIBase::ShouldShowMouseCursor() const
@@ -297,44 +289,31 @@ bool UUIBase::ShouldShowMouseCursor() const
 
 void UUIBase::ActivateInput()
 {
-    if (bInputActivated) return;
+    if (bInputActivated)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("UUIBase::ActivateInput - Already activated for UI: %s"), *GetName());
+        return;
+    }
 
     APlayerController* PlayerController = GetOwningPlayer();
     if (!PlayerController)
     {
-        UE_LOG(LogTemp, Error, TEXT("UUIBase::ActivateInput - No PlayerController!"));
+        UE_LOG(LogTemp, Error, TEXT("UUIBase::ActivateInput - No PlayerController for UI: %s"), *GetName());
         return;
     }
 
-    UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-    if (!InputSubsystem)
+    if (!InputMappingContext)
     {
-        UE_LOG(LogTemp, Error, TEXT("UUIBase::ActivateInput - No EnhancedInputLocalPlayerSubsystem!"));
+        UE_LOG(LogTemp, Warning, TEXT("UUIBase::ActivateInput - No InputMappingContext for UI: %s, input will not be processed."), *GetName());
+        bInputActivated = true;
         return;
     }
 
-    if (InputMappingContext)
-    {
-        InputSubsystem->AddMappingContext(InputMappingContext, InputPriority);
-        UE_LOG(LogTemp, Log, TEXT("UUIBase::ActivateInput - Added IMC: %s, Priority: %d"), *InputMappingContext->GetName(), InputPriority);
-
-        EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
-        if (EnhancedInputComponent)
-        {
-            BindInputActions();
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("UUIBase::ActivateInput - InputComponent is not UEnhancedInputComponent!"));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIBase::ActivateInput - InputMappingContext is null, UI will not receive input."));
-    }
-
+    BuildKeyToActionMap();
     bInputActivated = true;
-    UE_LOG(LogTemp, Log, TEXT("UUIBase::ActivateInput - Input activated for UI: %s"), *GetName());
+    SaveOriginalInputSettings();
+
+    UE_LOG(LogTemp, Log, TEXT("UUIBase::ActivateInput - Input activated for UI: %s, IMC: %s"), *GetName(), *InputMappingContext->GetName());
 }
 
 void UUIBase::DeactivateInput(bool bReleasePressedKeys)
@@ -342,34 +321,16 @@ void UUIBase::DeactivateInput(bool bReleasePressedKeys)
     if (!bInputActivated) return;
 
     APlayerController* PlayerController = GetOwningPlayer();
-    if (!PlayerController)
-    {
-        bInputActivated = false;
-        EnhancedInputComponent = nullptr;
-        BoundInputActions.Empty();
-        return;
-    }
-
-    UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-    if (InputSubsystem && InputMappingContext)
-    {
-        InputSubsystem->RemoveMappingContext(InputMappingContext);
-        UE_LOG(LogTemp, Log, TEXT("UUIBase::DeactivateInput - Removed IMC: %s"), *InputMappingContext->GetName());
-    }
-
-    if (EnhancedInputComponent)
-    {
-        UnbindInputActions();
-    }
-
-    if (bReleasePressedKeys && PlayerController->InputEnabled())
+    if (PlayerController && bReleasePressedKeys)
     {
         PlayerController->FlushPressedKeys();
     }
 
-    EnhancedInputComponent = nullptr;
-    bInputActivated = false;
+    KeyToActionMap.Empty();
     BoundInputActions.Empty();
+    bInputActivated = false;
+    RestoreOriginalInputSettings();
+
     UE_LOG(LogTemp, Log, TEXT("UUIBase::DeactivateInput - Input deactivated for UI: %s"), *GetName());
 }
 
@@ -391,7 +352,7 @@ void UUIBase::RestoreOriginalInputSettings()
 TArray<UInputAction*> UUIBase::GetInputActionsFromIMC()
 {
     TArray<UInputAction*> InputActions;
-    if (!InputMappingContext) return InputActions;
+    if (!InputMappingContext || !IsValid(InputMappingContext)) return InputActions;
 
     const TArray<FEnhancedActionKeyMapping>& Mappings = InputMappingContext->GetMappings();
     for (const FEnhancedActionKeyMapping& Mapping : Mappings)
@@ -404,123 +365,33 @@ TArray<UInputAction*> UUIBase::GetInputActionsFromIMC()
     return InputActions;
 }
 
-void UUIBase::BindInputActions()
-{
-    if (!EnhancedInputComponent || !InputMappingContext) return;
-    UnbindInputActions();
-    BoundInputActions.Empty();
-
-    TArray<UInputAction*> InputActions = GetInputActionsFromIMC();
-    for (UInputAction* InputAction : InputActions)
-    {
-        if (!InputAction) continue;
-
-        EnhancedInputComponent->BindAction(InputAction, ETriggerEvent::Started, this, &UUIBase::HandleInputStarted);
-        EnhancedInputComponent->BindAction(InputAction, ETriggerEvent::Triggered, this, &UUIBase::HandleInputTriggered);
-        EnhancedInputComponent->BindAction(InputAction, ETriggerEvent::Completed, this, &UUIBase::HandleInputCompleted);
-        EnhancedInputComponent->BindAction(InputAction, ETriggerEvent::Canceled, this, &UUIBase::HandleInputCanceled);
-
-        BoundInputActions.Add(InputAction);
-        UE_LOG(LogTemp, Verbose, TEXT("UUIBase::BindInputActions - Bound action: %s"), *InputAction->GetName());
-    }
-    UE_LOG(LogTemp, Log, TEXT("UUIBase::BindInputActions - Total %d actions bound"), BoundInputActions.Num());
-}
-
-void UUIBase::UnbindInputActions()
-{
-    if (EnhancedInputComponent)
-    {
-        EnhancedInputComponent->ClearBindingsForObject(this);
-        UE_LOG(LogTemp, Verbose, TEXT("UUIBase::UnbindInputActions - Cleared all bindings for this object"));
-    }
-}
-
-void UUIBase::HandleInputStarted(const FInputActionInstance& Instance)
-{
-    const UInputAction* Action = Instance.GetSourceAction();
-    ProcessInputAction(Action, EUIInputEvent::Started);
-}
-
-void UUIBase::HandleInputTriggered(const FInputActionInstance& Instance)
-{
-    const UInputAction* Action = Instance.GetSourceAction();
-    // 检查是否为轴输入
-    if (Instance.GetValue().GetValueType() == EInputActionValueType::Axis2D)
-    {
-        FVector2D AxisValue = Instance.GetValue().Get<FVector2D>();
-        ProcessInputAxis(Action, AxisValue);
-    }
-    else if (Instance.GetValue().GetValueType() == EInputActionValueType::Axis3D)
-    {
-        FVector Vec3 = Instance.GetValue().Get<FVector>();
-        ProcessInputAxis(Action, FVector2D(Vec3.X, Vec3.Y));
-    }
-    else
-    {
-        ProcessInputAction(Action, EUIInputEvent::Triggered);
-    }
-}
-
-void UUIBase::HandleInputCompleted(const FInputActionInstance& Instance)
-{
-    const UInputAction* Action = Instance.GetSourceAction();
-    ProcessInputAction(Action, EUIInputEvent::Completed);
-}
-
-void UUIBase::HandleInputCanceled(const FInputActionInstance& Instance)
-{
-    const UInputAction* Action = Instance.GetSourceAction();
-    ProcessInputAction(Action, EUIInputEvent::Canceled);
-}
-
-void UUIBase::ProcessInputAction(const UInputAction* InputAction, EUIInputEvent InputEvent)
-{
-    if (!InputAction) return;
-    UInputAction* NonConstAction = const_cast<UInputAction*>(InputAction);
-    OnInputActionEvent.Broadcast(NonConstAction, InputEvent);
-    OnInputAction(NonConstAction, InputEvent);
-    switch (InputEvent)
-    {
-    case EUIInputEvent::Started:   OnInputStarted(NonConstAction); break;
-    case EUIInputEvent::Triggered: OnInputTriggered(NonConstAction); break;
-    case EUIInputEvent::Completed: OnInputCompleted(NonConstAction); break;
-    case EUIInputEvent::Canceled:  OnInputCanceled(NonConstAction); break;
-    }
-}
-
-void UUIBase::ProcessInputAxis(const UInputAction* InputAction, const FVector2D& AxisValue)
-{
-    if (!InputAction) return;
-    UInputAction* NonConstAction = const_cast<UInputAction*>(InputAction);
-    OnInputAxisEvent.Broadcast(NonConstAction, AxisValue);
-    OnInputAxis(NonConstAction, AxisValue);
-    OnInputTriggered(NonConstAction);
-}
-
 void UUIBase::BuildKeyToActionMap()
 {
     KeyToActionMap.Empty();
+    BoundInputActions.Empty();
 
-    if (!InputMappingContext) return;
+    if (!InputMappingContext || !IsValid(InputMappingContext)) return;
 
     const TArray<FEnhancedActionKeyMapping>& Mappings = InputMappingContext->GetMappings();
     for (const FEnhancedActionKeyMapping& Mapping : Mappings)
     {
         if (Mapping.Action && Mapping.Key.IsValid())
         {
+            UInputAction* Action = const_cast<UInputAction*>(Mapping.Action.Get());
             TArray<UInputAction*>& Actions = KeyToActionMap.FindOrAdd(Mapping.Key);
-            Actions.AddUnique(const_cast<UInputAction*>(Mapping.Action.Get()));
+            Actions.AddUnique(Action);
+            BoundInputActions.AddUnique(Action);
         }
     }
 
-    UE_LOG(LogTemp, Verbose, TEXT("UUIBase::BuildKeyToActionMap - Built %d key mappings."), KeyToActionMap.Num());
+    UE_LOG(LogTemp, Verbose, TEXT("UUIBase::BuildKeyToActionMap - Built %d key mappings for UI: %s."), KeyToActionMap.Num(), *GetName());
 }
 
 FReply UUIBase::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-    FKey PressedKey = InKeyEvent.GetKey();
-    UE_LOG(LogTemp, VeryVerbose, TEXT("UUIBase::NativeOnKeyDown - Key: %s"), *PressedKey.ToString());
+    if (!bInputActivated) return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 
+    FKey PressedKey = InKeyEvent.GetKey();
     if (const TArray<UInputAction*>* Actions = KeyToActionMap.Find(PressedKey))
     {
         for (UInputAction* Action : *Actions)
@@ -535,6 +406,8 @@ FReply UUIBase::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& In
 
 FReply UUIBase::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
+    if (!bInputActivated) return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+
     FKey ReleasedKey = InKeyEvent.GetKey();
     if (const TArray<UInputAction*>* Actions = KeyToActionMap.Find(ReleasedKey))
     {
@@ -548,7 +421,21 @@ FReply UUIBase::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKe
     return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
 }
 
-// ========== 原有事件处理函数 ==========
+void UUIBase::ProcessInputAction(const UInputAction* InputAction, EUIInputEvent InputEvent)
+{
+    if (!InputAction || !IsValid(InputAction)) return;
+    UInputAction* NonConstAction = const_cast<UInputAction*>(InputAction);
+    OnInputActionEvent.Broadcast(NonConstAction, InputEvent);
+    OnInputAction(NonConstAction, InputEvent);
+    switch (InputEvent)
+    {
+    case EUIInputEvent::Started:   OnInputStarted(NonConstAction); break;
+    case EUIInputEvent::Triggered: OnInputTriggered(NonConstAction); break;
+    case EUIInputEvent::Completed: OnInputCompleted(NonConstAction); break;
+    case EUIInputEvent::Canceled:  OnInputCanceled(NonConstAction); break;
+    }
+}
+
 void UUIBase::HandleButtonClick(const FString& ControlPath)
 {
     OnButtonClicked.Broadcast(ControlPath);

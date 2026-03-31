@@ -9,7 +9,6 @@
 #include "UIManager/UIBase.h"
 #include "XyCharacter/XyPlayerControllerBase.h"
 
-// 静态实例定义
 template<>
 UUIManager* TSingleton<UUIManager>::SingletonInstance = nullptr;
 
@@ -44,7 +43,7 @@ void UUIManager::InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset)
 
 void UUIManager::InitializeSingleton()
 {
-    // 初始化代码
+    // 初始化代码（如果需要）
 }
 
 void UUIManager::LoadUIConfig(UUIConfigDataAsset* ConfigDataAsset)
@@ -181,14 +180,42 @@ void UUIManager::PreloadMarkedUIs()
 UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer, UObject* Data, FName UIName, EUIOpenPolicy OpenPolicy)
 {
     APlayerController* PlayerController = GetPlayerController();
-    if (!PlayerController || !WidgetClass) return nullptr;
+    if (!PlayerController || !WidgetClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - Invalid PlayerController or WidgetClass"));
+        return nullptr;
+    }
 
     if (UIName.IsNone())
     {
         UIName = FName(*WidgetClass->GetName().Replace(TEXT("_C"), TEXT("")));
     }
 
-    // 根据打开策略处理现有UI
+    FUIConfigData Config;
+    bool bHasConfig = UIConfigData && UIConfigData->GetUIConfig(UIName, Config);
+    EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
+
+    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s"),
+        *UIName.ToString(), *UEnum::GetValueAsString(PanelType), bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"));
+
+    // 处理MainPanel类型：自动隐藏其他所有MainPanel
+    if (PanelType == EUIPanelType::MainPanel)
+    {
+        TArray<FName> AllActiveUIs = GetAllActiveUIs();
+        for (FName ActiveUIName : AllActiveUIs)
+        {
+            if (ActiveUIName == UIName) continue;
+            FUIConfigData ActiveConfig;
+            if (UIConfigData && UIConfigData->GetUIConfig(ActiveUIName, ActiveConfig) &&
+                ActiveConfig.PanelType == EUIPanelType::MainPanel)
+            {
+                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Hiding other MainPanel: %s"), *ActiveUIName.ToString());
+                HideUI(ActiveUIName);
+            }
+        }
+    }
+
+    // 打开策略处理
     if (OpenPolicy == EUIOpenPolicy::Replace)
     {
         if (UIStack.Num() > 0)
@@ -209,15 +236,30 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     {
         if (ExistingUI->WidgetInstance)
         {
+            // 如果配置存在，重新应用输入设置（确保模式正确）
+            if (bHasConfig && ExistingUI->WidgetInstance->IsA<UUIBase>())
+            {
+                UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance);
+                UIBase->SetInputMode(Config.DefaultInputMode);
+                UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                if (Config.DefaultInputMappingContext)
+                {
+                    UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                    if (IMC)
+                        UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                }
+                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Reapplied input settings for existing UI: %s"), *UIName.ToString());
+            }
+
             if (ExistingUI->State != EUIState::Visible)
             {
-                // 先加入栈，再调用 ShowUI，确保输入已就绪
                 AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
                 HandleStackChange();
 
                 if (UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance))
                     UIBase->ShowUI(Data);
-                ExistingUI->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
+                if (ExistingUI->WidgetInstance->GetVisibility() != ESlateVisibility::Visible)
+                    ExistingUI->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
                 ExistingUI->State = EUIState::Visible;
             }
             else
@@ -256,10 +298,10 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo->Layer = Layer;
     }
 
+    // 应用配置
     if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
     {
-        FUIConfigData Config;
-        if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+        if (bHasConfig)
         {
             UIBase->SetInputMode(Config.DefaultInputMode);
             UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
@@ -269,17 +311,22 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
                 if (IMC)
                     UIBase->SetInputMappingContext(IMC, Config.InputPriority);
             }
+            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Applied input settings for new UI: %s, InputMode: %s"),
+                *UIName.ToString(), *UEnum::GetValueAsString(Config.DefaultInputMode));
         }
     }
 
-    // 重要：先入栈并激活输入，再调用 ShowUI
     AddToStack(NewWidget, UIName, Layer);
     HandleStackChange();
 
     if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
         UIBase->ShowUI(Data);
 
-    NewWidget->AddToViewport();
+    if (!NewWidget->IsInViewport())
+        NewWidget->AddToViewport();
+    else
+        UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUI - Widget %s already in viewport, skipped AddToViewport."), *UIName.ToString());
+
     NewWidget->SetVisibility(ESlateVisibility::Visible);
 
     OnUIShown.Broadcast(UIName);
@@ -292,14 +339,7 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
     if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        if (UIInfo->WidgetInstance)
-        {
-            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
-        }
-        else
-        {
-            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
-        }
+        return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
     }
     return nullptr;
 }
@@ -385,7 +425,6 @@ void UUIManager::CloseTopUI()
         CloseUI(UIStack.Last().UIName, true);
 }
 
-// ========== 输入管理方法 ==========
 void UUIManager::UpdateTopUIInput()
 {
     if (bIsShuttingDown) return;
@@ -469,7 +508,7 @@ void UUIManager::HandleStackChange()
     for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
         FUILayerNode& Node = UIStack[i];
-        if (Node.Widget && Node.Widget->IsVisible())
+        if (Node.Widget)
         {
             TopUI = Cast<UUIBase>(Node.Widget);
             bHasVisibleUI = true;
@@ -482,6 +521,9 @@ void UUIManager::HandleStackChange()
         TopUIMode = TopUI->GetInputMode();
         bShowMouse = TopUI->ShouldShowMouseCursor();
 
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - TopUI: %s, InputMode: %s, ShowMouse: %s"),
+            *TopUI->GetName(), *UEnum::GetValueAsString(TopUIMode), bShowMouse ? TEXT("true") : TEXT("false"));
+
         TopUI->ActivateInput();
         CurrentInputActiveUI = TopUI;
 
@@ -493,7 +535,6 @@ void UUIManager::HandleStackChange()
         }
         else
         {
-            // 如果找不到或不是 UUserWidget，则使用 TopUI 本身
             FocusWidget = TopUI;
         }
 
@@ -501,8 +542,8 @@ void UUIManager::HandleStackChange()
         if (FocusWidget)
             FocusWidget->SetFocus();
 
-        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - Active UI: %s, FocusWidget: %s"),
-            *TopUI->GetName(), FocusWidget ? *FocusWidget->GetName() : TEXT("None"));
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - Set UI Input Mode to %s for UI: %s, FocusWidget: %s"),
+            *UEnum::GetValueAsString(TopUIMode), *TopUI->GetName(), FocusWidget ? *FocusWidget->GetName() : TEXT("None"));
     }
     else
     {
@@ -511,7 +552,6 @@ void UUIManager::HandleStackChange()
     }
 }
 
-// ========== 辅助方法 ==========
 UUserWidget* UUIManager::GetUI(FName UIName) const
 {
     if (const FUIInfo* UIInfo = UIRegistry.Find(UIName))
@@ -637,7 +677,6 @@ void UUIManager::SafeRemoveWidget(UUserWidget* Widget)
     {
         if (Widget->IsInViewport())
             Widget->RemoveFromParent();
-        Widget = nullptr;
     }
 }
 
@@ -679,9 +718,10 @@ void UUIManager::PrintConfigInfo()
         UE_LOG(LogTemp, Log, TEXT("Total Config Entries: %d"), AllConfigs.Num());
         for (const FUIConfigData& Config : AllConfigs)
         {
-            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, Desc: %s"),
+            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, Desc: %s"),
                 *Config.UIName.ToString(), *Config.WidgetClass.ToString(), *UEnum::GetValueAsString(Config.DefaultLayer),
-                *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"), *Config.Description);
+                *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"),
+                *UEnum::GetValueAsString(Config.PanelType), *Config.Description);
         }
     }
     else

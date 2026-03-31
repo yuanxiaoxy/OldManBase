@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "SettingPanel/SettingPanel.h"
@@ -22,5 +22,10 @@ void USettingPanel::UpdateBGMToGame()
 void USettingPanel::UpdateEffectToGame()
 {
 
+}
+
+void USettingPanel::OnChangeTabSwitch(int index)
+{
+	UI_OnChangeTabSwitch(index);
 }
 

@@ -14,6 +14,7 @@
 #include "ItemBase/OldManBulletBase.h"
 #include "CameraAnimation/OldManCameraAnimationAsset.h"
 #include "CameraAnimation/OldManCameraAnimationComponent.h"
+#include "Components/CheckDeathAreaComponent.h"
 #include "GameFramework/InputDeviceSubsystem.h"
 #include "OldManCharacter.generated.h"
 
@@ -80,6 +81,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UOldManCameraComponent* CameraComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeathCheck")
+    UCheckDeathAreaComponent* CheckDeathAreaComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State Machine")
     UStateMachineBase* StateMachine;

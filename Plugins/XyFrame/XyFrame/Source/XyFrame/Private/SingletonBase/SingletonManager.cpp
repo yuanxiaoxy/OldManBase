@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// SingletonManager.cpp
 #include "SingletonBase/SingletonManager.h"
 #include "SingletonBase/SingletonBase.h"
 #include "Engine/Engine.h"
@@ -19,7 +18,7 @@ USingletonManager* USingletonManager::GetInstance()
 
 void USingletonManager::Initialize()
 {
-    GetInstance(); // 确保实例存在
+    GetInstance();
     UE_LOG(LogTemp, Log, TEXT("SingletonManager initialized"));
 }
 
@@ -67,12 +66,24 @@ UObject* USingletonManager::GetSingleton(UClass* SingletonClass) const
     return SingletonPtr ? *SingletonPtr : nullptr;
 }
 
+UObject* USingletonManager::GetSingletonDerivedFrom(UClass* BaseClass) const
+{
+    for (const auto& Pair : SingletonInstances)
+    {
+        UObject* Instance = Pair.Value;
+        if (Instance && IsValid(Instance) && Instance->IsA(BaseClass))
+        {
+            return Instance;
+        }
+    }
+    return nullptr;
+}
+
 void USingletonManager::DestroySingleton(UClass* SingletonClass)
 {
     USingletonBase* Singleton = Cast<USingletonBase>(GetSingleton(SingletonClass));
     if (Singleton && IsValid(Singleton))
     {
-        // 查找并调用对应单例类的DestroyInstance方法
         UFunction* DestroyFunc = Singleton->FindFunction(FName("DestroyCurSingleton"));
         if (DestroyFunc)
         {
@@ -90,16 +101,12 @@ void USingletonManager::DestroySingleton(UClass* SingletonClass)
 void USingletonManager::DestroyAllSingletons()
 {
     UE_LOG(LogTemp, Log, TEXT("Destroying all %d singletons"), SingletonInstances.Num());
-
-    // 创建临时数组，避免在迭代过程中修改容器
     TArray<UClass*> SingletonClasses;
     SingletonInstances.GetKeys(SingletonClasses);
-
     for (UClass* SingletonClass : SingletonClasses)
     {
         DestroySingleton(SingletonClass);
     }
-
     SingletonInstances.Empty();
 }
 

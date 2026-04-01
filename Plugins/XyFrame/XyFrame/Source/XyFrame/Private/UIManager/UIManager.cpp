@@ -25,6 +25,7 @@ UUIManager::~UUIManager()
     bIsShuttingDown = true;
     UIStack.Empty();
     UIRegistry.Empty();
+    MainPanelHistoryStack.Empty();
     CurrentInputActiveUI = nullptr;
 }
 
@@ -198,7 +199,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s"),
         *UIName.ToString(), *UEnum::GetValueAsString(PanelType), bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"));
 
-    // 处理MainPanel类型：自动隐藏其他所有MainPanel
+    // 处理MainPanel类型：自动隐藏其他所有MainPanel，并记录到历史栈
     if (PanelType == EUIPanelType::MainPanel)
     {
         TArray<FName> AllActiveUIs = GetAllActiveUIs();
@@ -210,6 +211,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
                 ActiveConfig.PanelType == EUIPanelType::MainPanel)
             {
                 UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Hiding other MainPanel: %s"), *ActiveUIName.ToString());
+                // 将被隐藏的 MainPanel 压入历史栈
+                MainPanelHistoryStack.Add(ActiveUIName);
                 HideUI(ActiveUIName);
             }
         }
@@ -344,8 +347,26 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
     return nullptr;
 }
 
-void UUIManager::HideUI(FName UIName)
+void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
 {
+    if (bIsShuttingDown) return;
+
+    // 检查是否是 MainPanel
+    bool bIsMainPanel = false;
+    FUIConfigData Config;
+    if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+    {
+        bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
+    }
+
+    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
+    FName PreviousMainPanel = NAME_None;
+    if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
+    {
+        PreviousMainPanel = MainPanelHistoryStack.Pop();
+    }
+
+    // 执行隐藏逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         if (UIInfo->WidgetInstance)
@@ -361,10 +382,35 @@ void UUIManager::HideUI(FName UIName)
             OnUITopChanged.Broadcast(GetTopUIName());
         }
     }
+
+    // 恢复上一个 MainPanel
+    if (PreviousMainPanel != NAME_None)
+    {
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HideUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
+        ShowUIByName(PreviousMainPanel);
+    }
 }
 
-void UUIManager::CloseUI(FName UIName, bool bDestroyInstance)
+void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePreviousMainPanel)
 {
+    if (bIsShuttingDown) return;
+
+    // 检查是否是 MainPanel
+    bool bIsMainPanel = false;
+    FUIConfigData Config;
+    if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+    {
+        bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
+    }
+
+    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
+    FName PreviousMainPanel = NAME_None;
+    if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
+    {
+        PreviousMainPanel = MainPanelHistoryStack.Pop();
+    }
+
+    // 执行关闭逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         if (UIInfo->WidgetInstance)
@@ -406,6 +452,13 @@ void UUIManager::CloseUI(FName UIName, bool bDestroyInstance)
             OnUITopChanged.Broadcast(GetTopUIName());
         }
     }
+
+    // 恢复上一个 MainPanel
+    if (PreviousMainPanel != NAME_None)
+    {
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::CloseUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
+        ShowUIByName(PreviousMainPanel);
+    }
 }
 
 void UUIManager::CloseAllUI()
@@ -416,6 +469,7 @@ void UUIManager::CloseAllUI()
     {
         CloseUI(UIStack.Last().UIName, true);
     }
+    MainPanelHistoryStack.Empty();
 }
 
 void UUIManager::CloseTopUI()

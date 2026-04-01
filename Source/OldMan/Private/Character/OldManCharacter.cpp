@@ -59,6 +59,8 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     CameraComponent = CreateDefaultSubobject<UOldManCameraComponent>(TEXT("CameraComponent"));
     CameraAnimationComponent = CreateDefaultSubobject<UOldManCameraAnimationComponent>(TEXT("CameraAnimationComponent"));
 
+    CheckDeathAreaComponent = CreateDefaultSubobject<UCheckDeathAreaComponent>(TEXT("CheckDeathAreaComponent"));
+
     // Ensure character does not auto-orient to movement; we control manually
     bUseControllerRotationYaw = false;
     if (GetCharacterMovement())

@@ -112,10 +112,10 @@ public:
     UUserWidget* ShowUIByName(FName UIName, UObject* Data = nullptr, EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
-    void HideUI(FName UIName);
+    void HideUI(FName UIName, bool bRestorePreviousMainPanel = false);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
-    void CloseUI(FName UIName, bool bDestroyInstance = true);
+    void CloseUI(FName UIName, bool bDestroyInstance = true, bool bRestorePreviousMainPanel = false);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
     void CloseAllUI();
@@ -230,6 +230,9 @@ private:
 
     // 关闭标志，用于析构时跳过清理操作
     bool bIsShuttingDown;
+
+    // MainPanel 历史栈（记录被自动隐藏的 MainPanel）
+    TArray<FName> MainPanelHistoryStack;
 
     // 私有方法
     void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer);

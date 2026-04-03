@@ -67,10 +67,10 @@ public:
     virtual void ShowUI(UObject* Data = nullptr);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
-    virtual void HideUI();
+    virtual void HideUI(bool bRestorePreviousMainPanel = false);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
-    virtual void CloseUI();
+    virtual void CloseUI(bool bDestroyInstance = true, bool bRestorePreviousMainPanel = false);
 
     UFUNCTION(BlueprintCallable, Category = "UI")
     virtual void SetData(UObject* Data);
@@ -261,6 +261,13 @@ protected:
     virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
     virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
+    // 内部方法，供 UIManager 调用，不触发 UIManager 同步（避免递归）
+    virtual void InternalShowUI(UObject* Data = nullptr);
+    virtual void InternalHideUI();
+    virtual void InternalCloseUI();
+
 private:
     void InternalInitialize();
+
+    friend class UUIManager;
 };

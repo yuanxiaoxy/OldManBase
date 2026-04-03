@@ -14,6 +14,7 @@ UUIManager* TSingleton<UUIManager>::SingletonInstance = nullptr;
 
 UUIManager::UUIManager()
     : bIsShuttingDown(false)
+    , bIsSwitchingMainPanel(false)
 {
     WorldContext = nullptr;
     UIConfigData = nullptr;
@@ -25,6 +26,7 @@ UUIManager::~UUIManager()
     bIsShuttingDown = true;
     UIStack.Empty();
     UIRegistry.Empty();
+    WidgetToUINameMap.Empty();
     MainPanelHistoryStack.Empty();
     CurrentInputActiveUI = nullptr;
 }
@@ -65,6 +67,7 @@ void UUIManager::ReloadUIConfig()
     {
         CloseAllUI();
         UIRegistry.Empty();
+        WidgetToUINameMap.Empty();
         RegisterAllUIsFromConfig();
     }
 }
@@ -123,6 +126,7 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
                 {
                     UIInfo->WidgetInstance = Widget;
                     UIInfo->bIsPreloaded = true;
+                    WidgetToUINameMap.Add(Widget, UIName);
                     if (UUIBase* UIBase = Cast<UUIBase>(Widget))
                     {
                         FUIConfigData Config;
@@ -161,6 +165,7 @@ void UUIManager::PreloadMarkedUIs()
                 {
                     UIInfo->WidgetInstance = Widget;
                     UIInfo->bIsPreloaded = true;
+                    WidgetToUINameMap.Add(Widget, Config.UIName);
                     if (UUIBase* UIBase = Cast<UUIBase>(Widget))
                     {
                         UIBase->SetInputMode(Config.DefaultInputMode);
@@ -199,22 +204,45 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s"),
         *UIName.ToString(), *UEnum::GetValueAsString(PanelType), bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"));
 
-    // 处理MainPanel类型：自动隐藏其他所有MainPanel，并记录到历史栈
+    // 处理MainPanel类型（静默隐藏其他MainPanel，避免回调死循环）
     if (PanelType == EUIPanelType::MainPanel)
     {
-        TArray<FName> AllActiveUIs = GetAllActiveUIs();
-        for (FName ActiveUIName : AllActiveUIs)
+        if (bIsSwitchingMainPanel)
         {
-            if (ActiveUIName == UIName) continue;
-            FUIConfigData ActiveConfig;
-            if (UIConfigData && UIConfigData->GetUIConfig(ActiveUIName, ActiveConfig) &&
-                ActiveConfig.PanelType == EUIPanelType::MainPanel)
+            UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUI - Already switching MainPanel, skip to avoid recursion"));
+        }
+        else
+        {
+            bIsSwitchingMainPanel = true;
+
+            TArray<FName> AllActiveUIs = GetAllActiveUIs();
+            for (FName ActiveUIName : AllActiveUIs)
             {
-                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Hiding other MainPanel: %s"), *ActiveUIName.ToString());
-                // 将被隐藏的 MainPanel 压入历史栈
-                MainPanelHistoryStack.Add(ActiveUIName);
-                HideUI(ActiveUIName);
+                if (ActiveUIName == UIName) continue;
+                FUIConfigData ActiveConfig;
+                if (UIConfigData && UIConfigData->GetUIConfig(ActiveUIName, ActiveConfig) &&
+                    ActiveConfig.PanelType == EUIPanelType::MainPanel)
+                {
+                    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Silently hiding other MainPanel: %s"), *ActiveUIName.ToString());
+                    MainPanelHistoryStack.Add(ActiveUIName);
+
+                    if (FUIInfo* OtherUIInfo = UIRegistry.Find(ActiveUIName))
+                    {
+                        if (UUIBase* OtherUIBase = Cast<UUIBase>(OtherUIInfo->WidgetInstance))
+                        {
+                            InternalHideUISilent(OtherUIBase);
+                        }
+                        else if (OtherUIInfo->WidgetInstance)
+                        {
+                            OtherUIInfo->WidgetInstance->SetVisibility(ESlateVisibility::Hidden);
+                        }
+                        OtherUIInfo->State = EUIState::Hidden;
+                        RemoveFromStack(ActiveUIName);
+                    }
+                }
             }
+
+            bIsSwitchingMainPanel = false;
         }
     }
 
@@ -234,53 +262,52 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         }
     }
 
-    // 检查是否已存在
+    // 检查是否已存在实例
+    UUIBase* ExistingUIBase = nullptr;
     if (FUIInfo* ExistingUI = UIRegistry.Find(UIName))
     {
         if (ExistingUI->WidgetInstance)
         {
-            // 如果配置存在，重新应用输入设置（确保模式正确）
-            if (bHasConfig && ExistingUI->WidgetInstance->IsA<UUIBase>())
+            ExistingUIBase = Cast<UUIBase>(ExistingUI->WidgetInstance);
+            if (ExistingUIBase)
             {
-                UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance);
-                UIBase->SetInputMode(Config.DefaultInputMode);
-                UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
-                if (Config.DefaultInputMappingContext)
+                if (bHasConfig)
                 {
-                    UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
-                    if (IMC)
-                        UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                    ExistingUIBase->SetInputMode(Config.DefaultInputMode);
+                    ExistingUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                    if (Config.DefaultInputMappingContext)
+                    {
+                        UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                        if (IMC)
+                            ExistingUIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                    }
                 }
-                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Reapplied input settings for existing UI: %s"), *UIName.ToString());
-            }
 
-            if (ExistingUI->State != EUIState::Visible)
-            {
-                AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
-                HandleStackChange();
-
-                if (UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance))
-                    UIBase->ShowUI(Data);
-                if (ExistingUI->WidgetInstance->GetVisibility() != ESlateVisibility::Visible)
-                    ExistingUI->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
-                ExistingUI->State = EUIState::Visible;
+                if (ExistingUI->State != EUIState::Visible)
+                {
+                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
+                    HandleStackChange();
+                    InternalShowUI(ExistingUIBase, Data);
+                    ExistingUI->State = EUIState::Visible;
+                }
+                else
+                {
+                    RemoveFromStack(UIName);
+                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
+                    HandleStackChange();
+                }
+                if (Data)
+                    ExistingUIBase->SetData(Data);
+                OnUIShown.Broadcast(UIName);
+                return ExistingUI->WidgetInstance;
             }
-            else
-            {
-                RemoveFromStack(UIName);
-                AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
-                HandleStackChange();
-            }
-            if (Data && Cast<UUIBase>(ExistingUI->WidgetInstance))
-                Cast<UUIBase>(ExistingUI->WidgetInstance)->SetData(Data);
-            OnUIShown.Broadcast(UIName);
-            return ExistingUI->WidgetInstance;
         }
     }
 
     // 创建新UI
     UUserWidget* NewWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
     if (!NewWidget) return nullptr;
+    UUIBase* NewUIBase = Cast<UUIBase>(NewWidget);
 
     if (!UIRegistry.Contains(UIName))
     {
@@ -300,37 +327,33 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo->State = EUIState::Visible;
         UIInfo->Layer = Layer;
     }
+    WidgetToUINameMap.Add(NewWidget, UIName);
 
-    // 应用配置
-    if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
+    if (NewUIBase)
     {
         if (bHasConfig)
         {
-            UIBase->SetInputMode(Config.DefaultInputMode);
-            UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+            NewUIBase->SetInputMode(Config.DefaultInputMode);
+            NewUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
             if (Config.DefaultInputMappingContext)
             {
                 UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
                 if (IMC)
-                    UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                    NewUIBase->SetInputMappingContext(IMC, Config.InputPriority);
             }
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Applied input settings for new UI: %s, InputMode: %s"),
-                *UIName.ToString(), *UEnum::GetValueAsString(Config.DefaultInputMode));
         }
     }
 
     AddToStack(NewWidget, UIName, Layer);
     HandleStackChange();
 
-    if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
-        UIBase->ShowUI(Data);
+    if (NewUIBase)
+        InternalShowUI(NewUIBase, Data);
+    else
+        NewWidget->SetVisibility(ESlateVisibility::Visible);
 
     if (!NewWidget->IsInViewport())
         NewWidget->AddToViewport();
-    else
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUI - Widget %s already in viewport, skipped AddToViewport."), *UIName.ToString());
-
-    NewWidget->SetVisibility(ESlateVisibility::Visible);
 
     OnUIShown.Broadcast(UIName);
     OnUITopChanged.Broadcast(UIName);
@@ -347,11 +370,47 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
     return nullptr;
 }
 
-void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
+void UUIManager::ShowUIByWidget(UUserWidget* Widget, UObject* Data)
 {
-    if (bIsShuttingDown) return;
+    if (!Widget) return;
+    UUIBase* UIBase = Cast<UUIBase>(Widget);
+    if (!UIBase) return;
 
-    // 检查是否是 MainPanel
+    FName UIName = GetUINameByWidget(Widget);
+    if (UIName.IsNone())
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUIByWidget - Widget %s not registered"), *Widget->GetName());
+        return;
+    }
+
+    FUIInfo* UIInfo = UIRegistry.Find(UIName);
+    if (!UIInfo) return;
+
+    if (UIInfo->State == EUIState::Visible)
+    {
+        RemoveFromStack(UIName);
+        AddToStack(Widget, UIName, UIInfo->Layer);
+        HandleStackChange();
+    }
+    else
+    {
+        AddToStack(Widget, UIName, UIInfo->Layer);
+        HandleStackChange();
+        UIInfo->State = EUIState::Visible;
+    }
+
+    InternalShowUI(UIBase, Data);
+    OnUIShown.Broadcast(UIName);
+    OnUITopChanged.Broadcast(UIName);
+}
+
+void UUIManager::HideUIByWidget(UUserWidget* Widget, bool bRestorePreviousMainPanel)
+{
+    if (!Widget || bIsShuttingDown) return;
+    UUIBase* UIBase = Cast<UUIBase>(Widget);
+    FName UIName = GetUINameByWidget(Widget);
+    if (UIName.IsNone()) return;
+
     bool bIsMainPanel = false;
     FUIConfigData Config;
     if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
@@ -359,22 +418,20 @@ void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
         bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
     }
 
-    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
     FName PreviousMainPanel = NAME_None;
     if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
     {
         PreviousMainPanel = MainPanelHistoryStack.Pop();
     }
 
-    // 执行隐藏逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        if (UIInfo->WidgetInstance)
+        if (UIInfo->WidgetInstance == Widget)
         {
-            if (UUIBase* UIBase = Cast<UUIBase>(UIInfo->WidgetInstance))
-                UIBase->HideUI();
+            if (UIBase)
+                InternalHideUI(UIBase);
             else
-                UIInfo->WidgetInstance->SetVisibility(ESlateVisibility::Hidden);
+                Widget->SetVisibility(ESlateVisibility::Hidden);
             UIInfo->State = EUIState::Hidden;
             RemoveFromStack(UIName);
             HandleStackChange();
@@ -383,19 +440,19 @@ void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
         }
     }
 
-    // 恢复上一个 MainPanel
     if (PreviousMainPanel != NAME_None)
     {
-        UE_LOG(LogTemp, Log, TEXT("UUIManager::HideUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
         ShowUIByName(PreviousMainPanel);
     }
 }
 
-void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePreviousMainPanel)
+void UUIManager::CloseUIByWidget(UUserWidget* Widget, bool bDestroyInstance, bool bRestorePreviousMainPanel)
 {
-    if (bIsShuttingDown) return;
+    if (!Widget || bIsShuttingDown) return;
+    UUIBase* UIBase = Cast<UUIBase>(Widget);
+    FName UIName = GetUINameByWidget(Widget);
+    if (UIName.IsNone()) return;
 
-    // 检查是否是 MainPanel
     bool bIsMainPanel = false;
     FUIConfigData Config;
     if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
@@ -403,35 +460,34 @@ void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePrevi
         bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
     }
 
-    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
     FName PreviousMainPanel = NAME_None;
     if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
     {
         PreviousMainPanel = MainPanelHistoryStack.Pop();
     }
 
-    // 执行关闭逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        if (UIInfo->WidgetInstance)
+        if (UIInfo->WidgetInstance == Widget)
         {
-            if (CurrentInputActiveUI.Get() == UIInfo->WidgetInstance)
+            if (CurrentInputActiveUI.Get() == UIBase)
             {
                 if (CurrentInputActiveUI.IsValid())
-                {
                     CurrentInputActiveUI->DeactivateInput(true);
-                }
                 CurrentInputActiveUI = nullptr;
             }
-            if (UUIBase* UIBase = Cast<UUIBase>(UIInfo->WidgetInstance))
-                UIBase->CloseUI();
+
+            if (UIBase)
+                InternalCloseUI(UIBase);
             else
-                SafeRemoveWidget(UIInfo->WidgetInstance);
+                SafeRemoveWidget(Widget);
+
             RemoveFromStack(UIName);
             HandleStackChange();
 
             if (bDestroyInstance)
             {
+                WidgetToUINameMap.Remove(Widget);
                 UIInfo->WidgetInstance = nullptr;
                 FUIConfigData TempConfig;
                 if (!UIConfigData || !UIConfigData->GetUIConfig(UIName, TempConfig))
@@ -447,17 +503,47 @@ void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePrevi
             {
                 UIInfo->State = EUIState::Hidden;
                 UIInfo->WidgetInstance = nullptr;
+                WidgetToUINameMap.Remove(Widget);
             }
             OnUIClosed.Broadcast(UIName);
             OnUITopChanged.Broadcast(GetTopUIName());
         }
     }
 
-    // 恢复上一个 MainPanel
     if (PreviousMainPanel != NAME_None)
     {
-        UE_LOG(LogTemp, Log, TEXT("UUIManager::CloseUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
         ShowUIByName(PreviousMainPanel);
+    }
+}
+
+FName UUIManager::GetUINameByWidget(UUserWidget* Widget) const
+{
+    if (const FName* FoundName = WidgetToUINameMap.Find(Widget))
+        return *FoundName;
+    return NAME_None;
+}
+
+void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
+{
+    if (bIsShuttingDown) return;
+    if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
+    {
+        if (UIInfo->WidgetInstance)
+        {
+            HideUIByWidget(UIInfo->WidgetInstance, bRestorePreviousMainPanel);
+        }
+    }
+}
+
+void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePreviousMainPanel)
+{
+    if (bIsShuttingDown) return;
+    if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
+    {
+        if (UIInfo->WidgetInstance)
+        {
+            CloseUIByWidget(UIInfo->WidgetInstance, bDestroyInstance, bRestorePreviousMainPanel);
+        }
     }
 }
 
@@ -581,7 +667,6 @@ void UUIManager::HandleStackChange()
         TopUI->ActivateInput();
         CurrentInputActiveUI = TopUI;
 
-        // 查找可聚焦控件
         UWidget* FoundWidget = FindFirstFocusableWidget(TopUI);
         if (FoundWidget && FoundWidget->IsA<UUserWidget>())
         {
@@ -819,4 +904,42 @@ UWidget* UUIManager::FindFirstFocusableWidget(UWidget* RootWidget) const
         }
     }
     return nullptr;
+}
+
+// ========== 内部实现 ==========
+void UUIManager::InternalShowUI(UUIBase* UI, UObject* Data)
+{
+    if (!UI) return;
+    if (Data) UI->SetData(Data);
+    UI->OnUIShow(Data);
+    UI->OnUIShown.Broadcast(Data);
+    UI->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UUIManager::InternalHideUI(UUIBase* UI)
+{
+    if (!UI) return;
+    UI->SetVisibility(ESlateVisibility::Hidden);
+    UI->OnUIHide();
+    UI->OnUIHidden.Broadcast();
+}
+
+void UUIManager::InternalCloseUI(UUIBase* UI)
+{
+    if (!UI) return;
+    UI->RemoveFromParent();
+}
+
+void UUIManager::InternalHideUISilent(UUIBase* UI)
+{
+    if (!UI) return;
+    UI->SetVisibility(ESlateVisibility::Hidden);
+    if (CurrentInputActiveUI.Get() == UI)
+    {
+        if (CurrentInputActiveUI.IsValid())
+        {
+            CurrentInputActiveUI->DeactivateInput(true);
+        }
+        CurrentInputActiveUI = nullptr;
+    }
 }

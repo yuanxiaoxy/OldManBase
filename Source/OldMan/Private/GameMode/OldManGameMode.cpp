@@ -40,9 +40,6 @@ void AOldManGameMode::PreInitializeComponents()
 void AOldManGameMode::BeginPlay()
 {
     Super::BeginPlay();
-
-    // 不在BeginPlay中直接显示UI，等待世界初始化完成
-    UIManager = UUIManager::GetInstance();
 }
 
 APawn* AOldManGameMode::SpawnPlayer_Implementation(AController* NewPlayer)
@@ -70,6 +67,8 @@ void AOldManGameMode::InitializeWorldState_Implementation()
 
     UE_LOG(LogTemp, Log, TEXT("Initializing my specific world state..."));
 
+    // 不在BeginPlay中直接显示UI，等待世界初始化完成
+    UIManager = UUIManager::GetInstance();
     // 初始化UI, Effect系统等
     UUIConfigDataAsset* UIConfigData = Cast<UUIConfigDataAsset>(UIConfig);
     if (UIConfigData && UIManager)
@@ -115,21 +114,6 @@ void AOldManGameMode::InitializePlayers_Implementation()
     UE_LOG(LogTemp, Log, TEXT("Initializing my specific players..."));
 
     // 不再在这里显示UI，等待世界初始化完成
-}
-
-FWorldConfig AOldManGameMode::GetWorldConfig_Implementation() const
-{
-    FWorldConfig Config = Super::GetWorldConfig_Implementation();
-
-    // 自定义配置
-    Config.WorldName = "My Custom World";
-    Config.WorldDescription = "This is my custom world implementation";
-    Config.bLoadFromSave = true;
-    Config.SaveSlotName = "MyWorldSave";
-    Config.bAsyncInitialization = true;
-    //Config.InitializationDelay = 2.0f;
-
-    return Config;
 }
 
 void AOldManGameMode::OnMyWorldInitialized(bool bSuccess)

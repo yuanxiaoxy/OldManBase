@@ -104,7 +104,7 @@ public:
     UUIManager();
     virtual ~UUIManager() override;
 
-    // ========== UI生命周期方法 ==========
+    // ========== UI生命周期方法（基于 UIName） ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     UUserWidget* ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer = EUIPanelLayer::Middle, UObject* Data = nullptr, FName UIName = "", EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive);
 
@@ -122,6 +122,19 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "UI")
     void CloseTopUI();
+
+    // ========== 基于 UI 对象的管理方法 ==========
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    void ShowUIByWidget(UUserWidget* Widget, UObject* Data = nullptr);
+
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    void HideUIByWidget(UUserWidget* Widget, bool bRestorePreviousMainPanel = false);
+
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    void CloseUIByWidget(UUserWidget* Widget, bool bDestroyInstance = true, bool bRestorePreviousMainPanel = false);
+
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    FName GetUINameByWidget(UUserWidget* Widget) const;
 
     // ========== 输入管理方法 ==========
     UFUNCTION(BlueprintCallable, Category = "UI|Input")
@@ -212,6 +225,10 @@ private:
     UPROPERTY()
     TMap<FName, FUIInfo> UIRegistry;
 
+    // Widget 到 UIName 的反向映射
+    UPROPERTY()
+    TMap<UUserWidget*, FName> WidgetToUINameMap;
+
     // UI层级栈
     UPROPERTY()
     TArray<FUILayerNode> UIStack;
@@ -234,6 +251,9 @@ private:
     // MainPanel 历史栈（记录被自动隐藏的 MainPanel）
     TArray<FName> MainPanelHistoryStack;
 
+    // 递归保护标志，防止 MainPanel 切换死循环
+    bool bIsSwitchingMainPanel;
+
     // 私有方法
     void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer);
     void RemoveFromStack(FName UIName);
@@ -253,4 +273,12 @@ private:
 
     APlayerController* GetPlayerController() const;
     virtual UWorld* GetWorld() const override;
+
+    // 内部方法：直接操作 UI（不触发 UIBase 的公共方法，避免递归）
+    void InternalShowUI(UUIBase* UI, UObject* Data);
+    void InternalHideUI(UUIBase* UI);
+    void InternalCloseUI(UUIBase* UI);
+
+    // 静默隐藏（用于 MainPanel 自动切换，不触发回调）
+    void InternalHideUISilent(UUIBase* UI);
 };

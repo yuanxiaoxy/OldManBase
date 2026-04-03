@@ -29,7 +29,6 @@ TArray<FUIConfigData> UUIConfigDataAsset::GetAllUIConfigs() const
         return Configs;
     }
 
-    // 获取数据表的所有行
     TArray<FUIConfigData*> AllConfigs;
     UIConfigTable->GetAllRows(TEXT("GetAllUIConfigs"), AllConfigs);
 

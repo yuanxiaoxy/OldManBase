@@ -4,6 +4,9 @@
 #include "GameFramework/PlayerController.h"
 #include "EventManager/MyEventManager.h"
 #include "MonoManager/MonoManager.h"
+#include "UIManager/UIBase.h"
+#include "GameFramework/InputSettings.h"
+#include "GameFramework/InputDeviceSubsystem.h"
 #include "XyPlayerControllerBase.generated.h"
 
 UCLASS(Abstract, Blueprintable)
@@ -22,99 +25,65 @@ protected:
     virtual void SetupInputComponent() override;
 
 public:
-    // ========== ÊäÈëÏµÍ³ ==========
-
-    // °ó¶¨ÊäÈë
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void BindCharacterInputs();
 
-    // ÇĞ»»ÊäÈëÆôÓÃ×´Ì¬
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void SetInputEnabled(bool bEnabled);
 
-    // ========== ½ÇÉ«¿ØÖÆ ==========
+    /** è®¾ç½® UI è¾“å…¥æ¨¡å¼
+     * @param NewMode        æ–°çš„è¾“å…¥æ¨¡å¼
+     * @param FocusWidget    éœ€è¦è·å¾—ç„¦ç‚¹çš„ UI æ§ä»¶ï¼ˆå¯ä¸º nullptrï¼‰
+     * @param bShowMouse     æ˜¯å¦æ˜¾ç¤ºé¼ æ ‡å…‰æ ‡
+     * @param bEnablePawnInput æ˜¯å¦è‡ªåŠ¨æ§åˆ¶ Pawn çš„è¾“å…¥å¯ç”¨/ç¦ç”¨ï¼ˆæ¨¡å¼ä¸º GameOnly æ—¶å¯ç”¨ Pawn è¾“å…¥ï¼Œå¦åˆ™ç¦ç”¨ï¼‰
+     */
+    UFUNCTION()
+    virtual void SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse, bool bEnablePawnInput = false);
 
-    // »ñÈ¡¿ØÖÆµÄ½ÇÉ«£¨ÓÅ»¯°æ±¾£©
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "XyPlayerController")
     class AXyCharacterBase* GetXyCharacter() const;
 
-    // ÖØÉú½ÇÉ«
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void RespawnCharacter();
 
-    // ========== ÊÂ¼ş´¦Àí ==========
-
-    // ×¢²áÊÂ¼ş¼àÌı
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void RegisterEventListeners();
 
-    // ÒÆ³ıÊÂ¼ş¼àÌı
     UFUNCTION(BlueprintCallable, Category = "XyPlayerController")
     virtual void UnregisterEventListeners();
 
+    UFUNCTION(BlueprintPure, Category = "XyPlayerController|InputDevice")
+    EHardwareDevicePrimaryType GetCurrentHardwareDeviceType() const;
+
 protected:
-    // ========== ÊäÈë´¦Àíº¯Êı ==========
-
-    // ÒÆ¶¯ÊäÈë
-    UFUNCTION()
-    virtual void HandleMoveForward(float Value);
-
-    UFUNCTION()
-    virtual void HandleMoveRight(float Value);
-
-    // ÊÓ½ÇÊäÈë
-    UFUNCTION()
-    virtual void HandleLookUp(float Value);
-
-    UFUNCTION()
-    virtual void HandleTurn(float Value);
-
-    // ¶¯×÷ÊäÈë
-    UFUNCTION()
-    virtual void HandleJump();
-
-    UFUNCTION()
-    virtual void HandleStopJumping();
-
-    UFUNCTION()
-    virtual void HandleAttack();
-
-    // ========== ÊÂ¼ş»Øµ÷ ==========
-
-    // ½ÇÉ«ÊÂ¼ş»Øµ÷
     UFUNCTION()
     virtual void OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData);
 
-    // ´¦Àí½ÇÉ«ËÀÍö
     UFUNCTION()
     virtual void HandleCharacterDeath();
 
-    // ========== ¿ò¼Ü¼¯³É ==========
+    UFUNCTION()
+    virtual void OnInputHardwareDeviceChanged(FPlatformUserId UserId, FInputDeviceId DeviceId);
+
+    void BroadcastInputDeviceChanged(EHardwareDevicePrimaryType NewDeviceType);
 
     UMyEventManager* GetEventManager() const { return UMyEventManager::GetEventManager(); }
     UMonoManager* GetMonoManager() const { return UMonoManager::GetMonoManager(); }
 
 protected:
-    // ÊäÈëÊÇ·ñÆôÓÃ
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     bool bInputEnabled;
 
-    // Êó±êÁéÃô¶È
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     float MouseSensitivity;
 
-    // ¿ØÖÆÆ÷ÁéÃô¶È
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Controller")
     float ControllerSensitivity;
 
 private:
-    // ÊäÈë×é¼ş»º´æ
     UInputComponent* CachedInputComponent;
-
-    // »º´æ½ÇÉ«Ö¸Õë±ÜÃâÆµ·± Cast£¨ĞÔÄÜÓÅ»¯£©
     UPROPERTY()
     mutable class AXyCharacterBase* CachedXyCharacter;
-
-    // »º´æÓĞĞ§ĞÔ±êÖ¾
     mutable bool bCachedCharacterValid;
+    EHardwareDevicePrimaryType LastHardwareDeviceType;
 };

@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UIManager/UIManager.h"
 #include "Engine/Engine.h"
@@ -7,20 +7,26 @@
 #include "UObject/ConstructorHelpers.h"
 #include "UIManager/UIConfigDataAsset.h"
 #include "UIManager/UIBase.h"
+#include "XyCharacter/XyPlayerControllerBase.h"
 
-// 静态实例定义
 template<>
 UUIManager* TSingleton<UUIManager>::SingletonInstance = nullptr;
 
 UUIManager::UUIManager()
+    : bIsShuttingDown(false)
 {
     WorldContext = nullptr;
     UIConfigData = nullptr;
+    CurrentInputActiveUI = nullptr;
 }
 
 UUIManager::~UUIManager()
 {
-    ClearUIStack();
+    bIsShuttingDown = true;
+    UIStack.Empty();
+    UIRegistry.Empty();
+    MainPanelHistoryStack.Empty();
+    CurrentInputActiveUI = nullptr;
 }
 
 void UUIManager::InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset)
@@ -29,11 +35,7 @@ void UUIManager::InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset)
     {
         WorldContext = GetWorld();
     }
-
-    // 清空栈
     ClearUIStack();
-
-    // 加载配置
     if (ConfigDataAsset)
     {
         LoadUIConfig(ConfigDataAsset);
@@ -42,26 +44,18 @@ void UUIManager::InitializeUIManager(UUIConfigDataAsset* ConfigDataAsset)
 
 void UUIManager::InitializeSingleton()
 {
-    // 可以在这里添加初始化代码
+    // 初始化代码（如果需要）
 }
 
 void UUIManager::LoadUIConfig(UUIConfigDataAsset* ConfigDataAsset)
 {
     if (!ConfigDataAsset)
     {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::LoadUIConfig - ConfigDataAsset is null"));
         OnUIConfigLoaded.Broadcast(false);
         return;
     }
-
     UIConfigData = ConfigDataAsset;
-
-    // 从配置注册所有UI
     RegisterAllUIsFromConfig();
-
-    UE_LOG(LogTemp, Log, TEXT("UUIManager::LoadUIConfig - Loaded UI config with %d entries"),
-        UIRegistry.Num());
-
     OnUIConfigLoaded.Broadcast(true);
 }
 
@@ -69,71 +63,29 @@ void UUIManager::ReloadUIConfig()
 {
     if (UIConfigData)
     {
-        // 先关闭所有UI
         CloseAllUI();
-
-        // 清空注册表
         UIRegistry.Empty();
-
-        // 重新加载配置
         RegisterAllUIsFromConfig();
-
-        UE_LOG(LogTemp, Log, TEXT("UUIManager::ReloadUIConfig - Reloaded UI config"));
     }
 }
 
 void UUIManager::RegisterAllUIsFromConfig()
 {
-    if (!UIConfigData)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::RegisterAllUIsFromConfig - No config data available"));
-        return;
-    }
-
+    if (!UIConfigData) return;
     TArray<FUIConfigData> AllConfigs = UIConfigData->GetAllUIConfigs();
-
     for (const FUIConfigData& Config : AllConfigs)
-    {
         RegisterUIFromConfig(Config);
-    }
-
-    // 预加载标记为预加载的UI
     PreloadMarkedUIs();
 }
 
 bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
 {
-    if (Config.UIName.IsNone())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::RegisterUIFromConfig - UI name is empty"));
-        return false;
-    }
+    if (Config.UIName.IsNone() || Config.WidgetClass.IsNull()) return false;
+    if (UIRegistry.Contains(Config.UIName)) return false;
 
-    if (Config.WidgetClass.IsNull())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::RegisterUIFromConfig - Widget class is null for UI: %s"),
-            *Config.UIName.ToString());
-        return false;
-    }
-
-    // 检查是否已注册
-    if (UIRegistry.Contains(Config.UIName))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::RegisterUIFromConfig - UI already registered: %s"),
-            *Config.UIName.ToString());
-        return false;
-    }
-
-    // 加载Widget类
     TSubclassOf<UUserWidget> WidgetClass = LoadWidgetClass(Config.WidgetClass);
-    if (!WidgetClass)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::RegisterUIFromConfig - Failed to load widget class for UI: %s"),
-            *Config.UIName.ToString());
-        return false;
-    }
+    if (!WidgetClass) return false;
 
-    // 注册UI信息
     FUIInfo UIInfo;
     UIInfo.UIName = Config.UIName;
     UIInfo.WidgetClass = WidgetClass;
@@ -141,50 +93,24 @@ bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
     UIInfo.State = EUIState::Hidden;
     UIInfo.WidgetInstance = nullptr;
     UIInfo.bIsPreloaded = Config.bPreload;
-
     UIRegistry.Add(Config.UIName, UIInfo);
-
-    UE_LOG(LogTemp, Log, TEXT("UUIManager::RegisterUIFromConfig - Registered UI: %s, Class: %s, Layer: %s, Preload: %s"),
-        *Config.UIName.ToString(),
-        *WidgetClass->GetName(),
-        *UEnum::GetValueAsString(Config.DefaultLayer),
-        Config.bPreload ? TEXT("Yes") : TEXT("No"));
-
     return true;
 }
 
 TSubclassOf<UUserWidget> UUIManager::LoadWidgetClass(const TSoftClassPtr<UUserWidget>& SoftClassPtr)
 {
-    if (SoftClassPtr.IsNull())
-    {
-        return nullptr;
-    }
+    return SoftClassPtr.IsNull() ? nullptr : SoftClassPtr.LoadSynchronous();
+}
 
-    // 同步加载Widget类
-    TSubclassOf<UUserWidget> WidgetClass = SoftClassPtr.LoadSynchronous();
-    if (!WidgetClass)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::LoadWidgetClass - Failed to load widget class: %s"),
-            *SoftClassPtr.ToString());
-    }
-
-    return WidgetClass;
+UInputMappingContext* UUIManager::LoadInputMappingContext(const TSoftObjectPtr<UInputMappingContext>& SoftObjectPtr)
+{
+    return SoftObjectPtr.IsNull() ? nullptr : SoftObjectPtr.LoadSynchronous();
 }
 
 void UUIManager::PreloadUIs(const TArray<FName>& UINames)
 {
-    if (!WorldContext)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::PreloadUIs - WorldContext is null"));
-        return;
-    }
-
-    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(WorldContext, 0);
-    if (!PlayerController)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::PreloadUIs - Failed to get PlayerController"));
-        return;
-    }
+    APlayerController* PlayerController = GetPlayerController();
+    if (!PlayerController) return;
 
     for (const FName& UIName : UINames)
     {
@@ -192,14 +118,26 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                // 创建但不显示
                 UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, UIInfo->WidgetClass);
                 if (Widget)
                 {
                     UIInfo->WidgetInstance = Widget;
                     UIInfo->bIsPreloaded = true;
-
-                    UE_LOG(LogTemp, Log, TEXT("UUIManager::PreloadUIs - Preloaded UI: %s"), *UIName.ToString());
+                    if (UUIBase* UIBase = Cast<UUIBase>(Widget))
+                    {
+                        FUIConfigData Config;
+                        if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+                        {
+                            UIBase->SetInputMode(Config.DefaultInputMode);
+                            UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                            if (Config.DefaultInputMappingContext)
+                            {
+                                UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                                if (IMC)
+                                    UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -208,71 +146,92 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
 
 void UUIManager::PreloadMarkedUIs()
 {
-    if (!UIConfigData || !WorldContext)
-    {
-        return;
-    }
-
-    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(WorldContext, 0);
-    if (!PlayerController)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::PreloadMarkedUIs - Failed to get PlayerController"));
-        return;
-    }
-
+    if (!UIConfigData) return;
     TArray<FUIConfigData> PreloadConfigs = UIConfigData->GetPreloadUIConfigs();
-
     for (const FUIConfigData& Config : PreloadConfigs)
     {
         if (FUIInfo* UIInfo = UIRegistry.Find(Config.UIName))
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                // 创建但不显示
+                APlayerController* PlayerController = GetPlayerController();
+                if (!PlayerController) continue;
                 UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, UIInfo->WidgetClass);
                 if (Widget)
                 {
                     UIInfo->WidgetInstance = Widget;
                     UIInfo->bIsPreloaded = true;
-
-                    UE_LOG(LogTemp, Log, TEXT("UUIManager::PreloadMarkedUIs - Preloaded UI: %s"),
-                        *Config.UIName.ToString());
+                    if (UUIBase* UIBase = Cast<UUIBase>(Widget))
+                    {
+                        UIBase->SetInputMode(Config.DefaultInputMode);
+                        UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                        if (Config.DefaultInputMappingContext)
+                        {
+                            UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                            if (IMC)
+                                UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer, UObject* Data, FName UIName)
+UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer, UObject* Data, FName UIName, EUIOpenPolicy OpenPolicy)
 {
-    // 获取世界和玩家控制器
-    if (!WorldContext)
+    APlayerController* PlayerController = GetPlayerController();
+    if (!PlayerController || !WidgetClass)
     {
-        WorldContext = GetWorld();
-        if (!WorldContext)
-        {
-            UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - WorldContext is null"));
-            return nullptr;
-        }
-    }
-
-    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(WorldContext, 0);
-    if (!PlayerController)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - Failed to get PlayerController"));
-        return nullptr;
-    }
-
-    if (!WidgetClass)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - Invalid WidgetClass"));
+        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - Invalid PlayerController or WidgetClass"));
         return nullptr;
     }
 
     if (UIName.IsNone())
     {
-        UIName = FName(*WidgetClass->GetName());
-        UIName = FName(*UIName.ToString().Replace(TEXT("_C"), TEXT(""))); // 移除后缀
+        UIName = FName(*WidgetClass->GetName().Replace(TEXT("_C"), TEXT("")));
+    }
+
+    FUIConfigData Config;
+    bool bHasConfig = UIConfigData && UIConfigData->GetUIConfig(UIName, Config);
+    EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
+
+    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s"),
+        *UIName.ToString(), *UEnum::GetValueAsString(PanelType), bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"));
+
+    // 处理MainPanel类型：自动隐藏其他所有MainPanel，并记录到历史栈
+    if (PanelType == EUIPanelType::MainPanel)
+    {
+        TArray<FName> AllActiveUIs = GetAllActiveUIs();
+        for (FName ActiveUIName : AllActiveUIs)
+        {
+            if (ActiveUIName == UIName) continue;
+            FUIConfigData ActiveConfig;
+            if (UIConfigData && UIConfigData->GetUIConfig(ActiveUIName, ActiveConfig) &&
+                ActiveConfig.PanelType == EUIPanelType::MainPanel)
+            {
+                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Hiding other MainPanel: %s"), *ActiveUIName.ToString());
+                // 将被隐藏的 MainPanel 压入历史栈
+                MainPanelHistoryStack.Add(ActiveUIName);
+                HideUI(ActiveUIName);
+            }
+        }
+    }
+
+    // 打开策略处理
+    if (OpenPolicy == EUIOpenPolicy::Replace)
+    {
+        if (UIStack.Num() > 0)
+            CloseUI(UIStack.Last().UIName, true);
+    }
+    else if (OpenPolicy == EUIOpenPolicy::Exclusive)
+    {
+        TArray<FName> AllUIs = GetAllActiveUIs();
+        for (FName Name : AllUIs)
+        {
+            if (Name != UIName)
+                CloseUI(Name, true);
+        }
     }
 
     // 检查是否已存在
@@ -280,59 +239,49 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     {
         if (ExistingUI->WidgetInstance)
         {
-            // 如果UI已在栈中，移动到栈顶
+            // 如果配置存在，重新应用输入设置（确保模式正确）
+            if (bHasConfig && ExistingUI->WidgetInstance->IsA<UUIBase>())
+            {
+                UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance);
+                UIBase->SetInputMode(Config.DefaultInputMode);
+                UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                if (Config.DefaultInputMappingContext)
+                {
+                    UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                    if (IMC)
+                        UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+                }
+                UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Reapplied input settings for existing UI: %s"), *UIName.ToString());
+            }
+
             if (ExistingUI->State != EUIState::Visible)
             {
-                // 调用UIBase的ShowUI方法
-                if (UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance))
-                {
-                    UIBase->ShowUI(Data);
-                }
-                else
-                {
-                    // 非UIBase类型，直接显示
-                    ExistingUI->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
-                }
-
-                ExistingUI->State = EUIState::Visible;
-
-                // 更新栈
                 AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
+                HandleStackChange();
+
+                if (UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance))
+                    UIBase->ShowUI(Data);
+                if (ExistingUI->WidgetInstance->GetVisibility() != ESlateVisibility::Visible)
+                    ExistingUI->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
+                ExistingUI->State = EUIState::Visible;
             }
             else
             {
-                // 已在显示状态，只需更新栈顺序
                 RemoveFromStack(UIName);
                 AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
+                HandleStackChange();
             }
-
-            // 设置数据
-            if (Data)
-            {
-                if (UUIBase* UIBase = Cast<UUIBase>(ExistingUI->WidgetInstance))
-                {
-                    UIBase->SetData(Data);
-                }
-            }
-
+            if (Data && Cast<UUIBase>(ExistingUI->WidgetInstance))
+                Cast<UUIBase>(ExistingUI->WidgetInstance)->SetData(Data);
             OnUIShown.Broadcast(UIName);
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showed existing UI: %s"), *UIName.ToString());
             return ExistingUI->WidgetInstance;
         }
     }
 
     // 创建新UI
     UUserWidget* NewWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
-    if (!NewWidget)
-    {
-        UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUI - Failed to create widget"));
-        return nullptr;
-    }
+    if (!NewWidget) return nullptr;
 
-    // 添加到栈
-    AddToStack(NewWidget, UIName, Layer);
-
-    // 注册UI信息（如果尚未注册）
     if (!UIRegistry.Contains(UIName))
     {
         FUIInfo UIInfo;
@@ -342,164 +291,148 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo.State = EUIState::Visible;
         UIInfo.WidgetInstance = NewWidget;
         UIInfo.bIsPreloaded = false;
-
         UIRegistry.Add(UIName, UIInfo);
     }
     else
     {
-        // 更新已有UI信息
         FUIInfo* UIInfo = UIRegistry.Find(UIName);
         UIInfo->WidgetInstance = NewWidget;
         UIInfo->State = EUIState::Visible;
         UIInfo->Layer = Layer;
     }
 
-    // 设置数据
-    if (Data)
+    // 应用配置
+    if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
     {
-        if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
+        if (bHasConfig)
         {
-            UIBase->SetData(Data);
+            UIBase->SetInputMode(Config.DefaultInputMode);
+            UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+            if (Config.DefaultInputMappingContext)
+            {
+                UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
+                if (IMC)
+                    UIBase->SetInputMappingContext(IMC, Config.InputPriority);
+            }
+            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Applied input settings for new UI: %s, InputMode: %s"),
+                *UIName.ToString(), *UEnum::GetValueAsString(Config.DefaultInputMode));
         }
     }
 
-    // 显示UI
+    AddToStack(NewWidget, UIName, Layer);
+    HandleStackChange();
+
     if (UUIBase* UIBase = Cast<UUIBase>(NewWidget))
-    {
         UIBase->ShowUI(Data);
-        UIBase->AddToViewport();
-        UIBase->SetVisibility(ESlateVisibility::Visible);
-    }
-    else
-    {
-        // 非UIBase类型，直接显示
+
+    if (!NewWidget->IsInViewport())
         NewWidget->AddToViewport();
-        NewWidget->SetVisibility(ESlateVisibility::Visible);
-    }
+    else
+        UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUI - Widget %s already in viewport, skipped AddToViewport."), *UIName.ToString());
+
+    NewWidget->SetVisibility(ESlateVisibility::Visible);
 
     OnUIShown.Broadcast(UIName);
-
-    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Created and showed UI: %s"), *UIName.ToString());
-
+    OnUITopChanged.Broadcast(UIName);
     return NewWidget;
 }
 
-UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data)
+UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy OpenPolicy)
 {
-    if (UIName.IsNone())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUIByName - None UI Name"));
-        return nullptr;
-    }
-
-    // 获取世界和玩家控制器
-    if (!WorldContext)
-    {
-        WorldContext = GetWorld();
-        if (!WorldContext)
-        {
-            UE_LOG(LogTemp, Error, TEXT("UUIManager::ShowUIByName - WorldContext is null"));
-            return nullptr;
-        }
-    }
-
+    if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        // 如果已经预加载，直接使用预加载的实例
-        if (UIInfo->WidgetInstance)
-        {
-            // 确保Widget在视口中
-            if (!UIInfo->WidgetInstance->IsInViewport())
-            {
-                UIInfo->WidgetInstance->AddToViewport();
-            }
-
-            // 调用UIBase的ShowUI方法
-            if (UUIBase* UIBase = Cast<UUIBase>(UIInfo->WidgetInstance))
-            {
-                UIBase->ShowUI(Data);
-            }
-            else
-            {
-                UIInfo->WidgetInstance->SetVisibility(ESlateVisibility::Visible);
-            }
-
-            UIInfo->State = EUIState::Visible;
-
-            // 添加到栈
-            AddToStack(UIInfo->WidgetInstance, UIName, UIInfo->Layer);
-
-            OnUIShown.Broadcast(UIName);
-
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUIByName - Showed preloaded UI: %s"), *UIName.ToString());
-            return UIInfo->WidgetInstance;
-        }
-        else
-        {
-            // 没有预加载，创建新实例
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUIByName - Creating new instance for UI: %s"), *UIName.ToString());
-            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName);
-        }
+        return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
     }
-
-    UE_LOG(LogTemp, Warning, TEXT("UUIManager::ShowUIByName - UI not registered: %s"), *UIName.ToString());
     return nullptr;
 }
 
-void UUIManager::HideUI(FName UIName)
+void UUIManager::HideUI(FName UIName, bool bRestorePreviousMainPanel)
 {
+    if (bIsShuttingDown) return;
+
+    // 检查是否是 MainPanel
+    bool bIsMainPanel = false;
+    FUIConfigData Config;
+    if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+    {
+        bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
+    }
+
+    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
+    FName PreviousMainPanel = NAME_None;
+    if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
+    {
+        PreviousMainPanel = MainPanelHistoryStack.Pop();
+    }
+
+    // 执行隐藏逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         if (UIInfo->WidgetInstance)
         {
-            // 调用UIBase的HideUI方法
             if (UUIBase* UIBase = Cast<UUIBase>(UIInfo->WidgetInstance))
-            {
                 UIBase->HideUI();
-            }
             else
-            {
                 UIInfo->WidgetInstance->SetVisibility(ESlateVisibility::Hidden);
-            }
-
             UIInfo->State = EUIState::Hidden;
-
-            // 从栈中移除隐藏的UI
             RemoveFromStack(UIName);
-
+            HandleStackChange();
             OnUIHidden.Broadcast(UIName);
-
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::HideUI - Hid UI: %s"), *UIName.ToString());
+            OnUITopChanged.Broadcast(GetTopUIName());
         }
+    }
+
+    // 恢复上一个 MainPanel
+    if (PreviousMainPanel != NAME_None)
+    {
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HideUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
+        ShowUIByName(PreviousMainPanel);
     }
 }
 
-void UUIManager::CloseUI(FName UIName, bool bDestroyInstance)
+void UUIManager::CloseUI(FName UIName, bool bDestroyInstance, bool bRestorePreviousMainPanel)
 {
+    if (bIsShuttingDown) return;
+
+    // 检查是否是 MainPanel
+    bool bIsMainPanel = false;
+    FUIConfigData Config;
+    if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+    {
+        bIsMainPanel = (Config.PanelType == EUIPanelType::MainPanel);
+    }
+
+    // 如果需要恢复上一个 MainPanel，且是 MainPanel，则从历史栈中弹出（如果栈非空）
+    FName PreviousMainPanel = NAME_None;
+    if (bRestorePreviousMainPanel && bIsMainPanel && MainPanelHistoryStack.Num() > 0)
+    {
+        PreviousMainPanel = MainPanelHistoryStack.Pop();
+    }
+
+    // 执行关闭逻辑
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         if (UIInfo->WidgetInstance)
         {
-            // 调用UIBase的CloseUI方法
+            if (CurrentInputActiveUI.Get() == UIInfo->WidgetInstance)
+            {
+                if (CurrentInputActiveUI.IsValid())
+                {
+                    CurrentInputActiveUI->DeactivateInput(true);
+                }
+                CurrentInputActiveUI = nullptr;
+            }
             if (UUIBase* UIBase = Cast<UUIBase>(UIInfo->WidgetInstance))
-            {
                 UIBase->CloseUI();
-            }
             else
-            {
-                // 安全地移除Widget
                 SafeRemoveWidget(UIInfo->WidgetInstance);
-            }
-
-            // 从栈中移除
             RemoveFromStack(UIName);
+            HandleStackChange();
 
-            // 处理实例
             if (bDestroyInstance)
             {
                 UIInfo->WidgetInstance = nullptr;
-
-                // 如果UI不是通过配置注册的，则从注册表中完全移除
                 FUIConfigData TempConfig;
                 if (!UIConfigData || !UIConfigData->GetUIConfig(UIName, TempConfig))
                 {
@@ -507,58 +440,183 @@ void UUIManager::CloseUI(FName UIName, bool bDestroyInstance)
                 }
                 else
                 {
-                    // 配置注册的UI，只重置状态
                     UIInfo->State = EUIState::Hidden;
                 }
             }
             else
             {
-                // 不销毁实例，只重置状态
                 UIInfo->State = EUIState::Hidden;
                 UIInfo->WidgetInstance = nullptr;
             }
-
             OnUIClosed.Broadcast(UIName);
-
-            UE_LOG(LogTemp, Log, TEXT("UUIManager::CloseUI - Closed UI: %s"), *UIName.ToString());
+            OnUITopChanged.Broadcast(GetTopUIName());
         }
+    }
+
+    // 恢复上一个 MainPanel
+    if (PreviousMainPanel != NAME_None)
+    {
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::CloseUI - Restoring previous MainPanel: %s"), *PreviousMainPanel.ToString());
+        ShowUIByName(PreviousMainPanel);
     }
 }
 
 void UUIManager::CloseAllUI()
 {
-    // 从栈顶开始关闭，避免迭代器失效
+    if (bIsShuttingDown) return;
+    ForceReleaseAllInputs();
     while (UIStack.Num() > 0)
     {
-        FName TopUIName = UIStack.Last().UIName;
-        CloseUI(TopUIName, true);
+        CloseUI(UIStack.Last().UIName, true);
     }
+    MainPanelHistoryStack.Empty();
 }
 
 void UUIManager::CloseTopUI()
 {
+    if (bIsShuttingDown) return;
+    if (UIStack.Num() > 0)
+        CloseUI(UIStack.Last().UIName, true);
+}
+
+void UUIManager::UpdateTopUIInput()
+{
+    if (bIsShuttingDown) return;
+    HandleStackChange();
+}
+
+UUIBase* UUIManager::GetCurrentInputActiveUI() const
+{
+    return CurrentInputActiveUI.Get();
+}
+
+void UUIManager::ForceReleaseAllInputs()
+{
+    if (bIsShuttingDown) return;
+
+    APlayerController* PlayerController = GetPlayerController();
+    if (PlayerController)
+    {
+        PlayerController->FlushPressedKeys();
+    }
+
+    if (CurrentInputActiveUI.IsValid())
+    {
+        CurrentInputActiveUI->DeactivateInput(true);
+        CurrentInputActiveUI = nullptr;
+    }
+}
+
+void UUIManager::DeactivatePreviousUIInput()
+{
+    if (bIsShuttingDown) return;
+    if (CurrentInputActiveUI.IsValid())
+    {
+        CurrentInputActiveUI->DeactivateInput(true);
+        CurrentInputActiveUI = nullptr;
+    }
+}
+
+void UUIManager::ActivateTopUIInput()
+{
+    if (bIsShuttingDown) return;
     if (UIStack.Num() > 0)
     {
-        FName TopUIName = UIStack.Last().UIName;
-        CloseUI(TopUIName, true);
+        FUILayerNode TopNode = UIStack.Last();
+        if (TopNode.Widget && TopNode.Widget->IsVisible())
+        {
+            UUIBase* TopUIBase = Cast<UUIBase>(TopNode.Widget);
+            if (TopUIBase && TopUIBase->GetInputMode() != EUIInputMode::GameOnly)
+            {
+                TopUIBase->ActivateInput();
+                CurrentInputActiveUI = TopUIBase;
+            }
+        }
+    }
+}
+
+void UUIManager::HandleStackChange()
+{
+    if (bIsShuttingDown) return;
+
+    if (CurrentInputActiveUI.IsValid())
+    {
+        CurrentInputActiveUI->DeactivateInput(true);
+        CurrentInputActiveUI = nullptr;
+    }
+
+    APlayerController* PC = GetPlayerController();
+    AXyPlayerControllerBase* XyPC = Cast<AXyPlayerControllerBase>(PC);
+    if (!XyPC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUIManager::HandleStackChange - PlayerController is not of type AXyPlayerControllerBase"));
+        return;
+    }
+
+    UUIBase* TopUI = nullptr;
+    bool bHasVisibleUI = false;
+    EUIInputMode TopUIMode = EUIInputMode::GameOnly;
+    bool bShowMouse = false;
+    UUserWidget* FocusWidget = nullptr;
+
+    for (int32 i = UIStack.Num() - 1; i >= 0; i--)
+    {
+        FUILayerNode& Node = UIStack[i];
+        if (Node.Widget)
+        {
+            TopUI = Cast<UUIBase>(Node.Widget);
+            bHasVisibleUI = true;
+            break;
+        }
+    }
+
+    if (bHasVisibleUI && TopUI)
+    {
+        TopUIMode = TopUI->GetInputMode();
+        bShowMouse = TopUI->ShouldShowMouseCursor();
+
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - TopUI: %s, InputMode: %s, ShowMouse: %s"),
+            *TopUI->GetName(), *UEnum::GetValueAsString(TopUIMode), bShowMouse ? TEXT("true") : TEXT("false"));
+
+        TopUI->ActivateInput();
+        CurrentInputActiveUI = TopUI;
+
+        // 查找可聚焦控件
+        UWidget* FoundWidget = FindFirstFocusableWidget(TopUI);
+        if (FoundWidget && FoundWidget->IsA<UUserWidget>())
+        {
+            FocusWidget = Cast<UUserWidget>(FoundWidget);
+        }
+        else
+        {
+            FocusWidget = TopUI;
+        }
+
+        XyPC->SetUIInputMode(TopUIMode, FocusWidget, bShowMouse, true);
+        if (FocusWidget)
+            FocusWidget->SetFocus();
+
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - Set UI Input Mode to %s for UI: %s, FocusWidget: %s"),
+            *UEnum::GetValueAsString(TopUIMode), *TopUI->GetName(), FocusWidget ? *FocusWidget->GetName() : TEXT("None"));
+    }
+    else
+    {
+        XyPC->SetUIInputMode(EUIInputMode::GameOnly, nullptr, false, true);
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - No visible UI, set GameOnly"));
     }
 }
 
 UUserWidget* UUIManager::GetUI(FName UIName) const
 {
     if (const FUIInfo* UIInfo = UIRegistry.Find(UIName))
-    {
         return UIInfo->WidgetInstance;
-    }
     return nullptr;
 }
 
 bool UUIManager::IsUIVisible(FName UIName) const
 {
     if (const FUIInfo* UIInfo = UIRegistry.Find(UIName))
-    {
         return UIInfo->State == EUIState::Visible && UIInfo->WidgetInstance != nullptr;
-    }
     return false;
 }
 
@@ -572,10 +630,8 @@ TArray<FName> UUIManager::GetAllActiveUIs() const
     TArray<FName> ActiveUIs;
     for (const auto& Pair : UIRegistry)
     {
-        if (Pair.Value.WidgetInstance != nullptr && Pair.Value.State == EUIState::Visible)
-        {
+        if (Pair.Value.WidgetInstance && Pair.Value.State == EUIState::Visible)
             ActiveUIs.Add(Pair.Key);
-        }
     }
     return ActiveUIs;
 }
@@ -592,8 +648,6 @@ void UUIManager::SetUILayer(FName UIName, EUIPanelLayer NewLayer)
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         UIInfo->Layer = NewLayer;
-
-        // 更新栈中对应节点的层级
         for (FUILayerNode& Node : UIStack)
         {
             if (Node.UIName == UIName)
@@ -602,25 +656,26 @@ void UUIManager::SetUILayer(FName UIName, EUIPanelLayer NewLayer)
                 break;
             }
         }
+        UpdateStackOrder();
+        HandleStackChange();
     }
 }
 
 EUIPanelLayer UUIManager::GetUILayer(FName UIName) const
 {
     if (const FUIInfo* UIInfo = UIRegistry.Find(UIName))
-    {
         return UIInfo->Layer;
-    }
     return EUIPanelLayer::None;
 }
 
 FName UUIManager::GetTopUIName() const
 {
-    if (UIStack.Num() > 0)
-    {
-        return UIStack.Last().UIName;
-    }
-    return NAME_None;
+    return UIStack.Num() > 0 ? UIStack.Last().UIName : NAME_None;
+}
+
+UUserWidget* UUIManager::GetTopUI() const
+{
+    return UIStack.Num() > 0 ? UIStack.Last().Widget : nullptr;
 }
 
 int32 UUIManager::GetUIStackDepth() const
@@ -630,25 +685,25 @@ int32 UUIManager::GetUIStackDepth() const
 
 void UUIManager::ClearUIStack()
 {
-    // 安全地移除所有Widget
-    for (const FUILayerNode& Node : UIStack)
+    if (bIsShuttingDown)
     {
-        if (Node.Widget)
-        {
-            SafeRemoveWidget(Node.Widget);
-        }
+        UIStack.Empty();
+        return;
     }
 
+    ForceReleaseAllInputs();
+    for (const FUILayerNode& Node : UIStack)
+    {
+        SafeRemoveWidget(Node.Widget);
+    }
     UIStack.Empty();
 }
 
 void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer)
 {
-    // 如果已在栈中，先移除
     RemoveFromStack(UIName);
-
-    // 添加到栈顶
     UIStack.Add(FUILayerNode(UIName, Layer, Widget));
+    UpdateStackOrder();
 }
 
 void UUIManager::RemoveFromStack(FName UIName)
@@ -663,69 +718,19 @@ void UUIManager::RemoveFromStack(FName UIName)
     }
 }
 
-void UUIManager::SafeRemoveWidget(UUserWidget* Widget)
-{
-    if (IsValid(Widget))
-    {
-        // 先检查是否还在视口中
-        if (Widget->IsInViewport())
-        {
-            Widget->RemoveFromParent();
-        }
-        Widget = nullptr;
-    }
-}
-
 void UUIManager::UpdateStackOrder()
 {
-    // 按层级排序栈，确保正确的显示顺序
     UIStack.Sort([](const FUILayerNode& A, const FUILayerNode& B) {
         return static_cast<int32>(A.Layer) > static_cast<int32>(B.Layer);
         });
 }
 
-void UUIManager::FadeInUI(FName UIName, float Duration)
+void UUIManager::SafeRemoveWidget(UUserWidget* Widget)
 {
-    if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
+    if (IsValid(Widget))
     {
-        if (UIInfo->WidgetInstance)
-        {
-            UIInfo->State = EUIState::Showing;
-            HandleFadeAnimation(UIName, 1.0f, Duration);
-        }
-    }
-}
-
-void UUIManager::FadeOutUI(FName UIName, float Duration)
-{
-    if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
-    {
-        if (UIInfo->WidgetInstance)
-        {
-            UIInfo->State = EUIState::Hiding;
-            HandleFadeAnimation(UIName, 0.0f, Duration);
-        }
-    }
-}
-
-void UUIManager::HandleFadeAnimation(FName UIName, float TargetAlpha, float Duration)
-{
-    // 在实际实现中，这里需要使用UMG的动画系统
-    if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
-    {
-        if (UIInfo->WidgetInstance)
-        {
-            UIInfo->WidgetInstance->SetRenderOpacity(TargetAlpha);
-
-            if (TargetAlpha >= 1.0f)
-            {
-                UIInfo->State = EUIState::Visible;
-            }
-            else if (TargetAlpha <= 0.0f)
-            {
-                UIInfo->State = EUIState::Hidden;
-            }
-        }
+        if (Widget->IsInViewport())
+            Widget->RemoveFromParent();
     }
 }
 
@@ -736,12 +741,9 @@ void UUIManager::PrintAllUIs()
     {
         const FUIInfo& UIInfo = Pair.Value;
         UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s"),
-            *UIInfo.UIName.ToString(),
-            *UIInfo.WidgetClass->GetName(),
-            *UEnum::GetValueAsString(UIInfo.Layer),
-            *UEnum::GetValueAsString(UIInfo.State),
-            UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"),
-            UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"));
+            *UIInfo.UIName.ToString(), *UIInfo.WidgetClass->GetName(),
+            *UEnum::GetValueAsString(UIInfo.Layer), *UEnum::GetValueAsString(UIInfo.State),
+            UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"));
     }
     UE_LOG(LogTemp, Log, TEXT("=========================="));
 }
@@ -750,15 +752,12 @@ void UUIManager::PrintStackInfo()
 {
     UE_LOG(LogTemp, Log, TEXT("=== UI Stack Information ==="));
     UE_LOG(LogTemp, Log, TEXT("Stack Depth: %d"), UIStack.Num());
-
+    UE_LOG(LogTemp, Log, TEXT("Current Input Active UI: %s"), CurrentInputActiveUI.IsValid() ? *CurrentInputActiveUI->GetName() : TEXT("None"));
     for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
         const FUILayerNode& Node = UIStack[i];
-        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Widget: %s"),
-            i,
-            *Node.UIName.ToString(),
-            *UEnum::GetValueAsString(Node.Layer),
-            Node.Widget ? TEXT("Valid") : TEXT("Null"));
+        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Widget: %s"), i, *Node.UIName.ToString(),
+            *UEnum::GetValueAsString(Node.Layer), Node.Widget ? TEXT("Valid") : TEXT("Null"));
     }
     UE_LOG(LogTemp, Log, TEXT("============================="));
 }
@@ -771,15 +770,12 @@ void UUIManager::PrintConfigInfo()
         TArray<FUIConfigData> AllConfigs = UIConfigData->GetAllUIConfigs();
         UE_LOG(LogTemp, Log, TEXT("Config Data Asset: %s"), *UIConfigData->GetName());
         UE_LOG(LogTemp, Log, TEXT("Total Config Entries: %d"), AllConfigs.Num());
-
         for (const FUIConfigData& Config : AllConfigs)
         {
-            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, Preload: %s, Desc: %s"),
-                *Config.UIName.ToString(),
-                *Config.WidgetClass.ToString(),
-                *UEnum::GetValueAsString(Config.DefaultLayer),
-                Config.bPreload ? TEXT("Yes") : TEXT("No"),
-                *Config.Description);
+            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, Desc: %s"),
+                *Config.UIName.ToString(), *Config.WidgetClass.ToString(), *UEnum::GetValueAsString(Config.DefaultLayer),
+                *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"),
+                *UEnum::GetValueAsString(Config.PanelType), *Config.Description);
         }
     }
     else
@@ -789,6 +785,12 @@ void UUIManager::PrintConfigInfo()
     UE_LOG(LogTemp, Log, TEXT("=============================="));
 }
 
+APlayerController* UUIManager::GetPlayerController() const
+{
+    UWorld* World = GetWorld();
+    return World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
+}
+
 UWorld* UUIManager::GetWorld() const
 {
     if (GEngine)
@@ -796,9 +798,24 @@ UWorld* UUIManager::GetWorld() const
         for (const FWorldContext& Context : GEngine->GetWorldContexts())
         {
             if (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE)
-            {
                 return Context.World();
-            }
+        }
+    }
+    return nullptr;
+}
+
+UWidget* UUIManager::FindFirstFocusableWidget(UWidget* RootWidget) const
+{
+    if (!RootWidget) return nullptr;
+    if (RootWidget->HasAnyUserFocus()) return RootWidget;
+
+    if (UPanelWidget* Panel = Cast<UPanelWidget>(RootWidget))
+    {
+        for (int32 i = 0; i < Panel->GetChildrenCount(); ++i)
+        {
+            UWidget* Child = Panel->GetChildAt(i);
+            if (UWidget* Found = FindFirstFocusableWidget(Child))
+                return Found;
         }
     }
     return nullptr;

@@ -59,10 +59,13 @@ void AOldManAnimationBall::PlayAniInScene()
 		PlayWall->SetActorTickEnabled(true);
 
 	}
-	//为场景物体添加材质
-	PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
-	//打开媒体源
-	MediaPlayer->OpenSource(FileMediaSource);	
+	if (!IsCreateOnly)
+	{
+		//为场景物体添加材质
+		PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
+		//打开媒体源
+		MediaPlayer->OpenSource(FileMediaSource);
+	}
 }
 
 //在UI界面上播放
@@ -100,13 +103,21 @@ void AOldManAnimationBall::PlayOver()
 			PlayWall->SetActorHiddenInGame(true);
 			PlayWall->SetActorEnableCollision(false);
 			PlayWall->SetActorTickEnabled(false);
-
 		}
 	}
 	//若是UI物体，关闭UI
 	if (myType == E_AniBallType::playOnUI)
 	{
 		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel");
+	}
+	//如果是一次性的 销毁自己
+	if (!Disposable)
+	{
+		Print("执行死亡");
+		this->SetActorHiddenInGame(true);
+		this->SetActorEnableCollision(false);
+		this->SetActorTickEnabled(false);
+		//this->Destroy();
 	}
 }
 
@@ -132,7 +143,7 @@ void AOldManAnimationBall::BeforePreparation()
 	//判断对话框是否自动播放
 	if (myType == E_AniBallType::playAsText)
 	{
-
+		
 	}
 }
 

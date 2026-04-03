@@ -1,4 +1,4 @@
-﻿using UnrealBuildTool;
+using UnrealBuildTool;
 
 public class OldManUI : ModuleRules
 {
@@ -10,10 +10,14 @@ public class OldManUI : ModuleRules
         //Don't forget to add your project's name as a dependency (GDBlogPost in my case)
         PublicDependencyModuleNames.AddRange(new string[] 
         { 
-            "Core", 
-            "CoreUObject", 
-            "Engine",
             "OldManConfig",
+            "EnhancedInput",
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "Slate",
+            "SlateCore",
             "UMG"
         });
 

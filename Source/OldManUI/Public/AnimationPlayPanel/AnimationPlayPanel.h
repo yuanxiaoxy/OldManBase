@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UIManager/UIBase.h"
+#include "OldManUIBase.h"
 #include "AnimationPlayPanel.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class OLDMANUI_API UAnimationPlayPanel : public UUIBase
+class OLDMANUI_API UAnimationPlayPanel : public UOldManUIBase
 {
 	GENERATED_BODY()
 	

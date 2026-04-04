@@ -40,11 +40,19 @@ struct FUIInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     bool bIsPreloaded;
 
+    // 新增：UI类型
+    EUIPanelType PanelType;
+
+    // 新增：是否修改输入
+    bool bModifyInput;
+
     FUIInfo()
         : Layer(EUIPanelLayer::Middle)
         , State(EUIState::Hidden)
         , WidgetInstance(nullptr)
         , bIsPreloaded(false)
+        , PanelType(EUIPanelType::Other)
+        , bModifyInput(true)
     {
     }
 };
@@ -63,17 +71,22 @@ struct FUILayerNode
     UPROPERTY()
     UUserWidget* Widget;
 
+    // 新增：是否修改输入
+    bool bModifyInput;
+
     FUILayerNode()
         : UIName(NAME_None)
         , Layer(EUIPanelLayer::None)
         , Widget(nullptr)
+        , bModifyInput(true)
     {
     }
 
-    FUILayerNode(FName InUIName, EUIPanelLayer InLayer, UUserWidget* InWidget)
+    FUILayerNode(FName InUIName, EUIPanelLayer InLayer, UUserWidget* InWidget, bool bInModifyInput = true)
         : UIName(InUIName)
         , Layer(InLayer)
         , Widget(InWidget)
+        , bModifyInput(bInModifyInput)
     {
     }
 };
@@ -255,14 +268,14 @@ private:
     bool bIsSwitchingMainPanel;
 
     // 私有方法
-    void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer);
+    void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput);
     void RemoveFromStack(FName UIName);
     void UpdateStackOrder();
     void SafeRemoveWidget(UUserWidget* Widget);
 
     void DeactivatePreviousUIInput();
     void ActivateTopUIInput();
-    void HandleStackChange();
+    void HandleStackChange(bool bOverrideInput = true);
 
     bool RegisterUIFromConfig(const struct FUIConfigData& Config);
     void RegisterAllUIsFromConfig();
@@ -281,4 +294,7 @@ private:
 
     // 静默隐藏（用于 MainPanel 自动切换，不触发回调）
     void InternalHideUISilent(UUIBase* UI);
+
+    // 关闭指定类型的所有 UI（用于 Notification）
+    void CloseAllUIsOfType(EUIPanelType Type);
 };

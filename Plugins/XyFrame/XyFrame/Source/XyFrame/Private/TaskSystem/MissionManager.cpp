@@ -18,7 +18,6 @@ UMissionManager::UMissionManager()
 UMissionManager::~UMissionManager()
 {
     StopUpdateTimer();
-    // 析构时只清空容器，不调用任务方法
     ActiveTasks.Empty();
 }
 
@@ -58,10 +57,33 @@ bool UMissionManager::LoadTaskTable(UDataTable* TaskTable)
 
 UTaskBase* UMissionManager::CreateTask(FName TaskID)
 {
-    if (ActiveTasks.Contains(TaskID))
+    // 检查是否已存在
+    if (UTaskBase** ExistingTaskPtr = ActiveTasks.Find(TaskID))
     {
-        UE_LOG(LogTemp, Warning, TEXT("Task already exists: %s"), *TaskID.ToString());
-        return nullptr;
+        UTaskBase* ExistingTask = *ExistingTaskPtr;
+        if (!ExistingTask || !IsValid(ExistingTask))
+        {
+            // 无效对象，直接移除
+            ActiveTasks.Remove(TaskID);
+        }
+        else
+        {
+            const FTaskConfigRow* Config = TaskConfigs.Find(TaskID);
+            bool bRepeatable = Config ? Config->bRepeatable : false;
+
+            ETaskState State = ExistingTask->GetTaskState();
+            bool bCanRecreate = bRepeatable && (State == ETaskState::Completed || State == ETaskState::Failed || State == ETaskState::Abandoned);
+
+            if (!bCanRecreate)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Cannot create task %s: already exists with state %d and repeatable=%d"), *TaskID.ToString(), (int32)State, bRepeatable);
+                return nullptr;
+            }
+
+            // 可重复且处于终态：先移除旧任务
+            UE_LOG(LogTemp, Log, TEXT("Recreating repeatable task %s (old state: %d)"), *TaskID.ToString(), (int32)State);
+            RemoveAndDestroyTask(TaskID);
+        }
     }
 
     const FTaskConfigRow* Config = TaskConfigs.Find(TaskID);
@@ -110,6 +132,48 @@ UTaskBase* UMissionManager::CreateTaskInstance(const FTaskConfigRow& ConfigRow)
     return NewTask;
 }
 
+void UMissionManager::RemoveAndDestroyTask(FName TaskID)
+{
+    UTaskBase* Task = ActiveTasks.FindRef(TaskID);
+    if (Task)
+    {
+        if (Task->GetTaskState() == ETaskState::Running || Task->GetTaskState() == ETaskState::Paused)
+        {
+            Task->AbandonTask();
+        }
+        ActiveTasks.Remove(TaskID);
+        OnTaskRemoved.Broadcast(TaskID);
+        Task->ConditionalBeginDestroy();
+    }
+}
+
+void UMissionManager::SavePersistentTaskIfNeeded(UTaskBase* Task)
+{
+    if (!Task || Task->GetSavePolicy() != ETaskSavePolicy::Persistent)
+        return;
+
+    // 增量保存：只保存当前这个任务，避免全量写入频繁
+    USaveGameTool* SaveTool = USaveGameTool::GetSaveGameTool();
+    if (!SaveTool)
+        return;
+
+    UTaskSaveGame* TaskSaveGame = Cast<UTaskSaveGame>(SaveTool->LoadGameSync(TEXT("PersistentTasks")));
+    if (!TaskSaveGame)
+    {
+        TaskSaveGame = NewObject<UTaskSaveGame>();
+    }
+
+    // 移除旧数据
+    TaskSaveGame->PersistentTasks.RemoveAll([Task](const FTaskSaveData& Data) { return Data.TaskID == Task->GetTaskID(); });
+
+    // 添加新数据
+    FTaskSaveData Data;
+    Task->SaveTask(Data);
+    TaskSaveGame->PersistentTasks.Add(Data);
+
+    SaveTool->SaveGameSync(TEXT("PersistentTasks"), TaskSaveGame);
+}
+
 void UMissionManager::StartTask(FName TaskID)
 {
     if (UTaskBase* Task = GetTask(TaskID))
@@ -118,14 +182,22 @@ void UMissionManager::StartTask(FName TaskID)
 
 void UMissionManager::CompleteTask(FName TaskID)
 {
-    if (UTaskBase* Task = GetTask(TaskID))
+    UTaskBase* Task = GetTask(TaskID);
+    if (Task)
+    {
         Task->CompleteTask();
+        SavePersistentTaskIfNeeded(Task);
+    }
 }
 
 void UMissionManager::FailTask(FName TaskID)
 {
-    if (UTaskBase* Task = GetTask(TaskID))
+    UTaskBase* Task = GetTask(TaskID);
+    if (Task)
+    {
         Task->FailTask();
+        SavePersistentTaskIfNeeded(Task);
+    }
 }
 
 void UMissionManager::AbandonTask(FName TaskID)
@@ -134,9 +206,8 @@ void UMissionManager::AbandonTask(FName TaskID)
     if (Task)
     {
         Task->AbandonTask();
-        ActiveTasks.Remove(TaskID);
-        OnTaskRemoved.Broadcast(TaskID);
-        Task->ConditionalBeginDestroy();
+        SavePersistentTaskIfNeeded(Task);
+        RemoveAndDestroyTask(TaskID);
     }
 }
 
@@ -241,7 +312,6 @@ void UMissionManager::LoadAllPersistentTasks()
 
 void UMissionManager::ClearSessionTasks()
 {
-    // 收集所有需要清除的任务ID
     TArray<FName> TaskIDs;
     for (const auto& Pair : ActiveTasks)
     {
@@ -251,78 +321,34 @@ void UMissionManager::ClearSessionTasks()
         }
     }
 
-    // 先将所有任务状态改为非运行
     for (const FName& TaskID : TaskIDs)
     {
-        UTaskBase* Task = ActiveTasks.FindRef(TaskID);
-        if (Task && IsValid(Task))
-        {
-            if (Task->GetTaskState() == ETaskState::Running || Task->GetTaskState() == ETaskState::Paused)
-            {
-                Task->AbandonTask();
-            }
-        }
-    }
-
-    // 移出并销毁
-    for (const FName& TaskID : TaskIDs)
-    {
-        UTaskBase* Task = ActiveTasks.FindRef(TaskID);
-        if (Task)
-        {
-            ActiveTasks.Remove(TaskID);
-            OnTaskRemoved.Broadcast(TaskID);
-            Task->ConditionalBeginDestroy();
-        }
+        RemoveAndDestroyTask(TaskID);
     }
 }
 
 void UMissionManager::ClearAllTasks()
 {
-    // 收集所有任务ID
     TArray<FName> TaskIDs;
     for (const auto& Pair : ActiveTasks)
     {
         TaskIDs.Add(Pair.Key);
     }
 
-    // 先将所有任务状态改为非运行
     for (const FName& TaskID : TaskIDs)
     {
-        UTaskBase* Task = ActiveTasks.FindRef(TaskID);
-        if (Task && IsValid(Task))
-        {
-            if (Task->GetTaskState() == ETaskState::Running || Task->GetTaskState() == ETaskState::Paused)
-            {
-                Task->AbandonTask();
-            }
-        }
-    }
-
-    // 移出并销毁
-    TMap<FName, UTaskBase*> TasksToDestroy = MoveTemp(ActiveTasks);
-    ActiveTasks.Empty();
-
-    for (const FName& TaskID : TaskIDs)
-    {
-        UTaskBase* Task = TasksToDestroy.FindRef(TaskID);
-        if (Task && IsValid(Task))
-        {
-            OnTaskRemoved.Broadcast(TaskID);
-            Task->ConditionalBeginDestroy();
-        }
+        RemoveAndDestroyTask(TaskID);
     }
 }
 
 void UMissionManager::UpdateTasks()
 {
-    float CurrentTime = 0.0f;
     UWorld* World = GetWorld();
-    if (World)
-    {
-        CurrentTime = World->GetTimeSeconds();
-    }
-    float DeltaTime = World ? World->GetDeltaSeconds() : 0.016f;
+    if (!World)
+        return;
+
+    float DeltaTime = World->GetDeltaSeconds();
+    float CurrentTime = World->GetTimeSeconds();
 
     TArray<UTaskBase*> Tasks = GetAllTasks();
     for (UTaskBase* Task : Tasks)

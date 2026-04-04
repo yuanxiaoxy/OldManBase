@@ -974,7 +974,7 @@ void AOldManCharacter::StartRightMousePull()
     }
 
     curOldManPullItem = TryGetPullItem();
-    if (curOldManPullItem)
+    if (curOldManPullItem && curOldManPullItem->bCouldPull)
     {
         FGameEventData tempEventData;
         UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputPullStart.ToString(), tempEventData);

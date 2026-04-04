@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -48,7 +48,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
 	UMaterial* PlayWallMaterial;
 
-
 	//动画球播放类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	E_AniBallType myType = E_AniBallType::playOnScene;
@@ -78,6 +77,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
 		meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	AStaticMeshActor* PlayWall;
+
+	//在场景中播放的物体上的材质
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallFade", meta = (EditCondition = "ShouldFadeIn == true"))
+	UMaterialInstance* FadeInMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallFade")
+	bool ShouldFadeIn = true;
+
+public:
+	UFUNCTION(BlueprintImplementableEvent)
+	void StartFadeIn();
 
 private:
 	//进入触发框的玩家

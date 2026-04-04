@@ -192,6 +192,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI")
     UObject* GetCurrentData() const { return CurrentData; }
 
+    // 获取UI的类型（由UIManager设置）
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    EUIPanelType GetPanelType() const { return PanelType; }
+
+    // 获取是否修改输入模式
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    bool GetModifyInput() const { return bModifyInput; }
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Input", meta = (AllowPrivateAccess = "true"))
     bool bShowMouseCursorWhenActive;
 
@@ -224,6 +232,12 @@ protected:
     TArray<UInputAction*> BoundInputActions;
 
     TMap<FKey, TArray<UInputAction*>> KeyToActionMap;
+
+    // UI类型（由UIManager在创建/显示时设置）
+    EUIPanelType PanelType;
+
+    // 是否修改输入模式（由UIManager根据配置设置）
+    bool bModifyInput;
 
     UFUNCTION()
     virtual void HandleButtonClick(const FString& ControlPath);

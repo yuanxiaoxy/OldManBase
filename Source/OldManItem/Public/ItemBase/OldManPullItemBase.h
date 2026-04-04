@@ -16,6 +16,9 @@ class OLDMANITEM_API AOldManPullItemBase : public AOldManItemBase
 
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Drag")
+	bool bCouldPull = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Drag")
 	bool bIsBeingDragged;
 
 	UFUNCTION(BlueprintCallable)

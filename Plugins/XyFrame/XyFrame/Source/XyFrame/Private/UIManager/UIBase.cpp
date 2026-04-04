@@ -12,6 +12,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Framework/Application/SlateApplication.h"
+#include "UIManager/UIManager.h"
 
 UUIBase::UUIBase(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -152,21 +153,62 @@ UWidget* UUIBase::GetCurrentEventSourceWidget() const
     return nullptr;
 }
 
+// ========== 生命周期方法（委托给 UIManager，支持参数传递） ==========
 void UUIBase::ShowUI(UObject* Data)
+{
+    UUIManager* UIMgr = UUIManager::GetUIManager();
+    if (UIMgr)
+    {
+        UIMgr->ShowUIByWidget(this, Data);
+    }
+    else
+    {
+        InternalShowUI(Data);
+    }
+}
+
+void UUIBase::HideUI(bool bRestorePreviousMainPanel)
+{
+    UUIManager* UIMgr = UUIManager::GetUIManager();
+    if (UIMgr)
+    {
+        UIMgr->HideUIByWidget(this, bRestorePreviousMainPanel);
+    }
+    else
+    {
+        InternalHideUI();
+    }
+}
+
+void UUIBase::CloseUI(bool bDestroyInstance, bool bRestorePreviousMainPanel)
+{
+    UUIManager* UIMgr = UUIManager::GetUIManager();
+    if (UIMgr)
+    {
+        UIMgr->CloseUIByWidget(this, bDestroyInstance, bRestorePreviousMainPanel);
+    }
+    else
+    {
+        InternalCloseUI();
+    }
+}
+
+// ========== 内部实现（仅处理视觉和事件，不涉及 UIManager 栈） ==========
+void UUIBase::InternalShowUI(UObject* Data)
 {
     if (Data) SetData(Data);
     OnUIShow(Data);
     OnUIShown.Broadcast(Data);
 }
 
-void UUIBase::HideUI()
+void UUIBase::InternalHideUI()
 {
     SetVisibility(ESlateVisibility::Hidden);
     OnUIHide();
     OnUIHidden.Broadcast();
 }
 
-void UUIBase::CloseUI()
+void UUIBase::InternalCloseUI()
 {
     RemoveFromParent();
 }
@@ -178,6 +220,7 @@ void UUIBase::SetData(UObject* Data)
     OnDataSetReceived.Broadcast(Data);
 }
 
+// ========== 控件获取方法 ==========
 UButton* UUIBase::GetButton(const FString& ControlPath) const
 {
     if (const FUIControlInfo* ControlInfo = ControlDictionary.Find(ControlPath))

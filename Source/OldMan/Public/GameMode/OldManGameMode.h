@@ -27,9 +27,6 @@ protected:
     virtual void InitializePlayers_Implementation() override;
     virtual APawn* SpawnPlayer_Implementation(AController* NewPlayer) override;
 
-    // 重写配置方法
-    virtual FWorldConfig GetWorldConfig_Implementation() const override;
-
     // 事件处理
     UFUNCTION()
     void OnMyWorldInitialized(bool bSuccess);

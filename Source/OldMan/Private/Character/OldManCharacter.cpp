@@ -949,19 +949,20 @@ AOldManPullItemBase* AOldManCharacter::TryGetPullItem()
 
 void AOldManCharacter::CheckPullItem()
 {
-    if (AOldManPullItemBase * HitActor = TryGetPullItem())
+    if (AOldManPullItemBase* HitActor = TryGetPullItem())
     {
+        if (HitActor->bIsBeingDragged)
+        {
+            return;
+        }
+
         curOldManPullItem = HitActor;
         curOldManPullItem->OnBeChecked();
     }
-    else if (curOldManPullItem)
+    else if(curOldManPullItem)
     {
-        if (!curOldManPullItem->bIsBeingDragged)
-        {
-            curOldManPullItem->OnDismissChecked();
-            curOldManPullItem = nullptr;
-        }
-    };
+        curOldManPullItem->OnDismissChecked();
+    }
 }
 
 // ========== Modify StartRightMousePull to use unified cursor position ==========
@@ -972,14 +973,11 @@ void AOldManCharacter::StartRightMousePull()
         return;
     }
 
-    if (AOldManPullItemBase* HitActor = TryGetPullItem())
+    curOldManPullItem = TryGetPullItem();
+    if (curOldManPullItem)
     {
         SetPullItemState(true);
-        HitActor->StartDragging();
-        curOldManPullItem = HitActor;
-
-        // Draw hit point
-        DrawDebugSphere(GetWorld(), HitActor->GetActorLocation(), 15.0f, 12, FColor::Magenta, false, 5.0f, 0, 3.0f);
+        curOldManPullItem->StartDragging();
     }
 }
 

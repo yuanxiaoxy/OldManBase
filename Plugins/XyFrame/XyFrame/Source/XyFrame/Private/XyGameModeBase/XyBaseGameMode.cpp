@@ -23,10 +23,6 @@ AXyBaseGameMode::AXyBaseGameMode()
 
 void AXyBaseGameMode::StartPlay()
 {
-    Super::StartPlay();
-
-    UE_LOG(LogTemp, Log, TEXT("BaseGameMode StartPlay - Starting world initialization"));
-
     FWorldConfig Config = GetWorldConfig();
     if (Config.bAsyncInitialization)
     {
@@ -36,6 +32,10 @@ void AXyBaseGameMode::StartPlay()
     {
         InitializeWorld();
     }
+
+    Super::StartPlay();
+
+    UE_LOG(LogTemp, Log, TEXT("BaseGameMode StartPlay - Starting world initialization"));
 }
 
 void AXyBaseGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)

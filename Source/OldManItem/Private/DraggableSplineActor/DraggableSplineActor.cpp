@@ -1,4 +1,4 @@
-﻿// DraggableSplineActor.cpp
+// DraggableSplineActor.cpp
 #include "DraggableSplineActor/DraggableSplineActor.h"
 #include "Engine/World.h"
 #include "Components/SplineComponent.h"
@@ -162,9 +162,9 @@ void ADraggableSplineActor::StartDragging()
 
 void ADraggableSplineActor::StopDragging()
 {
+    bIsBeingDragged = false;
     if (!IfHasAutoBack)
     {
-        bIsBeingDragged = false;
         SmoothedMovementDirection = FVector::ZeroVector;
         SetActorTickEnabled(false);
     }

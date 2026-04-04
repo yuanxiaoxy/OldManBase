@@ -630,7 +630,7 @@ void UOldManCameraComponent::GetActorsInConeInternal(
     TArray<float>& OutAngles
 )
 {
-给    OutActors.Empty();
+    OutActors.Empty();
     OutDistances.Empty();
     OutAngles.Empty();
 

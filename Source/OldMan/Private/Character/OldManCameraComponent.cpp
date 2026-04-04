@@ -1,4 +1,4 @@
-#include "Character/OldManCameraComponent.h"
+﻿#include "Character/OldManCameraComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
@@ -630,7 +630,7 @@ void UOldManCameraComponent::GetActorsInConeInternal(
     TArray<float>& OutAngles
 )
 {
-    OutActors.Empty();
+给    OutActors.Empty();
     OutDistances.Empty();
     OutAngles.Empty();
 

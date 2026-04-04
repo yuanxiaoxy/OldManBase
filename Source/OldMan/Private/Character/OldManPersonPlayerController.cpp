@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include <GlobalEventName.h>
 
 AOldManPersonPlayerController::AOldManPersonPlayerController()
 {
@@ -102,8 +103,11 @@ void AOldManPersonPlayerController::BindCharacterInputs()
     // Add input mapping context to local player subsystem
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
+        Subsystem->ClearAllMappings();
         Subsystem->AddMappingContext(DefaultMappingContext, 0);
     }
+
+    EnhancedInputComponent->ClearActionBindings();
 
     // Bind movement input actions
     if (MoveAction)
@@ -244,6 +248,8 @@ void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& V
     if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
         return;
 
+    FGameEventData tempEventData;
+    UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputAttack.ToString(), tempEventData);
     CachedOldManCharacter->DectedActors();
 }
 

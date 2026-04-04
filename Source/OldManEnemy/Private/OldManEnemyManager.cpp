@@ -270,6 +270,7 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
     else
     {
         FActiveInk NewInk = InkSettings;
+        NewInk.Age = 0.0f;
         NewInk.NormalizedPosition = pos;
         int32 randomIdx = FMath::RandRange(0, InkTextures.Num() - 1);
         NewInk.Texture = InkTextures[randomIdx];

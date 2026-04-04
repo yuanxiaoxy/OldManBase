@@ -44,16 +44,48 @@ void AOldManHUD::DrawHUD() {
         float ActualPosX = (ScreenWidth * Ink.NormalizedPosition.X) - (ActualWidth / 2);
         float ActualPosY = (ScreenHeight * Ink.NormalizedPosition.Y) - (ActualHeight / 2);
 
-        // 使用 DrawTexture 绘制墨渍
+        float RotationDeg = Ink.BaseRotationDeg;
+        if (!FMath::IsNearlyZero(Ink.SwingAngleDeg))
+        {
+            const float CwDeg = Ink.BaseRotationDeg - Ink.SwingAngleDeg;
+            const float CcwDeg = Ink.BaseRotationDeg + Ink.SwingAngleDeg;
+
+            if (Ink.SwingToggleInterval > 0.0f)
+            {
+                if (Ink.Age < Ink.SwingBackDelay)
+                {
+                    RotationDeg = CwDeg;
+                }
+                else
+                {
+                    const float Elapsed = Ink.Age - Ink.SwingBackDelay;
+                    const int32 Phase = FMath::FloorToInt(Elapsed / Ink.SwingToggleInterval) & 1;
+                    RotationDeg = (Phase == 0) ? CwDeg : CcwDeg;
+                }
+            }
+            else
+            {
+                if (Ink.Age < Ink.SwingBackDelay)
+                {
+                    RotationDeg = CwDeg;
+                }
+            }
+        }
+
+        // 使用 DrawTexture 绘制墨渍（绕中心旋转）
         DrawTexture(
-            Ink.Texture, 
+            Ink.Texture,
             ActualPosX,
             ActualPosY,
             ActualWidth,
             ActualHeight,
-            0, 0, 1, 1, 
-            FLinearColor(1, 1, 1, Alpha), 
-            BLEND_Translucent);
+            0, 0, 1, 1,
+            FLinearColor(1, 1, 1, Alpha),
+            BLEND_Translucent,
+            1.0f,
+            false,
+            RotationDeg,
+            FVector2D(0.5f, 0.5f));
     }
     
    

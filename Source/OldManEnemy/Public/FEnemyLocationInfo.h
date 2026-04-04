@@ -18,7 +18,7 @@ struct FEnemyLocationInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Info")
     bool bIsGenerateOnce = false;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Enemy Info")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Info")
     int32 maxCount = 4;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Info")

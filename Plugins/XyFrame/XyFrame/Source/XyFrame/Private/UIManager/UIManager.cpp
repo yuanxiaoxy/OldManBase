@@ -381,8 +381,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
 }
 
 UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy OpenPolicy)
-{
-    if (UIName.IsNone()) return nullptr;
+{    if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);

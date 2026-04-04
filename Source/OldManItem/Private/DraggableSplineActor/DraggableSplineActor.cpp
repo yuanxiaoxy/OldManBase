@@ -145,6 +145,7 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 void ADraggableSplineActor::StartDragging()
 {
     //取消自动回弹
+    bCouldPull = false;
     inAutoBack = false;
     bIsBeingDragged = true;
     MovementAlpha = 0.0f;
@@ -165,6 +166,7 @@ void ADraggableSplineActor::StopDragging()
     bIsBeingDragged = false;
     if (!IfHasAutoBack)
     {
+        bCouldPull = true;
         SmoothedMovementDirection = FVector::ZeroVector;
         SetActorTickEnabled(false);
     }
@@ -186,6 +188,7 @@ void ADraggableSplineActor::StartAutoBack()
 void ADraggableSplineActor::StopAutoBack()
 {
     //自动回弹相关
+    bCouldPull = true;
     inAutoBack = false;
     CurrentSplinePosition = DragStartPos;
     SmoothedMovementDirection = FVector::ZeroVector;

@@ -1,4 +1,4 @@
-﻿// DraggableSplineActor.h
+// DraggableSplineActor.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -89,6 +89,7 @@ protected:
     FVector SmoothedMovementDirection;
 
 private:
+
     bool inAutoBack;
     //用于自动回弹时计时
     float AutoBackTimer;

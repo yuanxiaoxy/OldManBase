@@ -1,11 +1,11 @@
-﻿#include "AnimationBall/OldManAnimationBall.h"
+#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()
 {
-	Disposable = true;
+	Super::BeginPlay();
 
 	//检测媒体源是否存在
 	if (FileMediaSource == nullptr)
@@ -57,7 +57,6 @@ void AOldManAnimationBall::PlayAniInScene()
 		PlayWall->SetActorHiddenInGame(false);
 		PlayWall->SetActorEnableCollision(true);
 		PlayWall->SetActorTickEnabled(true);
-
 	}
 	if (!IsCreateOnly)
 	{
@@ -65,6 +64,12 @@ void AOldManAnimationBall::PlayAniInScene()
 		PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
 		//打开媒体源
 		MediaPlayer->OpenSource(FileMediaSource);
+	}
+
+	if (ShouldFadeIn && FadeInMaterial)
+	{
+		PlayWall->GetStaticMeshComponent()->SetMaterial(0, FadeInMaterial);
+		StartFadeIn();
 	}
 }
 

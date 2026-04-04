@@ -25,6 +25,8 @@ UUIBase::UUIBase(const FObjectInitializer& ObjectInitializer)
     , bInputActivated(false)
     , OriginalInputMode(EUIInputMode::GameOnly)
     , bOriginalMouseCursorVisible(false)
+    , PanelType(EUIPanelType::Other)
+    , bModifyInput(true)
 {
     bIsFocusable = true;
 }
@@ -197,6 +199,7 @@ void UUIBase::CloseUI(bool bDestroyInstance, bool bRestorePreviousMainPanel)
 void UUIBase::InternalShowUI(UObject* Data)
 {
     if (Data) SetData(Data);
+    SetVisibility(ESlateVisibility::Visible);
     OnUIShow(Data);
     OnUIShown.Broadcast(Data);
 }

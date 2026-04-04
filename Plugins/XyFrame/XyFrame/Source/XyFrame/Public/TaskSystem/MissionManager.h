@@ -31,6 +31,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MissionManager")
     bool LoadTaskTable(UDataTable* TaskTable);
 
+    // 创建任务：若已存在且可重复（且当前状态为 Completed/Failed/Abandoned），则先移除旧任务再创建新任务；
+    // 若已存在且正在运行/暂停，则返回 nullptr 并输出警告。
     UFUNCTION(BlueprintCallable, Category = "MissionManager")
     UTaskBase* CreateTask(FName TaskID);
 
@@ -88,6 +90,8 @@ protected:
 
 private:
     UTaskBase* CreateTaskInstance(const FTaskConfigRow& ConfigRow);
+    void RemoveAndDestroyTask(FName TaskID);
+    void SavePersistentTaskIfNeeded(UTaskBase* Task);
 
     void StartUpdateTimer();
     void StopUpdateTimer();

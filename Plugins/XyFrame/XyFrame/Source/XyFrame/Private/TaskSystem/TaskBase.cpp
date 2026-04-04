@@ -41,13 +41,12 @@ void UTaskBase::StartTask()
         SetState(ETaskState::Running);
         ResetTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task started: %s"), *TaskID.ToString());
+        OnStartTask();
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("Cannot start task in state %d"), (int32)CurrentState);
-        return;
+        UE_LOG(LogTemp, Warning, TEXT("Cannot start task %s in state %d"), *TaskID.ToString(), (int32)CurrentState);
     }
-    OnStartTask();  // 蓝图事件
 }
 
 void UTaskBase::PauseTask()
@@ -56,8 +55,8 @@ void UTaskBase::PauseTask()
     {
         SetState(ETaskState::Paused);
         UE_LOG(LogTemp, Log, TEXT("Task paused: %s"), *TaskID.ToString());
+        OnPauseTask();
     }
-    OnPauseTask();
 }
 
 void UTaskBase::ResumeTask()
@@ -67,8 +66,8 @@ void UTaskBase::ResumeTask()
         SetState(ETaskState::Running);
         ResetTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task resumed: %s"), *TaskID.ToString());
+        OnResumeTask();
     }
-    OnResumeTask();
 }
 
 void UTaskBase::AbandonTask()
@@ -77,8 +76,8 @@ void UTaskBase::AbandonTask()
     {
         SetState(ETaskState::Abandoned);
         UE_LOG(LogTemp, Log, TEXT("Task abandoned: %s"), *TaskID.ToString());
+        OnAbandonTask();
     }
-    OnAbandonTask();
 }
 
 void UTaskBase::CompleteTask()
@@ -89,7 +88,6 @@ void UTaskBase::CompleteTask()
         OnCompleted.Broadcast(TaskID);
         UE_LOG(LogTemp, Log, TEXT("Task completed: %s"), *TaskID.ToString());
 
-        // 任务链
         if (bHasNextTask && !NextTaskID.IsNone())
         {
             UMissionManager* MissionMgr = UMissionManager::GetMissionManager();
@@ -106,12 +104,12 @@ void UTaskBase::CompleteTask()
                 }
             }
         }
+        OnCompleteTask();
     }
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("Cannot complete task %s in state %d"), *TaskID.ToString(), (int32)CurrentState);
     }
-    OnCompleteTask();
 }
 
 void UTaskBase::FailTask()
@@ -121,8 +119,8 @@ void UTaskBase::FailTask()
         SetState(ETaskState::Failed);
         OnFailed.Broadcast(TaskID);
         UE_LOG(LogTemp, Log, TEXT("Task failed: %s"), *TaskID.ToString());
+        OnFailTask();
     }
-    OnFailTask();
 }
 
 void UTaskBase::ResetTask()
@@ -144,12 +142,11 @@ void UTaskBase::UpdateProgress(int32 DeltaInt, float DeltaFloat)
 
     CustomProgressInt += DeltaInt;
     CustomProgressFloat += DeltaFloat;
-    OnProgressUpdated();   // C++ 和蓝图都可重写
+    OnProgressUpdated();
 }
 
 void UTaskBase::Tick(float DeltaTime)
 {
-    // 基类默认实现为空，但子类可重写，或蓝图重写 OnTick
     OnTick(DeltaTime);
 }
 
@@ -212,7 +209,6 @@ UWorld* UTaskBase::GetWorld() const
     return nullptr;
 }
 
-// OnProgressUpdated 默认实现（空）
 void UTaskBase::OnProgressUpdated_Implementation()
 {
     // 子类重写实现进度逻辑

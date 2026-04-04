@@ -40,6 +40,7 @@ void AAdEnemyCharacter::BeginPlay()
 void AAdEnemyCharacter::InitializeEnemy_Implementation(const FEnemyLocationInfo& EnemyInfo)
 {
     Path = EnemyInfo.PatrolPath;
+    SpawnInfoID = EnemyInfo.ID;
 }
 
 void AAdEnemyCharacter::Tick(float DeltaTime)
@@ -179,8 +180,8 @@ void AAdEnemyCharacter::OnSpawn_Implementation()
     {
         AIController = Cast<AAdEnemyAIController>(GetController());   
     }
-    AIController->OnEnemySpawn();
     AIController->EnemyCharacter = this;
+    AIController->OnEnemySpawn();
 }
 
 void AAdEnemyCharacter::OnDespawn_Implementation()

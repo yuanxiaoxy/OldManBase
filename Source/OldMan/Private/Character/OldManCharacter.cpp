@@ -976,6 +976,9 @@ void AOldManCharacter::StartRightMousePull()
     curOldManPullItem = TryGetPullItem();
     if (curOldManPullItem)
     {
+        FGameEventData tempEventData;
+        UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputPullStart.ToString(), tempEventData);
+
         SetPullItemState(true);
         curOldManPullItem->StartDragging();
     }
@@ -986,6 +989,9 @@ void AOldManCharacter::StopRightMousePull()
     SetPullItemState(false);
     if (curOldManPullItem)
     {
+        FGameEventData tempEventData;
+        UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputPullEnd.ToString(), tempEventData);
+
         curOldManPullItem->OnDismissChecked();
         curOldManPullItem->StopDragging();
         curOldManPullItem = nullptr;

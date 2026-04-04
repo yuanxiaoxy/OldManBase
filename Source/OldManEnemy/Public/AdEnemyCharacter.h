@@ -51,6 +51,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AdEnmey")
     TArray<AEnemyPatrolPoint*> Path;
 
+    UPROPERTY(BlueprintReadOnly, Category = "AdEnmey")
+    int32 SpawnInfoID = -1;
+
     // 基础数据
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
     int32 Health = 1;

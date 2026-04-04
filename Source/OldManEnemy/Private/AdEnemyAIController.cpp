@@ -38,7 +38,7 @@ void AAdEnemyAIController::OnPossess(APawn* InPawn)
 }
 void AAdEnemyAIController::Tick(float DeltaTime)
 {
-	
+	Super::Tick(DeltaTime);
 }
 
 EAdMonsterState AAdEnemyAIController::GetCurrentState()

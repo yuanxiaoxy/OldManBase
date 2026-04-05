@@ -949,6 +949,11 @@ AOldManPullItemBase* AOldManCharacter::TryGetPullItem()
 
 void AOldManCharacter::CheckPullItem()
 {
+    if (curOldManPullItem != nullptr && curOldManPullItem->bIsBeingDragged)
+    {
+        return;
+    }
+
     if (AOldManPullItemBase* HitActor = TryGetPullItem())
     {
         if (HitActor->bIsBeingDragged)

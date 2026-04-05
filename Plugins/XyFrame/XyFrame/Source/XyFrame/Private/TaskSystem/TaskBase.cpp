@@ -147,6 +147,7 @@ void UTaskBase::UpdateProgress(int32 DeltaInt, float DeltaFloat)
 
 void UTaskBase::Tick(float DeltaTime)
 {
+    // 调用蓝图可重写的 OnTick（BlueprintNativeEvent）
     OnTick(DeltaTime);
 }
 
@@ -209,7 +210,14 @@ UWorld* UTaskBase::GetWorld() const
     return nullptr;
 }
 
+// OnProgressUpdated 默认实现（空）
 void UTaskBase::OnProgressUpdated_Implementation()
 {
     // 子类重写实现进度逻辑
+}
+
+// OnTick 默认实现（空）—— 关键修改：提供 C++ 默认实现，避免蓝图未重写时崩溃
+void UTaskBase::OnTick_Implementation(float DeltaTime)
+{
+    // 默认空实现，蓝图子类可选择重写
 }

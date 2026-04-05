@@ -116,7 +116,8 @@ protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Task")
     void OnResetTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    // 修改为 BlueprintNativeEvent，并提供默认 C++ 实现，防止蓝图未重写时崩溃
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnTick(float DeltaTime);
 
     // 进度更新事件（C++ 和蓝图都可重写）

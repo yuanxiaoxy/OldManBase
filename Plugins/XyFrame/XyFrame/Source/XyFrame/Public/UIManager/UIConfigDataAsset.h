@@ -43,12 +43,17 @@ struct FUIConfigData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     EUIPanelType PanelType = EUIPanelType::Other;
 
+    // 新增：是否修改输入模式（为false时该UI不会影响玩家输入）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    bool bModifyInput = true;
+
     FUIConfigData()
         : DefaultLayer(EUIPanelLayer::Middle)
         , DefaultInputMode(EUIInputMode::UIOnly)
         , bShowMouseCursor(true)
         , InputPriority(0)
         , bPreload(false)
+        , bModifyInput(true)
     {
     }
 };

@@ -20,7 +20,6 @@ enum class EAudioCategory : uint8
     UI       UMETA(DisplayName = "UI Sounds")
 };
 
-// 添加枚举范围定义
 ENUM_RANGE_BY_COUNT(EAudioCategory, 5)
 
 // 音频配置结构
@@ -52,9 +51,16 @@ struct FAudioConfig : public FTableRowBase
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     int32 Priority = 0;
+
+    // 淡入时间（秒）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
+    float FadeInTime = 0.0f;
+
+    // 淡出时间（秒）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
+    float FadeOutTime = 0.0f;
 };
 
-// 委托声明
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoundStarted, FName, SoundID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoundFinished, FName, SoundID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCategoryVolumeChanged, EAudioCategory, Category, float, NewVolume);
@@ -64,33 +70,25 @@ class XYFRAME_API UAudioManager : public USingletonBase
 {
     GENERATED_BODY()
 
-    // 单例声明
     DECLARE_SINGLETON(UAudioManager)
 
 public:
-    // 初始化音频管理器
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void InitializeAudioManager();
 
-    // 重写单例初始化方法
     virtual void InitializeSingleton() override;
     virtual void DestroyCurSingleton() override { DestroyInstance(); }
 
-    // 获取管理器实例的蓝图可调用方法
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Audio", meta = (DisplayName = "Get Audio Manager"))
     static UAudioManager* GetAudioManager() { return GetInstance(); }
 
-    // 构造函数
     UAudioManager();
     virtual ~UAudioManager() override;
 
     // ========== 基础音频接口 ==========
-
-    // 初始化音频系统
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Initialize(UDataTable* InAudioDataTable);
 
-    // 播放音频（通用接口）
     UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
     UAudioComponent* PlaySound(
         UObject* WorldContextObject,
@@ -102,36 +100,32 @@ public:
         float PitchMultiplier = 1.0f
     );
 
-    // 停止特定SoundID的所有音频
     UFUNCTION(BlueprintCallable, Category = "Audio")
-    void StopSound(FName SoundID);
+    void StopSound(FName SoundID, float FadeOutTime = 0.0f);
 
-    // 停止所有音频
     UFUNCTION(BlueprintCallable, Category = "Audio")
-    void StopAllSounds();
+    void StopAllSounds(float FadeOutTime = 0.0f);
 
-    // 停止特定类别的所有音频
     UFUNCTION(BlueprintCallable, Category = "Audio")
-    void StopAllSoundsByCategory(EAudioCategory Category);
+    void StopAllSoundsByCategory(EAudioCategory Category, float FadeOutTime = 0.0f);
 
     // ========== 分类音频接口 ==========
-
-    // SFX 管理
+    // SFX
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
-    void StopSFX(FName SoundID);
+    void StopSFX(FName SoundID, float FadeOutTime = 0.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
-    void StopAllSFX();
+    void StopAllSFX(float FadeOutTime = 0.0f);
 
-    // BGM 管理
+    // BGM
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
-    void PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime = 1.0f);
+    void PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime = -1.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
-    void StopBGM(float FadeTime = 1.0f);
+    void StopBGM(float FadeTime = -1.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void PauseBGM();
@@ -139,77 +133,74 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void ResumeBGM();
 
-    // 环境音管理
+    // Ambient
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
-    void PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, float FadeTime = 1.0f);
-
-    UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
-    void StopAmbient(FName SoundID, float FadeTime = 1.0f);
+    void PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, float FadeTime = -1.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
-    void StopAllAmbient(float FadeTime = 1.0f);
+    void StopAmbient(FName SoundID, float FadeTime = -1.0f);
 
-    // 语音管理
+    UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
+    void StopAllAmbient(float FadeTime = -1.0f);
+
+    // Voice
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
-    void PlayVoice(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr);
+    void PlayVoice(
+        UObject* WorldContextObject,
+        FName SoundID,
+        AActor* AttachActor = nullptr,
+        float FadeInTime = -1.0f,      // -1 使用新音频配置中的淡入时间
+        float FadeOutTime = -1.0f,     // -1 使用旧音频配置中的淡出时间（停止旧语音时）
+        float PitchMultiplier = 1.0f
+    );
 
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
-    void StopVoice(FName SoundID);
+    void StopVoice(FName SoundID, float FadeOutTime = -1.0f);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
-    void StopAllVoice();
+    void StopAllVoice(float FadeOutTime = -1.0f);
 
-    // UI音效管理
+    // UI
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void PlayUISound(UObject* WorldContextObject, FName SoundID);
 
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
-    void StopUISound(FName SoundID);
+    void StopUISound(FName SoundID, float FadeOutTime = 0.0f);
 
     // ========== 音量控制 ==========
-
-    // 设置类别音量
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetCategoryVolume(EAudioCategory Category, float NewVolume);
 
-    // 获取类别音量
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     float GetCategoryVolume(EAudioCategory Category) const;
 
-    // 设置所有音量
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetAllVolumes(float BGMVolume, float SFXVolume, float AmbientVolume, float VoiceVolume, float UIVolume);
 
-    // 重置所有音量到默认值
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void ResetAllVolumes();
 
-    // ========== 音频状态查询 ==========
-
-    // 检查音频是否正在播放
+    // ========== 查询 ==========
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsSoundPlaying(FName SoundID) const;
 
-    // 获取活跃音频数量
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCount() const;
 
-    // 获取特定类别的活跃音频数量
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCountByCategory(EAudioCategory Category) const;
 
-    // ========== 调试工具 ==========
+    UFUNCTION(BlueprintCallable, Category = "Audio|Query")
+    bool IsVoicePlaying() const;
 
-    // 打印音频系统状态
+    // ========== 调试 ==========
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintAudioSystemStatus();
 
-    // 打印特定类别的音频状态
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintCategoryStatus(EAudioCategory Category);
 
     // ========== 委托 ==========
-
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundStarted OnSoundStarted;
 
@@ -223,31 +214,26 @@ public:
     bool IsInitialized() const { return AudioDataTable != nullptr; }
 
 private:
-    // 音频数据表
     UPROPERTY()
     UDataTable* AudioDataTable;
 
-    // 活跃音频组件映射
     UPROPERTY()
     TMap<UAudioComponent*, FName> ActiveComponents;
 
-    // 类别音量
     TMap<EAudioCategory, float> CategoryVolumes;
 
-    // 当前BGM组件
     UPROPERTY()
     UAudioComponent* CurrentBGMComponent;
 
-    // 内部方法
+    UPROPERTY()
+    UAudioComponent* CurrentVoiceComponent;
+
     const FAudioConfig* GetAudioConfig(FName SoundID) const;
 
-    // 音频完成处理
     UFUNCTION()
     void HandleAudioFinished();
 
-    // 获取World的辅助方法
     UWorld* GetWorld() const;
 
-    // 淡出音频组件
-    void FadeOutAudioComponent(UAudioComponent* AudioComponent, float FadeTime);
+    void FadeOutAndDestroyAudioComponent(UAudioComponent* AudioComponent, float FadeOutTime);
 };

@@ -70,5 +70,6 @@ enum class EUIPanelType : uint8
 {
     MainPanel   UMETA(DisplayName = "Main Panel"),
     PopUp       UMETA(DisplayName = "PopUp"),
+    Notification UMETA(DisplayName = "Notification"),
     Other       UMETA(DisplayName = "Other")
 };

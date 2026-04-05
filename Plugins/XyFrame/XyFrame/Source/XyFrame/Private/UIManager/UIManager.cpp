@@ -96,6 +96,8 @@ bool UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
     UIInfo.State = EUIState::Hidden;
     UIInfo.WidgetInstance = nullptr;
     UIInfo.bIsPreloaded = Config.bPreload;
+    UIInfo.PanelType = Config.PanelType;
+    UIInfo.bModifyInput = Config.bModifyInput;
     UIRegistry.Add(Config.UIName, UIInfo);
     return true;
 }
@@ -134,6 +136,8 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
                         {
                             UIBase->SetInputMode(Config.DefaultInputMode);
                             UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                            UIBase->PanelType = Config.PanelType;
+                            UIBase->bModifyInput = Config.bModifyInput;
                             if (Config.DefaultInputMappingContext)
                             {
                                 UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
@@ -170,6 +174,8 @@ void UUIManager::PreloadMarkedUIs()
                     {
                         UIBase->SetInputMode(Config.DefaultInputMode);
                         UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                        UIBase->PanelType = Config.PanelType;
+                        UIBase->bModifyInput = Config.bModifyInput;
                         if (Config.DefaultInputMappingContext)
                         {
                             UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
@@ -200,9 +206,18 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     FUIConfigData Config;
     bool bHasConfig = UIConfigData && UIConfigData->GetUIConfig(UIName, Config);
     EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
+    bool bModifyInput = bHasConfig ? Config.bModifyInput : true;
 
-    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s"),
-        *UIName.ToString(), *UEnum::GetValueAsString(PanelType), bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"));
+    // Notification 类型：自动关闭已存在的同类型 UI
+    if (PanelType == EUIPanelType::Notification)
+    {
+        CloseAllUIsOfType(EUIPanelType::Notification);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("UUIManager::ShowUI - Showing UI: %s, PanelType: %s, InputMode: %s, ModifyInput: %s"),
+        *UIName.ToString(), *UEnum::GetValueAsString(PanelType),
+        bHasConfig ? *UEnum::GetValueAsString(Config.DefaultInputMode) : TEXT("None"),
+        bModifyInput ? TEXT("true") : TEXT("false"));
 
     // 处理MainPanel类型（静默隐藏其他MainPanel，避免回调死循环）
     if (PanelType == EUIPanelType::MainPanel)
@@ -275,6 +290,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
                 {
                     ExistingUIBase->SetInputMode(Config.DefaultInputMode);
                     ExistingUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+                    ExistingUIBase->PanelType = Config.PanelType;
+                    ExistingUIBase->bModifyInput = Config.bModifyInput;
                     if (Config.DefaultInputMappingContext)
                     {
                         UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
@@ -285,16 +302,16 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
 
                 if (ExistingUI->State != EUIState::Visible)
                 {
-                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
-                    HandleStackChange();
+                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer, ExistingUI->bModifyInput);
+                    HandleStackChange(ExistingUI->bModifyInput);
                     InternalShowUI(ExistingUIBase, Data);
                     ExistingUI->State = EUIState::Visible;
                 }
                 else
                 {
                     RemoveFromStack(UIName);
-                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer);
-                    HandleStackChange();
+                    AddToStack(ExistingUI->WidgetInstance, UIName, ExistingUI->Layer, ExistingUI->bModifyInput);
+                    HandleStackChange(ExistingUI->bModifyInput);
                 }
                 if (Data)
                     ExistingUIBase->SetData(Data);
@@ -318,6 +335,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo.State = EUIState::Visible;
         UIInfo.WidgetInstance = NewWidget;
         UIInfo.bIsPreloaded = false;
+        UIInfo.PanelType = PanelType;
+        UIInfo.bModifyInput = bModifyInput;
         UIRegistry.Add(UIName, UIInfo);
     }
     else
@@ -326,6 +345,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo->WidgetInstance = NewWidget;
         UIInfo->State = EUIState::Visible;
         UIInfo->Layer = Layer;
+        UIInfo->PanelType = PanelType;
+        UIInfo->bModifyInput = bModifyInput;
     }
     WidgetToUINameMap.Add(NewWidget, UIName);
 
@@ -335,6 +356,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         {
             NewUIBase->SetInputMode(Config.DefaultInputMode);
             NewUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
+            NewUIBase->PanelType = Config.PanelType;
+            NewUIBase->bModifyInput = Config.bModifyInput;
             if (Config.DefaultInputMappingContext)
             {
                 UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
@@ -344,16 +367,13 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         }
     }
 
-    AddToStack(NewWidget, UIName, Layer);
-    HandleStackChange();
-
-    if (NewUIBase)
-        InternalShowUI(NewUIBase, Data);
-    else
-        NewWidget->SetVisibility(ESlateVisibility::Visible);
+    InternalShowUI(NewUIBase, Data);
 
     if (!NewWidget->IsInViewport())
         NewWidget->AddToViewport();
+
+    AddToStack(NewWidget, UIName, Layer, bModifyInput);
+    HandleStackChange(bModifyInput);
 
     OnUIShown.Broadcast(UIName);
     OnUITopChanged.Broadcast(UIName);
@@ -361,8 +381,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
 }
 
 UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy OpenPolicy)
-{
-    if (UIName.IsNone()) return nullptr;
+{    if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
         return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
@@ -389,13 +408,13 @@ void UUIManager::ShowUIByWidget(UUserWidget* Widget, UObject* Data)
     if (UIInfo->State == EUIState::Visible)
     {
         RemoveFromStack(UIName);
-        AddToStack(Widget, UIName, UIInfo->Layer);
-        HandleStackChange();
+        AddToStack(Widget, UIName, UIInfo->Layer, UIInfo->bModifyInput);
+        HandleStackChange(UIInfo->bModifyInput);
     }
     else
     {
-        AddToStack(Widget, UIName, UIInfo->Layer);
-        HandleStackChange();
+        AddToStack(Widget, UIName, UIInfo->Layer, UIInfo->bModifyInput);
+        HandleStackChange(UIInfo->bModifyInput);
         UIInfo->State = EUIState::Visible;
     }
 
@@ -434,7 +453,7 @@ void UUIManager::HideUIByWidget(UUserWidget* Widget, bool bRestorePreviousMainPa
                 Widget->SetVisibility(ESlateVisibility::Hidden);
             UIInfo->State = EUIState::Hidden;
             RemoveFromStack(UIName);
-            HandleStackChange();
+            HandleStackChange(UIInfo->bModifyInput);
             OnUIHidden.Broadcast(UIName);
             OnUITopChanged.Broadcast(GetTopUIName());
         }
@@ -483,7 +502,7 @@ void UUIManager::CloseUIByWidget(UUserWidget* Widget, bool bDestroyInstance, boo
                 SafeRemoveWidget(Widget);
 
             RemoveFromStack(UIName);
-            HandleStackChange();
+            HandleStackChange(UIInfo->bModifyInput);
 
             if (bDestroyInstance)
             {
@@ -606,26 +625,28 @@ void UUIManager::DeactivatePreviousUIInput()
 void UUIManager::ActivateTopUIInput()
 {
     if (bIsShuttingDown) return;
-    if (UIStack.Num() > 0)
+    // 只考虑允许修改输入的UI
+    for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
-        FUILayerNode TopNode = UIStack.Last();
-        if (TopNode.Widget && TopNode.Widget->IsVisible())
+        FUILayerNode& Node = UIStack[i];
+        if (Node.Widget && Node.Widget->IsVisible() && Node.bModifyInput)
         {
-            UUIBase* TopUIBase = Cast<UUIBase>(TopNode.Widget);
+            UUIBase* TopUIBase = Cast<UUIBase>(Node.Widget);
             if (TopUIBase && TopUIBase->GetInputMode() != EUIInputMode::GameOnly)
             {
                 TopUIBase->ActivateInput();
                 CurrentInputActiveUI = TopUIBase;
+                return;
             }
         }
     }
 }
 
-void UUIManager::HandleStackChange()
+void UUIManager::HandleStackChange(bool bOverrideInput)
 {
     if (bIsShuttingDown) return;
 
-    if (CurrentInputActiveUI.IsValid())
+    if (CurrentInputActiveUI.IsValid() && bOverrideInput)
     {
         CurrentInputActiveUI->DeactivateInput(true);
         CurrentInputActiveUI = nullptr;
@@ -645,10 +666,11 @@ void UUIManager::HandleStackChange()
     bool bShowMouse = false;
     UUserWidget* FocusWidget = nullptr;
 
+    // 遍历栈，找到最顶层且允许修改输入的可见UI
     for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
         FUILayerNode& Node = UIStack[i];
-        if (Node.Widget)
+        if (Node.Widget && Node.Widget->IsVisible() && Node.bModifyInput)
         {
             TopUI = Cast<UUIBase>(Node.Widget);
             bHasVisibleUI = true;
@@ -656,7 +678,7 @@ void UUIManager::HandleStackChange()
         }
     }
 
-    if (bHasVisibleUI && TopUI)
+    if (bHasVisibleUI && TopUI && bOverrideInput)
     {
         TopUIMode = TopUI->GetInputMode();
         bShowMouse = TopUI->ShouldShowMouseCursor();
@@ -684,10 +706,10 @@ void UUIManager::HandleStackChange()
         UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - Set UI Input Mode to %s for UI: %s, FocusWidget: %s"),
             *UEnum::GetValueAsString(TopUIMode), *TopUI->GetName(), FocusWidget ? *FocusWidget->GetName() : TEXT("None"));
     }
-    else
+    else if(bOverrideInput)
     {
         XyPC->SetUIInputMode(EUIInputMode::GameOnly, nullptr, false, true);
-        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - No visible UI, set GameOnly"));
+        UE_LOG(LogTemp, Log, TEXT("UUIManager::HandleStackChange - No visible UI (or all have ModifyInput=false), set GameOnly"));
     }
 }
 
@@ -742,7 +764,7 @@ void UUIManager::SetUILayer(FName UIName, EUIPanelLayer NewLayer)
             }
         }
         UpdateStackOrder();
-        HandleStackChange();
+        HandleStackChange(UIInfo->bModifyInput);
     }
 }
 
@@ -784,10 +806,10 @@ void UUIManager::ClearUIStack()
     UIStack.Empty();
 }
 
-void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer)
+void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput)
 {
     RemoveFromStack(UIName);
-    UIStack.Add(FUILayerNode(UIName, Layer, Widget));
+    UIStack.Add(FUILayerNode(UIName, Layer, Widget, bModifyInput));
     UpdateStackOrder();
 }
 
@@ -825,10 +847,11 @@ void UUIManager::PrintAllUIs()
     for (const auto& Pair : UIRegistry)
     {
         const FUIInfo& UIInfo = Pair.Value;
-        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s"),
+        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s"),
             *UIInfo.UIName.ToString(), *UIInfo.WidgetClass->GetName(),
             *UEnum::GetValueAsString(UIInfo.Layer), *UEnum::GetValueAsString(UIInfo.State),
-            UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"));
+            UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"),
+            *UEnum::GetValueAsString(UIInfo.PanelType), UIInfo.bModifyInput ? TEXT("true") : TEXT("false"));
     }
     UE_LOG(LogTemp, Log, TEXT("=========================="));
 }
@@ -841,8 +864,9 @@ void UUIManager::PrintStackInfo()
     for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
         const FUILayerNode& Node = UIStack[i];
-        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Widget: %s"), i, *Node.UIName.ToString(),
-            *UEnum::GetValueAsString(Node.Layer), Node.Widget ? TEXT("Valid") : TEXT("Null"));
+        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Widget: %s, ModifyInput: %s"), i, *Node.UIName.ToString(),
+            *UEnum::GetValueAsString(Node.Layer), Node.Widget ? TEXT("Valid") : TEXT("Null"),
+            Node.bModifyInput ? TEXT("true") : TEXT("false"));
     }
     UE_LOG(LogTemp, Log, TEXT("============================="));
 }
@@ -857,10 +881,11 @@ void UUIManager::PrintConfigInfo()
         UE_LOG(LogTemp, Log, TEXT("Total Config Entries: %d"), AllConfigs.Num());
         for (const FUIConfigData& Config : AllConfigs)
         {
-            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, Desc: %s"),
+            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, ModifyInput: %s, Desc: %s"),
                 *Config.UIName.ToString(), *Config.WidgetClass.ToString(), *UEnum::GetValueAsString(Config.DefaultLayer),
                 *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"),
-                *UEnum::GetValueAsString(Config.PanelType), *Config.Description);
+                *UEnum::GetValueAsString(Config.PanelType), Config.bModifyInput ? TEXT("true") : TEXT("false"),
+                *Config.Description);
         }
     }
     else
@@ -910,24 +935,19 @@ UWidget* UUIManager::FindFirstFocusableWidget(UWidget* RootWidget) const
 void UUIManager::InternalShowUI(UUIBase* UI, UObject* Data)
 {
     if (!UI) return;
-    if (Data) UI->SetData(Data);
-    UI->OnUIShow(Data);
-    UI->OnUIShown.Broadcast(Data);
-    UI->SetVisibility(ESlateVisibility::Visible);
+    UI->InternalShowUI(Data);  // 调用虚函数，支持派生类重写
 }
 
 void UUIManager::InternalHideUI(UUIBase* UI)
 {
     if (!UI) return;
-    UI->SetVisibility(ESlateVisibility::Hidden);
-    UI->OnUIHide();
-    UI->OnUIHidden.Broadcast();
+    UI->InternalHideUI();
 }
 
 void UUIManager::InternalCloseUI(UUIBase* UI)
 {
     if (!UI) return;
-    UI->RemoveFromParent();
+    UI->InternalCloseUI();
 }
 
 void UUIManager::InternalHideUISilent(UUIBase* UI)
@@ -941,5 +961,21 @@ void UUIManager::InternalHideUISilent(UUIBase* UI)
             CurrentInputActiveUI->DeactivateInput(true);
         }
         CurrentInputActiveUI = nullptr;
+    }
+}
+
+void UUIManager::CloseAllUIsOfType(EUIPanelType Type)
+{
+    TArray<FName> ToClose;
+    for (const auto& Pair : UIRegistry)
+    {
+        if (Pair.Value.PanelType == Type && Pair.Value.WidgetInstance)
+        {
+            ToClose.Add(Pair.Key);
+        }
+    }
+    for (FName UIName : ToClose)
+    {
+        CloseUI(UIName, true, false);
     }
 }

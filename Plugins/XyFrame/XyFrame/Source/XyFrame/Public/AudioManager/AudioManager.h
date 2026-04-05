@@ -52,11 +52,9 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     int32 Priority = 0;
 
-    // 淡入时间（秒）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
     float FadeInTime = 0.0f;
 
-    // 淡出时间（秒）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
     float FadeOutTime = 0.0f;
 };
@@ -149,8 +147,8 @@ public:
         UObject* WorldContextObject,
         FName SoundID,
         AActor* AttachActor = nullptr,
-        float FadeInTime = -1.0f,      // -1 使用新音频配置中的淡入时间
-        float FadeOutTime = -1.0f,     // -1 使用旧音频配置中的淡出时间（停止旧语音时）
+        float FadeInTime = -1.0f,
+        float FadeOutTime = -1.0f,
         float PitchMultiplier = 1.0f
     );
 
@@ -200,6 +198,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintCategoryStatus(EAudioCategory Category);
 
+    // ========== 安全清理（关卡切换前调用） ==========
+    UFUNCTION(BlueprintCallable, Category = "Audio")
+    void Shutdown();
+
     // ========== 委托 ==========
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundStarted OnSoundStarted;
@@ -228,6 +230,9 @@ private:
     UPROPERTY()
     UAudioComponent* CurrentVoiceComponent;
 
+    // 存储所有待销毁的定时器句柄，以便在Shutdown时清除（使用TArray以支持非const迭代）
+    TArray<FTimerHandle> PendingDestroyTimers;
+
     const FAudioConfig* GetAudioConfig(FName SoundID) const;
 
     UFUNCTION()
@@ -236,4 +241,7 @@ private:
     UWorld* GetWorld() const;
 
     void FadeOutAndDestroyAudioComponent(UAudioComponent* AudioComponent, float FadeOutTime);
+
+    // 内部安全移除组件（不依赖定时器）
+    void SafelyDestroyAudioComponent(UAudioComponent* AudioComponent);
 };

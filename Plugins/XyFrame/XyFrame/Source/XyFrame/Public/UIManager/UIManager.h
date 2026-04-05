@@ -22,28 +22,25 @@ struct FUIInfo
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     FName UIName;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     TSubclassOf<UUserWidget> WidgetClass;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     EUIPanelLayer Layer;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     EUIState State;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     UUserWidget* WidgetInstance;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY()
     bool bIsPreloaded;
 
-    // 新增：UI类型
     EUIPanelType PanelType;
-
-    // 新增：是否修改输入
     bool bModifyInput;
 
     FUIInfo()
@@ -71,7 +68,6 @@ struct FUILayerNode
     UPROPERTY()
     UUserWidget* Widget;
 
-    // 新增：是否修改输入
     bool bModifyInput;
 
     FUILayerNode()
@@ -242,9 +238,12 @@ private:
     UPROPERTY()
     TMap<UUserWidget*, FName> WidgetToUINameMap;
 
-    // UI层级栈
+    // UI层级栈（仅存储当前可见且未关闭的UI）
     UPROPERTY()
     TArray<FUILayerNode> UIStack;
+
+    // MainPanel 历史栈（记录被自动隐藏的 MainPanel，用于恢复）
+    TArray<FName> MainPanelHistoryStack;
 
     // 配置数据
     UPROPERTY()
@@ -261,40 +260,41 @@ private:
     // 关闭标志，用于析构时跳过清理操作
     bool bIsShuttingDown;
 
-    // MainPanel 历史栈（记录被自动隐藏的 MainPanel）
-    TArray<FName> MainPanelHistoryStack;
+    // ========== 私有核心方法 ==========
 
-    // 递归保护标志，防止 MainPanel 切换死循环
-    bool bIsSwitchingMainPanel;
+    // 显示/隐藏/关闭的内部实现（不触发公共事件，仅操作UI和栈）
+    void InternalShowUI(UUIBase* UI, UObject* Data);
+    void InternalHideUI(UUIBase* UI);
+    void InternalCloseUI(UUIBase* UI);
+    void InternalHideUISilent(UUIBase* UI);  // 静默隐藏，用于MainPanel切换
 
-    // 私有方法
+    // MainPanel 专用处理
+    void HandleMainPanelShow(FName NewMainPanelName);
+    void HandleMainPanelHide(FName HiddenMainPanelName, bool bPushToHistory);
+    bool TryRestorePreviousMainPanel();
+
+    // 栈管理
     void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput);
     void RemoveFromStack(FName UIName);
     void UpdateStackOrder();
     void SafeRemoveWidget(UUserWidget* Widget);
 
+    // 输入管理
     void DeactivatePreviousUIInput();
     void ActivateTopUIInput();
-    void HandleStackChange(bool bOverrideInput = true);
+    void HandleStackChange();
 
-    bool RegisterUIFromConfig(const struct FUIConfigData& Config);
+    // 辅助方法
+    void RegisterUIFromConfig(const struct FUIConfigData& Config);
     void RegisterAllUIsFromConfig();
     TSubclassOf<UUserWidget> LoadWidgetClass(const TSoftClassPtr<UUserWidget>& SoftClassPtr);
     UInputMappingContext* LoadInputMappingContext(const TSoftObjectPtr<UInputMappingContext>& SoftObjectPtr);
-
-    UWidget* FindFirstFocusableWidget(UWidget* RootWidget) const;
-
+    UUserWidget* FindFirstFocusableWidget(UWidget* RootWidget) const;
     APlayerController* GetPlayerController() const;
     virtual UWorld* GetWorld() const override;
 
-    // 内部方法：直接操作 UI（不触发 UIBase 的公共方法，避免递归）
-    void InternalShowUI(UUIBase* UI, UObject* Data);
-    void InternalHideUI(UUIBase* UI);
-    void InternalCloseUI(UUIBase* UI);
-
-    // 静默隐藏（用于 MainPanel 自动切换，不触发回调）
-    void InternalHideUISilent(UUIBase* UI);
-
-    // 关闭指定类型的所有 UI（用于 Notification）
+    // 关闭指定类型的所有 UI
     void CloseAllUIsOfType(EUIPanelType Type);
+
+    friend class UUIBase;
 };

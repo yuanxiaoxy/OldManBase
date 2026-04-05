@@ -1089,6 +1089,7 @@ void AOldManCharacter::SetNextCable(AOldManCableBase* newCable, bool left)
 #pragma region Character Param
 void AOldManCharacter::OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition, FRotator ReBornRotation)
 {
+    bool bShowMouseCursor = OldManController->bShowMouseCursor;
     InitializeParam();
     PlayerRebornData.IfWaitInput = IfWaitInput;
     PlayerRebornData.ReBornPosition = ReBornPosition;
@@ -1098,6 +1099,8 @@ void AOldManCharacter::OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition,
     {
         StateMachine->InitializeWithState(UOldManRebornState::StaticClass(), this);
     }
+
+    OldManController->SetShowMouseCursor(bShowMouseCursor);
 }
 
 bool AOldManCharacter::IsAlive()

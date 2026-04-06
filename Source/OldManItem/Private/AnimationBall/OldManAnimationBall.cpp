@@ -1,4 +1,4 @@
-#include "AnimationBall/OldManAnimationBall.h"
+﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 
@@ -130,12 +130,12 @@ void AOldManAnimationBall::PlayOver()
 void AOldManAnimationBall::BeforePreparation()
 {
 	//启用计时器
-	if (CountdownTime > 0)
-	{
-		UMonoManager::GetInstance()->SetTimeout(CountdownTime - BeginTime, this, &AOldManAnimationBall::PlayOver);
-	}
+	//if (CountdownTime > 0)
+	//{
+	//	UMonoManager::GetInstance()->SetTimeout(CountdownTime - BeginTime, this, &AOldManAnimationBall::PlayOver);
+	//}
 	//绑定回调
-	//MediaPlayer->OnEndReached.AddDynamic(this, &AOldManAnimationBall::PlayOver);
+	MediaPlayer->OnEndReached.AddDynamic(this, &AOldManAnimationBall::PlayOver);
 	//MediaPlayer->OnMediaOpened.AddDynamic(this, &AOldManAnimationBall::Print);
 	//设置循环
 	MediaPlayer->SetLooping(Loop);

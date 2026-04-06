@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -97,6 +97,7 @@ private:
 	void PlayAniInScene();
 	void PlayAniInUI();
 	void PlayText();
+	UFUNCTION()
 	void PlayOver();
 	void BeforePreparation();
 	void Print(FString text);

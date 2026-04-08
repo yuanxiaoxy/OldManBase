@@ -211,6 +211,10 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
 
     // 计算归一化移动量
     float MovementDelta = CalculateNormalizedMovement(SmoothedMovementDirection);
+    if (SingleDirDrag)
+    {
+        MovementDelta = FMath::Max(MovementDelta, 0.0f);
+    }
 
     // 如果移动量很小，忽略
     if (FMath::Abs(MovementDelta) < 0.001f) return;

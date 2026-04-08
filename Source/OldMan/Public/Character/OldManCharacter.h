@@ -367,6 +367,9 @@ public:
     bool InFireCoolDown = false;
 
     UPROPERTY()
+    bool UnLockAttack = true;
+
+    UPROPERTY()
     FTimerHandle FireTimerHandle;
 
 public:
@@ -392,6 +395,9 @@ public:
 
     UPROPERTY()
     bool bCouldPullItem = true;
+
+    UPROPERTY()
+    bool UnLockPull = true;
 
 public:
     UFUNCTION(BlueprintCallable, Category = "PullItem")

@@ -47,4 +47,15 @@ public:
 	static const FName Key_Input_InputAttack;
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
 	static FName GetKey_Input_InputAttack() { return Key_Input_InputAttack; }
+
+	static const FName Key_Input_LockMouseKey;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_LockMouseKey() { return Key_Input_LockMouseKey; }
+
+	static const FName Key_Input_UnLockPull;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_UnLockPull() { return Key_Input_UnLockPull; }
+	static const FName Key_Input_UnLockAttack;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_UnLockAttack() { return Key_Input_UnLockAttack; }
 };

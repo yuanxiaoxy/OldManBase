@@ -39,8 +39,25 @@ void AOldManHUD::DrawHUD() {
 
         // 计算当前透明度（实现淡入淡出效果）
         float Alpha = 1.0f - (Ink.Age / Ink.Duration);
-        float ActualWidth = ScreenWidth * Ink.NormalizedWidth;
-        float ActualHeight = ScreenHeight * Ink.NormalizedHeight;
+
+        if (!Ink.Texture)
+        {
+            continue;
+        }
+
+        const float TexW = static_cast<float>(Ink.Texture->GetSizeX());
+        const float TexH = static_cast<float>(Ink.Texture->GetSizeY());
+        if (TexW <= 0.0f || TexH <= 0.0f)
+        {
+            continue;
+        }
+
+        const float MaxWidth = ScreenWidth * Ink.NormalizedWidth;
+        const float MaxHeight = ScreenHeight * Ink.NormalizedHeight;
+        const float Scale = FMath::Min(MaxWidth / TexW, MaxHeight / TexH);
+        const float ActualWidth = TexW * Scale;
+        const float ActualHeight = TexH * Scale;
+
         float ActualPosX = (ScreenWidth * Ink.NormalizedPosition.X) - (ActualWidth / 2);
         float ActualPosY = (ScreenHeight * Ink.NormalizedPosition.Y) - (ActualHeight / 2);
 

@@ -44,7 +44,7 @@ public:
 	float HorizontalSpeedX = 0.9f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Float Movement|Horizontal")
 	float HorizontalSpeedY = 1.1f;
-
+	
 	// 旋转摆动
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Float Movement|Rotation")
 	float RotateAmplitude = 2.0f;
@@ -62,11 +62,17 @@ public:
 	float TotalCycleDuration = 1.6f;
 
 protected:
-	FVector InitialLocation;
-	FRotator InitialRotation;
+	FVector InitialLocation;      // 原始出生位置（不变）
+	FRotator InitialRotation;     // 原始出生旋转（不变）
 	EFloatingItemState CurrentState = EFloatingItemState::Idle;
-	float RunningTime = 0.0f;
-	float CycleProgress = 0.0f;
+	float RunningTime = 0.0f;     // 浮动相位累积时间
+	float CycleProgress = 0.0f;   // 下沉-上浮循环进度
+
+	// 动态起点（触发下沉时的实际位置/旋转）
+	FVector StartLocation;
+	FRotator StartRotation;
+	FVector SinkTargetLocation;   // 下沉最深点的位置
+	float CachedRunningTime;      // 触发时保存的 RunningTime，用于结束后恢复
 
 	UPROPERTY()
 	AActor* AttachedPlayer = nullptr;

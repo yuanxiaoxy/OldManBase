@@ -306,6 +306,13 @@ private:
     void InitializeAnimationCameraComponent();
     void InitializeEvent();
 
+    UFUNCTION()
+    void OnLockMouseKey();
+    UFUNCTION()
+    void OnUnLockCharacterPull();
+    UFUNCTION()
+    void OnUnLockCharacterAttack();
+
     // ===== 新增：从屏幕坐标执行射线检测的辅助函数 =====
     bool PerformRaycastFromScreen(const FVector2D& ScreenPos, FHitResult& OutHit, float TraceDistance = 10000.0f) const;
 #pragma endregion

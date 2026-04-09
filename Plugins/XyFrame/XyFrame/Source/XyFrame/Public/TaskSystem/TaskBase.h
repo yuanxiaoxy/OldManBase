@@ -19,7 +19,6 @@ class XYFRAME_API UTaskBase : public UObject
 
 public:
     UTaskBase();
-    virtual ~UTaskBase();
 
     UFUNCTION(BlueprintCallable, Category = "Task")
     virtual void InitializeTask(const FTaskConfigRow& ConfigRow);
@@ -95,26 +94,26 @@ public:
     FOnTaskFailed OnFailed;
 
 protected:
-    // 蓝图可重写的事件（添加额外逻辑）
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    // 以下所有蓝图事件均改为 BlueprintNativeEvent，并提供 C++ 默认实现，防止蓝图未重写时断言
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnStartTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnPauseTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnResumeTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnAbandonTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnCompleteTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnFailTask();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Task")
+    UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnResetTask();
 
     UFUNCTION(BlueprintNativeEvent, Category = "Task")
@@ -126,14 +125,9 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Task")
     void SetState(ETaskState NewState);
 
-    virtual UWorld* GetWorld() const override;
-    virtual void BeginDestroy() override;
+    UWorld* GetWorld() const override;
 
-    void StartTickTimer();
-    void StopTickTimer();
-
-    UFUNCTION()
-    void InternalTick();
+    void ResetTickTimer();
 
     // 任务标识
     FName TaskID;
@@ -165,7 +159,5 @@ protected:
     FName NextTaskID;
 
     friend class UMissionManager;
-
-    FTimerHandle TickTimerHandle;
     float LastTickTime;
 };

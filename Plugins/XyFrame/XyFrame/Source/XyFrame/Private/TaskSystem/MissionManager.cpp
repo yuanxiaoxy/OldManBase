@@ -11,20 +11,17 @@ template<>
 UMissionManager* TSingleton<UMissionManager>::SingletonInstance = nullptr;
 
 UMissionManager::UMissionManager()
-    : bIsUpdateTimerActive(false)
 {
 }
 
 UMissionManager::~UMissionManager()
 {
-    StopUpdateTimer();
-    ActiveTasks.Empty();
+    ClearAllTasks();
 }
 
 void UMissionManager::InitializeSingleton()
 {
     UE_LOG(LogTemp, Log, TEXT("MissionManager initialized"));
-    StartUpdateTimer();
     LoadAllPersistentTasks();
 }
 
@@ -57,13 +54,11 @@ bool UMissionManager::LoadTaskTable(UDataTable* TaskTable)
 
 UTaskBase* UMissionManager::CreateTask(FName TaskID)
 {
-    // 检查是否已存在
     if (UTaskBase** ExistingTaskPtr = ActiveTasks.Find(TaskID))
     {
         UTaskBase* ExistingTask = *ExistingTaskPtr;
         if (!ExistingTask || !IsValid(ExistingTask))
         {
-            // 无效对象，直接移除
             ActiveTasks.Remove(TaskID);
         }
         else
@@ -80,7 +75,6 @@ UTaskBase* UMissionManager::CreateTask(FName TaskID)
                 return nullptr;
             }
 
-            // 可重复且处于终态：先移除旧任务
             UE_LOG(LogTemp, Log, TEXT("Recreating repeatable task %s (old state: %d)"), *TaskID.ToString(), (int32)State);
             RemoveAndDestroyTask(TaskID);
         }
@@ -139,7 +133,7 @@ void UMissionManager::RemoveAndDestroyTask(FName TaskID)
     {
         if (Task->GetTaskState() == ETaskState::Running || Task->GetTaskState() == ETaskState::Paused)
         {
-            Task->AbandonTask();
+            Task->AbandonTask(); // 内部会停止定时器
         }
         ActiveTasks.Remove(TaskID);
         OnTaskRemoved.Broadcast(TaskID);
@@ -152,7 +146,6 @@ void UMissionManager::SavePersistentTaskIfNeeded(UTaskBase* Task)
     if (!Task || Task->GetSavePolicy() != ETaskSavePolicy::Persistent)
         return;
 
-    // 增量保存：只保存当前这个任务，避免全量写入频繁
     USaveGameTool* SaveTool = USaveGameTool::GetSaveGameTool();
     if (!SaveTool)
         return;
@@ -163,10 +156,8 @@ void UMissionManager::SavePersistentTaskIfNeeded(UTaskBase* Task)
         TaskSaveGame = NewObject<UTaskSaveGame>();
     }
 
-    // 移除旧数据
     TaskSaveGame->PersistentTasks.RemoveAll([Task](const FTaskSaveData& Data) { return Data.TaskID == Task->GetTaskID(); });
 
-    // 添加新数据
     FTaskSaveData Data;
     Task->SaveTask(Data);
     TaskSaveGame->PersistentTasks.Add(Data);
@@ -187,6 +178,13 @@ void UMissionManager::CompleteTask(FName TaskID)
     {
         Task->CompleteTask();
         SavePersistentTaskIfNeeded(Task);
+
+        // 根据保存策略决定是否立即从活动列表中移除
+        // NoSave: 立即移除；SessionOnly 和 Persistent 保留（SessionOnly 等待 ClearSessionTasks，Persistent 永久保留）
+        if (Task->GetSavePolicy() == ETaskSavePolicy::NoSave)
+        {
+            RemoveAndDestroyTask(TaskID);
+        }
     }
 }
 
@@ -197,6 +195,12 @@ void UMissionManager::FailTask(FName TaskID)
     {
         Task->FailTask();
         SavePersistentTaskIfNeeded(Task);
+
+        // 同上：只有 NoSave 立即移除
+        if (Task->GetSavePolicy() == ETaskSavePolicy::NoSave)
+        {
+            RemoveAndDestroyTask(TaskID);
+        }
     }
 }
 
@@ -207,6 +211,7 @@ void UMissionManager::AbandonTask(FName TaskID)
     {
         Task->AbandonTask();
         SavePersistentTaskIfNeeded(Task);
+        // 放弃的任务无论何种保存策略，都立即移除
         RemoveAndDestroyTask(TaskID);
     }
 }
@@ -338,71 +343,6 @@ void UMissionManager::ClearAllTasks()
     for (const FName& TaskID : TaskIDs)
     {
         RemoveAndDestroyTask(TaskID);
-    }
-}
-
-void UMissionManager::UpdateTasks()
-{
-    UWorld* World = GetWorld();
-    if (!World)
-        return;
-
-    float DeltaTime = World->GetDeltaSeconds();
-    float CurrentTime = World->GetTimeSeconds();
-
-    TArray<UTaskBase*> Tasks = GetAllTasks();
-    for (UTaskBase* Task : Tasks)
-    {
-        if (!Task || !IsValid(Task))
-            continue;
-
-        if (Task->GetTaskState() != ETaskState::Running)
-            continue;
-
-        if (!Task->IsTickEnabled())
-            continue;
-
-        float TickInterval = Task->GetTickInterval();
-        bool bShouldTick = false;
-
-        if (TickInterval <= 0.0f)
-        {
-            bShouldTick = true;
-        }
-        else
-        {
-            float TimeSinceLastTick = CurrentTime - Task->LastTickTime;
-            if (TimeSinceLastTick >= TickInterval)
-            {
-                bShouldTick = true;
-                Task->LastTickTime = CurrentTime;
-            }
-        }
-
-        if (bShouldTick && IsValid(Task))
-        {
-            Task->Tick(DeltaTime);
-        }
-    }
-}
-
-void UMissionManager::StartUpdateTimer()
-{
-    if (!bIsUpdateTimerActive && GetWorld())
-    {
-        GetWorld()->GetTimerManager().SetTimer(UpdateTimerHandle, this, &UMissionManager::UpdateTasks, 0.016f, true);
-        bIsUpdateTimerActive = true;
-        UE_LOG(LogTemp, Log, TEXT("MissionManager update timer started"));
-    }
-}
-
-void UMissionManager::StopUpdateTimer()
-{
-    if (bIsUpdateTimerActive && GetWorld())
-    {
-        GetWorld()->GetTimerManager().ClearTimer(UpdateTimerHandle);
-        bIsUpdateTimerActive = false;
-        UE_LOG(LogTemp, Log, TEXT("MissionManager update timer stopped"));
     }
 }
 

@@ -45,6 +45,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float DeadZone = 0.05f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
+    bool SingleDirDrag = true;
+
     // 平滑参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     float SmoothingFactor = 0.8f;

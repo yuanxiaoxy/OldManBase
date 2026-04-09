@@ -886,7 +886,7 @@ void AOldManCharacter::FireBullet(AActor* actor)
     {
         UMonoManager::GetInstance()->SetTimeout(CharacterAttributes->OldManDetectionData.CoolDown, this, &AOldManCharacter::CancelFireCoolDown);
 
-        FVector bulletDir = GetActorForwardVector();
+        FVector bulletDir = FollowCamera->GetForwardVector();;
         if (actor)
         {
             bulletDir = actor->GetActorLocation() - bulletFirePos->GetComponentLocation();
@@ -902,7 +902,7 @@ void AOldManCharacter::CancelFireCoolDown()
 
 bool AOldManCharacter::CanFireBullet()
 {
-    return !InFireCoolDown && !bInPullState;
+    return !InFireCoolDown && !bInPullState && UnLockAttack;
 }
 
 
@@ -913,7 +913,7 @@ void AOldManCharacter::SetPullItemState(bool bPulling)
 
 bool AOldManCharacter::GetIfCouldPullItem()
 {
-    return bCouldPullItem;
+    return bCouldPullItem && UnLockPull;
 }
 
 AOldManPullItemBase* AOldManCharacter::TryGetPullItem()

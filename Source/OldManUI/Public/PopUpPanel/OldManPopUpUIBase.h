@@ -18,7 +18,12 @@ public:
     virtual void InternalShowUI(UObject* Data = nullptr) override;
 
     UPROPERTY(BlueprintReadWrite, Category = "Animation", Transient, meta = (BindWidgetAnim))
-    UWidgetAnimation* PopupAnimation;
+    UWidgetAnimation* PopupAnimation_in;
+    UPROPERTY(BlueprintReadWrite, Category = "Animation", Transient, meta = (BindWidgetAnim))
+    UWidgetAnimation* PopupAnimation_out;
+
+    UFUNCTION(BlueprintCallable)
+    void FinishPlayerAction();
 
     UFUNCTION()
     void OnPopupAnimationFinished();

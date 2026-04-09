@@ -8,7 +8,7 @@ void UOldManPopUpUIBase::InternalShowUI(UObject* Data)
 {
 	Super::InternalShowUI(Data);
 
-    if (PopupAnimation)
+    if (PopupAnimation_out)
     {
         // 第1步：创建一个委托对象
         FWidgetAnimationDynamicEvent AnimationEvent;
@@ -17,10 +17,15 @@ void UOldManPopUpUIBase::InternalShowUI(UObject* Data)
         AnimationEvent.BindDynamic(this, &UOldManPopUpUIBase::OnPopupAnimationFinished);
 
         // 第3步：将委托绑定到动画的结束事件上
-        BindToAnimationFinished(PopupAnimation, AnimationEvent);
+        BindToAnimationFinished(PopupAnimation_out, AnimationEvent);
     }
 
-    PlayAnimation(PopupAnimation);
+    PlayAnimation(PopupAnimation_in);
+}
+
+void UOldManPopUpUIBase::FinishPlayerAction()
+{
+    PlayAnimation(PopupAnimation_out);
 }
 
 void UOldManPopUpUIBase::OnPopupAnimationFinished()

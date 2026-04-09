@@ -21,10 +21,7 @@ ADraggableSplineActor::ADraggableSplineActor()
     bIsBeingDragged = false;
     MovementAlpha = 1.0f;
     SmoothedMovementDirection = FVector::ZeroVector;
-
-    //自动回弹时所需数值
-    LerpStartPosition = CurrentSplinePosition;
-    AutoBackTimer = 0.0f;
+    inAutoBack = false;
 
     Tags.Add("DragableItem");
 }
@@ -35,7 +32,6 @@ void ADraggableSplineActor::BeginPlay()
 
     SetActorTickEnabled(false);
 
-    // 存储网格体的初始位置和旋转
     InitialMeshLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     InitialMeshRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     SetStartPosition();
@@ -48,20 +44,32 @@ void ADraggableSplineActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    //自动归位计算
+    // 自动回弹：以恒定速度移动 CurrentSplinePosition 回 DragStartPos
     if (inAutoBack && IfHasAutoBack)
     {
-        MovementAlpha = 0.0f;
+        // 如果还没到达起点，继续移动
+        if (CurrentSplinePosition != DragStartPos)
+        {
+            float Direction = (DragStartPos > CurrentSplinePosition) ? 1.0f : -1.0f;
+            float Step = AutoBackSpeed * DeltaTime;
+            float NewPosition = CurrentSplinePosition + Direction * Step;
 
-        AutoBackTimer = FMath::Min(AutoBackTimer + DeltaTime * AutoBackRate, 1.0f);
-        // 更新位置
-        CurrentSplinePosition = FMath::Lerp(LerpStartPosition, DragStartPos, AutoBackTimer);
+            // 检查是否越过目标
+            if ((Direction > 0 && NewPosition >= DragStartPos) || (Direction < 0 && NewPosition <= DragStartPos))
+            {
+                NewPosition = DragStartPos;
+            }
 
-        // 计算新位置和旋转
-        TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
-        TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
+            CurrentSplinePosition = NewPosition;
 
-        if (FVector::Dist(MeshComponent->GetComponentLocation(), InitialMeshLocation) < 0.001f)
+            // 更新目标位置和旋转
+            TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
+            TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
+            MovementAlpha = 0.0f;   // 重新开始平滑移动
+        }
+
+        // 如果已经到达起点，且平滑插值已完成，则结束自动回弹
+        if (CurrentSplinePosition == DragStartPos && MovementAlpha >= 1.0f)
         {
             StopAutoBack();
         }
@@ -71,34 +79,27 @@ void ADraggableSplineActor::Tick(float DeltaTime)
     if (MovementAlpha < 1.0f)
     {
         MovementAlpha = FMath::Min(MovementAlpha + DeltaTime * 8.0f, 1.0f);
-
         FVector NewLocation = FMath::Lerp(MeshComponent->GetComponentLocation(), TargetLocation, MovementAlpha);
         FRotator NewRotation = FMath::Lerp(MeshComponent->GetComponentRotation(), TargetRotation, MovementAlpha);
-
         SetMeshPositionAndRotation(NewLocation, NewRotation);
     }
 
-    // 持续绘制样条线调试（即使不在拖动状态）
+    // 调试绘制
     if (bShowDebugVisualization && SplineComponent)
     {
-        // 绘制样条线路径
         const int32 NumSegments = 50;
         for (int32 i = 0; i < NumSegments; i++)
         {
             float Time1 = (float)i / NumSegments;
             float Time2 = (float)(i + 1) / NumSegments;
-
             FVector Point1 = SplineComponent->GetLocationAtTime(Time1, ESplineCoordinateSpace::World);
             FVector Point2 = SplineComponent->GetLocationAtTime(Time2, ESplineCoordinateSpace::World);
-
             DrawDebugLine(GetWorld(), Point1, Point2, FColor::Green, false, -1.0f, 0, 2.0f);
         }
 
-        // 绘制当前位置标记
         FVector CurrentPos = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
         DrawDebugSphere(GetWorld(), CurrentPos, 10.0f, 8, FColor::Yellow, false, -1.0f, 0);
 
-        // 绘制编辑器预览位置标记（如果启用）
 #if WITH_EDITOR
         if (bEnableEditorPreview && !GetWorld()->IsGameWorld())
         {
@@ -119,13 +120,11 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
     FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-    // 当编辑器预览位置改变时，立即更新
     if (PropertyName == GET_MEMBER_NAME_CHECKED(ADraggableSplineActor, EditorPreviewPosition))
     {
         UpdatePreviewPosition();
     }
 
-    // 当启用/禁用预览时，重置位置
     if (PropertyName == GET_MEMBER_NAME_CHECKED(ADraggableSplineActor, bEnableEditorPreview))
     {
         if (bEnableEditorPreview)
@@ -134,7 +133,6 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
         }
         else
         {
-            // 恢复原始位置 - 重置网格体位置
             MeshComponent->SetRelativeLocation(InitialMeshLocation);
             MeshComponent->SetRelativeRotation(InitialMeshRotation);
         }
@@ -144,15 +142,14 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 void ADraggableSplineActor::StartDragging()
 {
-    //取消自动回弹
     bCouldPull = false;
-    inAutoBack = false;
+    if (inAutoBack)
+        StopAutoBack();
     bIsBeingDragged = true;
     MovementAlpha = 0.0f;
     SmoothedMovementDirection = FVector::ZeroVector;
     SetActorTickEnabled(true);
 
-    // 如果启用了编辑器预览，暂时禁用它
 #if WITH_EDITOR
     if (bEnableEditorPreview)
     {
@@ -178,28 +175,34 @@ void ADraggableSplineActor::StopDragging()
 
 void ADraggableSplineActor::StartAutoBack()
 {
-    //自动回弹相关
-    LerpStartPosition = CurrentSplinePosition;
-    AutoBackTimer = 0.0f;
-
+    if (inAutoBack) return;
     inAutoBack = true;
 }
 
 void ADraggableSplineActor::StopAutoBack()
 {
-    //自动回弹相关
-    bCouldPull = true;
+    if (!inAutoBack) return;
     inAutoBack = false;
+    bCouldPull = true;
+
+    // 确保最终状态完全对齐
     CurrentSplinePosition = DragStartPos;
+    TargetLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
+    TargetRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);
+    MovementAlpha = 1.0f;
+    SetMeshPositionAndRotation(TargetLocation, TargetRotation);
+
     SmoothedMovementDirection = FVector::ZeroVector;
-    SetActorTickEnabled(false);
+    if (!bIsBeingDragged)
+    {
+        SetActorTickEnabled(false);
+    }
 }
 
 void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float Intensity)
 {
     if (!SplineComponent || !bIsBeingDragged) return;
 
-    // 平滑移动方向
     if (SmoothedMovementDirection.IsNearlyZero())
     {
         SmoothedMovementDirection = ViewDirection;
@@ -209,26 +212,18 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
         SmoothedMovementDirection = FMath::Lerp(SmoothedMovementDirection, ViewDirection, SmoothingFactor);
     }
 
-    // 计算归一化移动量
     float MovementDelta = CalculateNormalizedMovement(SmoothedMovementDirection);
     if (SingleDirDrag)
-    {
         MovementDelta = FMath::Max(MovementDelta, 0.0f);
-    }
 
-    // 如果移动量很小，忽略
     if (FMath::Abs(MovementDelta) < 0.001f) return;
 
-    // 更新位置
     CurrentSplinePosition = FMath::Clamp(CurrentSplinePosition + MovementDelta, 0.0f, 1.0f);
 
-    // 计算新位置和旋转
     TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
     TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
-
     MovementAlpha = 0.0f;
 
-    // 绘制调试可视化
     if (bShowDebugVisualization)
     {
         FVector SplineTangent = GetCurrentTangent();
@@ -240,44 +235,27 @@ void ADraggableSplineActor::HandleMouseData(const FVector& ViewDirection, float 
 FVector ADraggableSplineActor::GetCurrentTangent() const
 {
     if (SplineComponent)
-    {
         return SplineComponent->GetTangentAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World).GetSafeNormal();
-    }
     return FVector::ForwardVector;
 }
 
 void ADraggableSplineActor::SetStartPosition()
 {
     CurrentSplinePosition = DragStartPos;
-    // 计算初始位置和旋转
     TargetLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     TargetRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     SetMeshPositionAndRotation(TargetLocation, TargetRotation);
+    MovementAlpha = 1.0f;
 }
 
 float ADraggableSplineActor::CalculateNormalizedMovement(const FVector& ViewDirection)
 {
     if (!SplineComponent) return 0.0f;
-
-    // 获取样条线在当前点的切线方向
     FVector SplineTangent = GetCurrentTangent();
-
-    // 将视角移动方向投影到样条线切线上
     float ProjectedMovement = FVector::DotProduct(ViewDirection, SplineTangent);
-
-    // 应用死区 - 小幅度移动不响应
-    if (FMath::Abs(ProjectedMovement) < DeadZone)
-    {
-        return 0.0f;
-    }
-
-    // 应用灵敏度
+    if (FMath::Abs(ProjectedMovement) < DeadZone) return 0.0f;
     float ScaledMovement = ProjectedMovement * DragSensitivity;
-
-    // 限制最大速度
-    float ClampedMovement = FMath::Clamp(ScaledMovement, -MaxDragSpeed, MaxDragSpeed);
-
-    return ClampedMovement;
+    return FMath::Clamp(ScaledMovement, -MaxDragSpeed, MaxDragSpeed);
 }
 
 void ADraggableSplineActor::DrawDebugVisualization(const FVector& ViewDirection, float ProjectedMovement)
@@ -285,28 +263,20 @@ void ADraggableSplineActor::DrawDebugVisualization(const FVector& ViewDirection,
     FVector CurrentLocation = MeshComponent->GetComponentLocation();
     FVector SplineTangent = GetCurrentTangent();
 
-    // 1. 绘制样条线切线方向（绿色）
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + SplineTangent * DebugLineLength, DebugArrowSize, FColor::Green, false, 0.1f, 0, 3.0f);
-
-    // 2. 绘制视角移动方向（蓝色）
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + ViewDirection * DebugLineLength, DebugArrowSize, FColor::Blue, false, 0.1f, 0, 3.0f);
-
-    // 3. 绘制投影结果（红色）
     FVector ProjectedVector = SplineTangent * ProjectedMovement * DebugLineLength;
     DrawDebugDirectionalArrow(GetWorld(), CurrentLocation,
         CurrentLocation + ProjectedVector, DebugArrowSize, FColor::Red, false, 0.1f, 0, 4.0f);
 }
 
-// 编辑器预览函数实现
 void ADraggableSplineActor::UpdateEditorPreview()
 {
 #if WITH_EDITOR
     if (!GetWorld()->IsGameWorld())
-    {
         UpdatePreviewPosition();
-    }
 #endif
 }
 
@@ -317,12 +287,9 @@ void ADraggableSplineActor::ToggleEditorPreview()
     {
         bEnableEditorPreview = !bEnableEditorPreview;
         if (bEnableEditorPreview)
-        {
             UpdatePreviewPosition();
-        }
         else
         {
-            // 重置网格体位置
             MeshComponent->SetRelativeLocation(InitialMeshLocation);
             MeshComponent->SetRelativeRotation(InitialMeshRotation);
         }
@@ -348,10 +315,7 @@ void ADraggableSplineActor::UpdatePreviewPosition()
     {
         FVector NewLocation = SplineComponent->GetLocationAtTime(EditorPreviewPosition, ESplineCoordinateSpace::World);
         FRotator NewRotation = SplineComponent->GetRotationAtTime(EditorPreviewPosition, ESplineCoordinateSpace::World);
-
         SetMeshPositionAndRotation(NewLocation, NewRotation);
-
-        // 在编辑器中标记为需要重绘
         MarkComponentsRenderStateDirty();
     }
 #endif
@@ -361,10 +325,8 @@ void ADraggableSplineActor::SetMeshPositionAndRotation(const FVector& Location, 
 {
     if (MeshComponent)
     {
-        // 将世界坐标转换为相对于Actor的局部坐标
         FVector LocalLocation = GetActorTransform().InverseTransformPosition(Location);
         MeshComponent->SetRelativeLocation(LocalLocation);
-
         if (IfAdjustRotation)
         {
             FRotator LocalRotation = (GetActorTransform().InverseTransformRotation(Rotation.Quaternion())).Rotator();

@@ -763,6 +763,12 @@ void UUIManager::HandleStackChange()
     }
     else if (!NewTopUI)
     {
+        APlayerController* PC = GetPlayerController();
+        AXyPlayerControllerBase* XyPC = Cast<AXyPlayerControllerBase>(PC);
+        if (XyPC)
+        {
+            XyPC->SetUIInputMode(EUIInputMode::GameOnly, nullptr, false, true);
+        }
         // 没有 bModifyInput=true 的可见 UI，不改变当前输入状态
         UE_LOG(LogTemp, Log, TEXT("HandleStackChange - No visible UI with bModifyInput=true, keeping current input mode."));
     }

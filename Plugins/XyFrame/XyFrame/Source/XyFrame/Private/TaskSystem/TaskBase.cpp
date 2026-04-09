@@ -2,7 +2,7 @@
 
 #include "TaskSystem/TaskBase.h"
 #include "Engine/Engine.h"
-#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "TaskSystem/MissionManager.h"
 
 UTaskBase::UTaskBase()
@@ -16,11 +16,6 @@ UTaskBase::UTaskBase()
     , bHasNextTask(false)
     , LastTickTime(0.0f)
 {
-}
-
-UTaskBase::~UTaskBase()
-{
-    StopTickTimer();
 }
 
 void UTaskBase::InitializeTask(const FTaskConfigRow& ConfigRow)
@@ -44,9 +39,9 @@ void UTaskBase::StartTask()
     if (CurrentState == ETaskState::NotStarted || CurrentState == ETaskState::Paused)
     {
         SetState(ETaskState::Running);
-        StartTickTimer();
+        ResetTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task started: %s"), *TaskID.ToString());
-        OnStartTask();
+        OnStartTask(); // BlueprintNativeEvent
     }
     else
     {
@@ -59,7 +54,6 @@ void UTaskBase::PauseTask()
     if (CurrentState == ETaskState::Running)
     {
         SetState(ETaskState::Paused);
-        StopTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task paused: %s"), *TaskID.ToString());
         OnPauseTask();
     }
@@ -70,7 +64,7 @@ void UTaskBase::ResumeTask()
     if (CurrentState == ETaskState::Paused)
     {
         SetState(ETaskState::Running);
-        StartTickTimer();
+        ResetTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task resumed: %s"), *TaskID.ToString());
         OnResumeTask();
     }
@@ -80,7 +74,6 @@ void UTaskBase::AbandonTask()
 {
     if (CurrentState == ETaskState::Running || CurrentState == ETaskState::Paused)
     {
-        StopTickTimer();
         SetState(ETaskState::Abandoned);
         UE_LOG(LogTemp, Log, TEXT("Task abandoned: %s"), *TaskID.ToString());
         OnAbandonTask();
@@ -91,7 +84,6 @@ void UTaskBase::CompleteTask()
 {
     if (CurrentState == ETaskState::Running)
     {
-        StopTickTimer();
         SetState(ETaskState::Completed);
         OnCompleted.Broadcast(TaskID);
         UE_LOG(LogTemp, Log, TEXT("Task completed: %s"), *TaskID.ToString());
@@ -124,7 +116,6 @@ void UTaskBase::FailTask()
 {
     if (CurrentState == ETaskState::Running)
     {
-        StopTickTimer();
         SetState(ETaskState::Failed);
         OnFailed.Broadcast(TaskID);
         UE_LOG(LogTemp, Log, TEXT("Task failed: %s"), *TaskID.ToString());
@@ -134,7 +125,6 @@ void UTaskBase::FailTask()
 
 void UTaskBase::ResetTask()
 {
-    StopTickTimer();
     CurrentState = ETaskState::NotStarted;
     ProgressPercent = 0.0f;
     CustomProgressInt = 0;
@@ -143,11 +133,6 @@ void UTaskBase::ResetTask()
     OnStateChanged.Broadcast(TaskID);
     OnProgressChanged.Broadcast(TaskID, 0.0f);
     OnResetTask();
-
-    if (bAutoStart && CurrentState == ETaskState::NotStarted)
-    {
-        StartTask();
-    }
 }
 
 void UTaskBase::UpdateProgress(int32 DeltaInt, float DeltaFloat)
@@ -179,11 +164,12 @@ void UTaskBase::LoadTask(const FTaskSaveData& InData)
     CurrentState = InData.State;
     CustomProgressInt = InData.ProgressInt;
     CustomProgressFloat = InData.ProgressFloat;
+
+    // 子类应重写 OnProgressUpdated 来更新 ProgressPercent
     ProgressPercent = 0.0f;
 
     if (CurrentState == ETaskState::Running)
     {
-        StartTickTimer();
         OnStateChanged.Broadcast(TaskID);
     }
 }
@@ -197,57 +183,17 @@ void UTaskBase::SetState(ETaskState NewState)
     OnStateChanged.Broadcast(TaskID);
 }
 
-void UTaskBase::StartTickTimer()
-{
-    if (!bEnableTick)
-        return;
-
-    StopTickTimer();
-
-    UWorld* World = GetWorld();
-    if (!World)
-        return;
-
-    float ActualInterval = (TickInterval > 0.0f) ? TickInterval : 0.016f; // 默认约60fps
-    World->GetTimerManager().SetTimer(TickTimerHandle, this, &UTaskBase::InternalTick, ActualInterval, true);
-    LastTickTime = World->GetTimeSeconds();
-}
-
-void UTaskBase::StopTickTimer()
+void UTaskBase::ResetTickTimer()
 {
     UWorld* World = GetWorld();
-    if (World && TickTimerHandle.IsValid())
+    if (World)
     {
-        World->GetTimerManager().ClearTimer(TickTimerHandle);
+        LastTickTime = World->GetTimeSeconds();
     }
-}
-
-void UTaskBase::InternalTick()
-{
-    UWorld* World = GetWorld();
-    if (!World)
-        return;
-
-    if (CurrentState != ETaskState::Running)
+    else
     {
-        StopTickTimer();
-        return;
+        LastTickTime = 0.0f;
     }
-
-    float CurrentTime = World->GetTimeSeconds();
-    float DeltaTime = CurrentTime - LastTickTime;
-    LastTickTime = CurrentTime;
-
-    // 限制最大 DeltaTime，避免跳跃过大
-    DeltaTime = FMath::Min(DeltaTime, 0.1f);
-
-    Tick(DeltaTime);
-}
-
-void UTaskBase::BeginDestroy()
-{
-    StopTickTimer();
-    Super::BeginDestroy();
 }
 
 UWorld* UTaskBase::GetWorld() const
@@ -263,12 +209,42 @@ UWorld* UTaskBase::GetWorld() const
     return nullptr;
 }
 
-void UTaskBase::OnProgressUpdated_Implementation()
+// ========== BlueprintNativeEvent 默认实现 ==========
+void UTaskBase::OnStartTask_Implementation()
 {
-    // 子类重写实现进度逻辑
+    // 默认空实现，蓝图子类可选择重写
+}
+
+void UTaskBase::OnPauseTask_Implementation()
+{
+}
+
+void UTaskBase::OnResumeTask_Implementation()
+{
+}
+
+void UTaskBase::OnAbandonTask_Implementation()
+{
+}
+
+void UTaskBase::OnCompleteTask_Implementation()
+{
+}
+
+void UTaskBase::OnFailTask_Implementation()
+{
+}
+
+void UTaskBase::OnResetTask_Implementation()
+{
 }
 
 void UTaskBase::OnTick_Implementation(float DeltaTime)
 {
     // 默认空实现，蓝图子类可选择重写
+}
+
+void UTaskBase::OnProgressUpdated_Implementation()
+{
+    // 子类重写实现进度逻辑
 }

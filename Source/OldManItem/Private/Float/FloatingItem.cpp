@@ -58,27 +58,30 @@ void AFloatingItem::Tick(float DeltaTime)
 		float NewProgress = CycleProgress + DeltaTime / TotalCycleDuration;
 		if (NewProgress >= 1.0f)
 		{
-			// 强制精确回到初始变换，消除任何浮点误差
-			SetActorLocation(InitialLocation);
-			SetActorRotation(InitialRotation);
+			// 循环结束：精确回到起点（触发时的实际位置和旋转）
+			SetActorLocation(StartLocation);
+			SetActorRotation(StartRotation);
 
-			// 结束循环，分离玩家
+			// 恢复浮动相位，使 Idle 状态无缝衔接
+			RunningTime = CachedRunningTime;
+
+			// 分离玩家并回到浮动状态
 			EndSinkRiseCycle();
 			CurrentState = EFloatingItemState::Idle;
-
-			// 重置浮动相位，使 Idle 状态的浮动从零偏移开始
-			RunningTime = 0.0f;
 		}
 		else
 		{
 			CycleProgress = NewProgress;
+			// 正弦曲线：progress=0 -> 0, progress=0.5 -> 1, progress=1 -> 0
 			float T = FMath::Sin(CycleProgress * PI);
-			FVector SinkOffset = FVector(0, 0, -SinkDepth) * T;
-			SetActorLocation(InitialLocation + SinkOffset);
+			// 位置：从 StartLocation 线性插值到 SinkTargetLocation，再插值回来（由 T 自动完成）
+			FVector CurrentLocation = FMath::Lerp(StartLocation, SinkTargetLocation, T);
+			SetActorLocation(CurrentLocation);
 
+			// 可选：在下沉-上浮过程中加入轻微的旋转摆动（基于正弦，终点回到 StartRotation）
 			float Shake = FMath::Sin(CycleProgress * PI * 2.0f) * 2.0f;
 			FRotator ExtraRot = FRotator(Shake, Shake * 0.5f, Shake * 0.3f);
-			SetActorRotation(InitialRotation + ExtraRot);
+			SetActorRotation(StartRotation + ExtraRot);
 		}
 		break;
 	}
@@ -103,14 +106,23 @@ void AFloatingItem::StartSinkRiseCycle(AActor* PlayerActor)
 {
 	if (!PlayerActor) return;
 
+	// 记录触发时的实际位置、旋转和浮动相位
+	StartLocation = GetActorLocation();
+	StartRotation = GetActorRotation();
+	CachedRunningTime = RunningTime;
+
+	// 计算下沉最深点的位置（从起点向下偏移）
+	SinkTargetLocation = StartLocation - FVector(0, 0, SinkDepth);
+
+	// 附加玩家
 	AttachedPlayer = PlayerActor;
 	AttachedPlayer->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
 
+	// 初始化状态机
 	CurrentState = EFloatingItemState::SinkRiseCycle;
 	CycleProgress = 0.0f;
-	RunningTime = 0.0f;          // 重置浮动相位，避免 Idle 历史偏移干扰
-	SetActorLocation(InitialLocation);
-	SetActorRotation(InitialRotation);
+
+	// 注意：不改变 Actor 当前位置和旋转，直接开始运动，避免突变
 }
 
 void AFloatingItem::EndSinkRiseCycle()

@@ -11,17 +11,20 @@ template<>
 UMissionManager* TSingleton<UMissionManager>::SingletonInstance = nullptr;
 
 UMissionManager::UMissionManager()
+    : bIsUpdateTimerActive(false)
 {
 }
 
 UMissionManager::~UMissionManager()
 {
-    ClearAllTasks();
+    StopUpdateTimer();
+    ClearAllTasks(); // 析构时清理所有任务（会触发 AbandonTask，但已改为 NativeEvent 安全）
 }
 
 void UMissionManager::InitializeSingleton()
 {
     UE_LOG(LogTemp, Log, TEXT("MissionManager initialized"));
+    StartUpdateTimer();
     LoadAllPersistentTasks();
 }
 
@@ -54,18 +57,14 @@ bool UMissionManager::LoadTaskTable(UDataTable* TaskTable)
 
 UTaskBase* UMissionManager::CreateTask(FName TaskID)
 {
-    if (UTaskBase** ExistingTaskPtr = ActiveTasks.Find(TaskID))
+    // 检查已存在的任务（通过弱指针）
+    if (TWeakObjectPtr<UTaskBase>* ExistingWeak = ActiveTasks.Find(TaskID))
     {
-        UTaskBase* ExistingTask = *ExistingTaskPtr;
-        if (!ExistingTask || !IsValid(ExistingTask))
-        {
-            ActiveTasks.Remove(TaskID);
-        }
-        else
+        UTaskBase* ExistingTask = ExistingWeak->Get();
+        if (ExistingTask && IsValid(ExistingTask))
         {
             const FTaskConfigRow* Config = TaskConfigs.Find(TaskID);
             bool bRepeatable = Config ? Config->bRepeatable : false;
-
             ETaskState State = ExistingTask->GetTaskState();
             bool bCanRecreate = bRepeatable && (State == ETaskState::Completed || State == ETaskState::Failed || State == ETaskState::Abandoned);
 
@@ -74,9 +73,14 @@ UTaskBase* UMissionManager::CreateTask(FName TaskID)
                 UE_LOG(LogTemp, Warning, TEXT("Cannot create task %s: already exists with state %d and repeatable=%d"), *TaskID.ToString(), (int32)State, bRepeatable);
                 return nullptr;
             }
-
+            // 可重复且处于终态：先移除旧任务
             UE_LOG(LogTemp, Log, TEXT("Recreating repeatable task %s (old state: %d)"), *TaskID.ToString(), (int32)State);
             RemoveAndDestroyTask(TaskID);
+        }
+        else
+        {
+            // 无效对象，直接清理
+            ActiveTasks.Remove(TaskID);
         }
     }
 
@@ -128,22 +132,29 @@ UTaskBase* UMissionManager::CreateTaskInstance(const FTaskConfigRow& ConfigRow)
 
 void UMissionManager::RemoveAndDestroyTask(FName TaskID)
 {
-    UTaskBase* Task = ActiveTasks.FindRef(TaskID);
-    if (Task)
+    TWeakObjectPtr<UTaskBase>* WeakPtr = ActiveTasks.Find(TaskID);
+    if (!WeakPtr)
+        return;
+
+    UTaskBase* Task = WeakPtr->Get();
+    if (Task && IsValid(Task))
     {
         if (Task->GetTaskState() == ETaskState::Running || Task->GetTaskState() == ETaskState::Paused)
         {
-            Task->AbandonTask(); // 内部会停止定时器
+            Task->AbandonTask();
         }
-        ActiveTasks.Remove(TaskID);
-        OnTaskRemoved.Broadcast(TaskID);
+    }
+    ActiveTasks.Remove(TaskID);
+    OnTaskRemoved.Broadcast(TaskID);
+    if (Task)
+    {
         Task->ConditionalBeginDestroy();
     }
 }
 
 void UMissionManager::SavePersistentTaskIfNeeded(UTaskBase* Task)
 {
-    if (!Task || Task->GetSavePolicy() != ETaskSavePolicy::Persistent)
+    if (!Task || !IsValid(Task) || Task->GetSavePolicy() != ETaskSavePolicy::Persistent)
         return;
 
     USaveGameTool* SaveTool = USaveGameTool::GetSaveGameTool();
@@ -178,13 +189,6 @@ void UMissionManager::CompleteTask(FName TaskID)
     {
         Task->CompleteTask();
         SavePersistentTaskIfNeeded(Task);
-
-        // 根据保存策略决定是否立即从活动列表中移除
-        // NoSave: 立即移除；SessionOnly 和 Persistent 保留（SessionOnly 等待 ClearSessionTasks，Persistent 永久保留）
-        if (Task->GetSavePolicy() == ETaskSavePolicy::NoSave)
-        {
-            RemoveAndDestroyTask(TaskID);
-        }
     }
 }
 
@@ -195,12 +199,6 @@ void UMissionManager::FailTask(FName TaskID)
     {
         Task->FailTask();
         SavePersistentTaskIfNeeded(Task);
-
-        // 同上：只有 NoSave 立即移除
-        if (Task->GetSavePolicy() == ETaskSavePolicy::NoSave)
-        {
-            RemoveAndDestroyTask(TaskID);
-        }
     }
 }
 
@@ -211,7 +209,6 @@ void UMissionManager::AbandonTask(FName TaskID)
     {
         Task->AbandonTask();
         SavePersistentTaskIfNeeded(Task);
-        // 放弃的任务无论何种保存策略，都立即移除
         RemoveAndDestroyTask(TaskID);
     }
 }
@@ -236,14 +233,24 @@ void UMissionManager::ResetTask(FName TaskID)
 
 UTaskBase* UMissionManager::GetTask(FName TaskID) const
 {
-    UTaskBase* const* TaskPtr = ActiveTasks.Find(TaskID);
-    return TaskPtr ? *TaskPtr : nullptr;
+    const TWeakObjectPtr<UTaskBase>* WeakPtr = ActiveTasks.Find(TaskID);
+    if (WeakPtr)
+    {
+        return WeakPtr->Get();
+    }
+    return nullptr;
 }
 
 TArray<UTaskBase*> UMissionManager::GetAllTasks() const
 {
     TArray<UTaskBase*> Result;
-    ActiveTasks.GenerateValueArray(Result);
+    for (const auto& Pair : ActiveTasks)
+    {
+        if (UTaskBase* Task = Pair.Value.Get())
+        {
+            Result.Add(Task);
+        }
+    }
     return Result;
 }
 
@@ -252,8 +259,11 @@ TArray<UTaskBase*> UMissionManager::GetTasksByState(ETaskState State) const
     TArray<UTaskBase*> Result;
     for (const auto& Pair : ActiveTasks)
     {
-        if (Pair.Value && Pair.Value->GetTaskState() == State)
-            Result.Add(Pair.Value);
+        if (UTaskBase* Task = Pair.Value.Get())
+        {
+            if (Task->GetTaskState() == State)
+                Result.Add(Task);
+        }
     }
     return Result;
 }
@@ -263,10 +273,11 @@ void UMissionManager::SaveAllPersistentTasks()
     TArray<FTaskSaveData> SaveDataArray;
     for (const auto& Pair : ActiveTasks)
     {
-        if (Pair.Value && Pair.Value->GetSavePolicy() == ETaskSavePolicy::Persistent)
+        UTaskBase* Task = Pair.Value.Get();
+        if (Task && Task->GetSavePolicy() == ETaskSavePolicy::Persistent)
         {
             FTaskSaveData Data;
-            Pair.Value->SaveTask(Data);
+            Task->SaveTask(Data);
             SaveDataArray.Add(Data);
         }
     }
@@ -320,7 +331,8 @@ void UMissionManager::ClearSessionTasks()
     TArray<FName> TaskIDs;
     for (const auto& Pair : ActiveTasks)
     {
-        if (Pair.Value && Pair.Value->GetSavePolicy() == ETaskSavePolicy::SessionOnly)
+        UTaskBase* Task = Pair.Value.Get();
+        if (Task && Task->GetSavePolicy() == ETaskSavePolicy::SessionOnly)
         {
             TaskIDs.Add(Pair.Key);
         }
@@ -343,6 +355,92 @@ void UMissionManager::ClearAllTasks()
     for (const FName& TaskID : TaskIDs)
     {
         RemoveAndDestroyTask(TaskID);
+    }
+}
+
+void UMissionManager::UpdateTasks()
+{
+    UWorld* World = GetWorld();
+    if (!World)
+        return;
+
+    float DeltaTime = World->GetDeltaSeconds();
+    float CurrentTime = World->GetTimeSeconds();
+
+    // 收集所有需要 Tick 的任务 ID（避免在遍历过程中修改容器）
+    TArray<FName> TaskIDsToTick;
+    for (const auto& Pair : ActiveTasks)
+    {
+        UTaskBase* Task = Pair.Value.Get();
+        if (Task && IsValid(Task) && Task->GetTaskState() == ETaskState::Running && Task->IsTickEnabled())
+        {
+            TaskIDsToTick.Add(Pair.Key);
+        }
+    }
+
+    // 遍历 ID，每次重新获取弱指针并 Pin，确保对象有效
+    for (const FName& TaskID : TaskIDsToTick)
+    {
+        TWeakObjectPtr<UTaskBase>* WeakPtr = ActiveTasks.Find(TaskID);
+        if (!WeakPtr)
+            continue;
+
+        UTaskBase* Task = WeakPtr->Get();
+        if (!Task || !IsValid(Task))
+            continue;
+
+        // 再次检查状态（可能在上次 Tick 中状态已改变）
+        if (Task->GetTaskState() != ETaskState::Running)
+            continue;
+
+        if (!Task->IsTickEnabled())
+            continue;
+
+        float TickInterval = Task->GetTickInterval();
+        bool bShouldTick = false;
+
+        if (TickInterval <= 0.0f)
+        {
+            bShouldTick = true;
+        }
+        else
+        {
+            float TimeSinceLastTick = CurrentTime - Task->LastTickTime;
+            if (TimeSinceLastTick >= TickInterval)
+            {
+                bShouldTick = true;
+                Task->LastTickTime = CurrentTime;
+            }
+        }
+
+        if (bShouldTick)
+        {
+            // 再次检查有效性，因为上述操作可能耗时
+            if (IsValid(Task))
+            {
+                Task->Tick(DeltaTime);
+            }
+        }
+    }
+}
+
+void UMissionManager::StartUpdateTimer()
+{
+    if (!bIsUpdateTimerActive && GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimer(UpdateTimerHandle, this, &UMissionManager::UpdateTasks, 0.016f, true);
+        bIsUpdateTimerActive = true;
+        UE_LOG(LogTemp, Log, TEXT("MissionManager update timer started"));
+    }
+}
+
+void UMissionManager::StopUpdateTimer()
+{
+    if (bIsUpdateTimerActive && GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(UpdateTimerHandle);
+        bIsUpdateTimerActive = false;
+        UE_LOG(LogTemp, Log, TEXT("MissionManager update timer stopped"));
     }
 }
 

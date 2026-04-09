@@ -31,6 +31,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MissionManager")
     bool LoadTaskTable(UDataTable* TaskTable);
 
+    // 创建任务：若已存在且可重复（且处于终态），则先移除旧任务再创建新任务；
+    // 若已存在且正在运行/暂停，则返回 nullptr 并输出警告。
     UFUNCTION(BlueprintCallable, Category = "MissionManager")
     UTaskBase* CreateTask(FName TaskID);
 
@@ -82,13 +84,24 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "MissionManager")
     FOnTaskRemoved OnTaskRemoved;
 
+protected:
+    UFUNCTION()
+    void UpdateTasks();
+
 private:
     UTaskBase* CreateTaskInstance(const FTaskConfigRow& ConfigRow);
     void RemoveAndDestroyTask(FName TaskID);
     void SavePersistentTaskIfNeeded(UTaskBase* Task);
 
-    TMap<FName, UTaskBase*> ActiveTasks;
+    void StartUpdateTimer();
+    void StopUpdateTimer();
+
+    // 使用弱指针存储任务，防止悬空指针
+    TMap<FName, TWeakObjectPtr<UTaskBase>> ActiveTasks;
     TMap<FName, FTaskConfigRow> TaskConfigs;
 
-    virtual UWorld* GetWorld() const override;
+    FTimerHandle UpdateTimerHandle;
+    bool bIsUpdateTimerActive;
+
+    UWorld* GetWorld() const override;
 };

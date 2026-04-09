@@ -8,7 +8,7 @@
 #include "DraggableSplineActor/DraggableSplineActor.h"
 #include "DraggableSplineActorManager.generated.h"
 
-// 通用事件数据结构
+// 閫氱敤浜嬩欢鏁版嵁缁撴瀯
 USTRUCT(BlueprintType)
 struct FDraggableItemData
 {

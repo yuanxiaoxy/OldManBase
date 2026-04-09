@@ -19,6 +19,7 @@ class XYFRAME_API UTaskBase : public UObject
 
 public:
     UTaskBase();
+    virtual ~UTaskBase();
 
     UFUNCTION(BlueprintCallable, Category = "Task")
     virtual void InitializeTask(const FTaskConfigRow& ConfigRow);
@@ -116,20 +117,23 @@ protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Task")
     void OnResetTask();
 
-    // 修改为 BlueprintNativeEvent，并提供默认 C++ 实现，防止蓝图未重写时崩溃
     UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnTick(float DeltaTime);
 
-    // 进度更新事件（C++ 和蓝图都可重写）
     UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnProgressUpdated();
 
     UFUNCTION(BlueprintCallable, Category = "Task")
     void SetState(ETaskState NewState);
 
-    UWorld* GetWorld() const override;
+    virtual UWorld* GetWorld() const override;
+    virtual void BeginDestroy() override;
 
-    void ResetTickTimer();
+    void StartTickTimer();
+    void StopTickTimer();
+
+    UFUNCTION()
+    void InternalTick();
 
     // 任务标识
     FName TaskID;
@@ -161,5 +165,7 @@ protected:
     FName NextTaskID;
 
     friend class UMissionManager;
+
+    FTimerHandle TickTimerHandle;
     float LastTickTime;
 };

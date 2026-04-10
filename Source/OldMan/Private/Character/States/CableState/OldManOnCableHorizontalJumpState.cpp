@@ -35,7 +35,14 @@ void UOldManOnCableHorizontalJumpState::Enter()
             JumpTargetPosition = CalculateCharacterPositionOnCable(JumpTargetPosition);
         }
 
-        SetPlayerCurMoveState(EPlayerBaseMoveState::Fall);
+        if (Character->IsLeftCable)
+        {
+            SetPlayerCurMoveState(EPlayerBaseMoveState::LeftHorizontalJump);
+        }
+        else
+        {
+            SetPlayerCurMoveState(EPlayerBaseMoveState::RightHorizontalJump);
+        }
     }
 }
 
@@ -93,4 +100,26 @@ float UOldManOnCableHorizontalJumpState::GetLateralJumpSpeed()
     AOldManCharacter* Character = GetOldManCharacter();
     return Character && Character->CharacterAttributes ?
         Character->CharacterAttributes->HorizontalJumpSpeed : 600.0f; // Increased speed
+}
+
+bool UOldManOnCableHorizontalJumpState::InLeftOfTarget(const FVector& Forward, const FVector& StartPos, const FVector& TargetPos)
+{
+    // 1. 计算水平方向的目标向量（忽略高度）
+    FVector ToTarget = (TargetPos - StartPos).GetSafeNormal2D();
+    FVector Forward2D = Forward.GetSafeNormal2D(); // 确保水平归一化
+
+    // 2. 计算叉积 Z 分量（左手坐标系：X前 Y右 Z上）
+    float CrossZ = FVector::CrossProduct(Forward2D, ToTarget).Z;
+
+    // 3. 判断左右
+    if (CrossZ > KINDA_SMALL_NUMBER)
+    {
+        return false;
+    }
+    else if (CrossZ < -KINDA_SMALL_NUMBER)
+    {
+        return true;
+    }
+    
+    return true;
 }

@@ -17,6 +17,8 @@ enum class EPlayerBaseMoveState : uint8
     DoubleJump = 3 UMETA(DisplayName = "DoubleJump"),
     Fall = 4 UMETA(DisplayName = "Fall"),
     Land = 5 UMETA(DisplayName = "Land"),
+    LeftHorizontalJump = 6 UMETA(DisplayName = "LeftHorizontalJump"),
+    RightHorizontalJump = 7 UMETA(DisplayName = "RightHorizontalJump"),
 };
 
 UENUM(BlueprintType)

@@ -51,6 +51,16 @@
 				"CoreUObject",
 				"XyFrame"
 			]
+		},
+		{
+			"Name": "OldManBossGrid",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
+				"XyFrame"
+			]
 		}
 	],
 	"Plugins": [

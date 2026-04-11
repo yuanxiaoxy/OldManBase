@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Kismet/KismetSystemLibrary.h"
 #include "BossGrid.h"
+
 
 // Sets default values
 ABossGrid::ABossGrid()
@@ -9,37 +9,14 @@ ABossGrid::ABossGrid()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	if (GridMeshComp == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridMeshComp is nullptr!"));
-		UKismetSystemLibrary::ExecuteConsoleCommand(GetWorld(), TEXT("Pause"), nullptr);
-		return;
-	}
-
-	if(SafeMaterial == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SafeMaterial is nullptr!"));
-		UKismetSystemLibrary::ExecuteConsoleCommand(GetWorld(), TEXT("Pause"), nullptr);
-		return;
-	}
 	
-	
-	GridMeshComp->SetMaterial(0, SafeMaterial);
-	
-
-	// 2. ¿ªÆôÅö×² + ÉèÖÃÎª Overlap Ä£Ê½
-	GridMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	GridMeshComp->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-
-	// 3. ¶©ÔÄ£¨°ó¶¨£©ÖØµþÊÂ¼þ ¡ª¡ª Õâ¾ÍÊÇÄãÒªµÄ£¡
-	GridMeshComp->OnComponentBeginOverlap.AddDynamic(this, &ABossGrid::OnGridBeginOverlap);
-	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
 }
 
 // Called when the game starts or when spawned
 void ABossGrid::BeginPlay()
 {
 	Super::BeginPlay();
+	
 
 }
 
@@ -49,28 +26,22 @@ void ABossGrid::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if (CurrentGridState == EGridState::Flashing)
 	{
-		// µ¹¼ÆÊ±
-		FlashTimer -= DeltaTime;
+		// å€’è®¡æ—¶
+
 		FlashSwitchTimer += DeltaTime;
 
-		// Ã¿ 0.2 ÃëÇÐÒ»´Î²ÄÖÊ
+		// æ¯ 0.2 ç§’åˆ‡ä¸€æ¬¡æè´¨
 		if (FlashSwitchTimer >= FlashFrequency)
 		{
 			FlashSwitchTimer = 0.f;
 
-			// ½»ÌæÇÐ»»°²È« / Î£ÏÕ²ÄÖÊ
+			// äº¤æ›¿åˆ‡æ¢å®‰å…¨ / å±é™©æè´¨
 			if (GridMeshComp->GetMaterial(0) == SafeMaterial)
 				GridMeshComp->SetMaterial(0, DangerMaterials[0]);
 			else
 				GridMeshComp->SetMaterial(0, SafeMaterial);
-		}
+		}	
 
-
-		// Ê±¼äµ½ ¡ú ×Ô¶¯±ä»Ø°²È«×´Ì¬
-		if (FlashTimer <= 0)
-		{
-			SwitchToSafe(); // <-- ×Ô¶¯±ä»Ø°²È«
-		}
 	}
 
 }
@@ -79,6 +50,31 @@ void ABossGrid::Tick(float DeltaTime)
 void ABossGrid::Initialize()
 {
 
+	if (GridMeshComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] GridMeshComp æ˜¯ç©ºæŒ‡é’ˆï¼"), *GetName());
+		return;
+	}
+
+	if (SafeMaterial == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] SafeMaterial æ˜¯ç©ºæŒ‡é’ˆï¼"), *GetName());
+	}
+
+	if (DangerMaterials.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] DangerMaterials æ˜¯ç©ºåˆ—è¡¨!"), *GetName());
+	}
+
+	GridMeshComp->SetMaterial(0, SafeMaterial);
+
+	// 2. å¼€å¯ç¢°æ’ž + è®¾ç½®ä¸º Overlap æ¨¡å¼
+	GridMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GridMeshComp->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+
+	// 3. è®¢é˜…ï¼ˆç»‘å®šï¼‰é‡å äº‹ä»¶ â€”â€” è¿™å°±æ˜¯ä½ è¦çš„ï¼
+	GridMeshComp->OnComponentBeginOverlap.AddDynamic(this, &ABossGrid::OnGridBeginOverlap);
+	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
 }
 
 void ABossGrid::SwitchToDanger()
@@ -97,14 +93,6 @@ void ABossGrid::SwitchToSafe()
 
 void ABossGrid::SwitchToFlash(int32 FlashTime = 0)
 {
-	if (FlashTime >= 0)
-	{
-		FlashTimer = FlashTime;
-	}
-	else
-	{
-		FlashTimer = FlashDuration;
-	}
 	CurrentGridState = EGridState::Flashing;
 }
 
@@ -128,5 +116,11 @@ void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	}
 
 }
+
+void ABossGrid::SetPos(int32 X, int32 Y)
+{
+	GridX = X;
+	GridY = Y;
+}	
 
 

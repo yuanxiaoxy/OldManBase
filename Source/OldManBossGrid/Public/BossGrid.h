@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "EBossGridState.h"
 #include "BossGrid.generated.h"
 
 UCLASS()
@@ -18,16 +19,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BossGrid")
 	UMaterialInterface* SafeMaterial;
 
-	// µØ°å¿é¾²Ì¬Íø¸ñÌå×é¼ş£¨¸ù×é¼ş£©
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BossGrid|×é¼ş")
+	// åœ°æ¿å—é™æ€ç½‘æ ¼ä½“ç»„ä»¶ï¼ˆæ ¹ç»„ä»¶ï¼‰
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BossGrid|ç»„ä»¶")
 	UStaticMeshComponent* GridMeshComp;
-
-	// ÉÁË¸³ÖĞøÊ±¼ä£¨Ãë£©
-	UPROPERTY(EditAnywhere, Category = "BossGrid")
-	float FlashDuration = 2.0f;
 
 	UPROPERTY(EditAnywhere, Category = "BossGrid")
 	float FlashFrequency = 0.2f;
+
+	int32 GridX;
+
+	int32 GridY;
 
 	
 public:	
@@ -38,31 +39,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BossGrid")
 	void Initialize();
 
-	// ÇĞ»»ÎªÎ£ÏÕÇøÓò¿é
-	UFUNCTION(BlueprintCallable, Category = "BossGrid|ĞĞÎª")
+	// åˆ‡æ¢ä¸ºå±é™©åŒºåŸŸå—
+	UFUNCTION(BlueprintCallable, Category = "BossGrid|è¡Œä¸º")
 	void SwitchToDanger();
 
-	// ÇĞ»»Îª°²È«ÇøÓò¿é
-	UFUNCTION(BlueprintCallable, Category = "BossGrid|ĞĞÎª")
+	// åˆ‡æ¢ä¸ºå®‰å…¨åŒºåŸŸå—
+	UFUNCTION(BlueprintCallable, Category = "BossGrid|è¡Œä¸º")
 	void SwitchToSafe();
 
-	// µØ°å¿éÉÁË¸£¨´«ÈëÉÁË¸Ê±³¤£¬µ¥Î»Ãë£©
-	UFUNCTION(BlueprintCallable, Category = "BossGrid|ĞĞÎª")
+	// åœ°æ¿å—é—ªçƒï¼ˆä¼ å…¥é—ªçƒæ—¶é•¿ï¼Œå•ä½ç§’ï¼‰
+	UFUNCTION(BlueprintCallable, Category = "BossGrid|è¡Œä¸º")
 	void SwitchToFlash(int32 FlashTime);
 
-	// Íæ¼Ò²ÈÈëµØ¿éÊÂ¼ş
+	// ç©å®¶è¸©å…¥åœ°å—äº‹ä»¶
 	UFUNCTION()
 	void OnGridBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 
-	// Íæ¼ÒÀë¿ªµØ¿éÊÂ¼ş
+	// ç©å®¶ç¦»å¼€åœ°å—äº‹ä»¶
 	UFUNCTION()
 	void OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-
+	void SetPos(int32 X, int32 Y);
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -75,23 +77,14 @@ public:
 
 
 private:
-	// µ±Ç°µØ¿é×´Ì¬
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|×´Ì¬", meta = (AllowPrivateAccess = "true"))
+	// å½“å‰åœ°å—çŠ¶æ€
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|çŠ¶æ€", meta = (AllowPrivateAccess = "true"))
 	EGridState CurrentGridState = EGridState::Safe;
 
-	// ÉÁË¸¼ÆÊ±Æ÷
-	float FlashTimer;
+
 
 	float FlashSwitchTimer;
 
 };
 
 
-// µØ¿é×´Ì¬Ã¶¾Ù
-UENUM(BlueprintType)
-enum class EGridState : uint8
-{
-	Safe,       // °²È«
-	Danger,     // Î£ÏÕ
-	Flashing    // ÉÁË¸ÖĞ
-};

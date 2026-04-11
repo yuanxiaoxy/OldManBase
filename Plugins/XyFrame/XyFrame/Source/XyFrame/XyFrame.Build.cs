@@ -36,7 +36,8 @@ public class XyFrame : ModuleRules
 				"GameplayTasks", 
                 "Niagara",
                 "EnhancedInput",
-                "StructUtils"
+                "StructUtils",
+                "Synthesis"
             }
         );
 
@@ -51,6 +52,7 @@ public class XyFrame : ModuleRules
                 "UMG",
                 "StructUtils",
                 "EnhancedInput",
+                "Synthesis"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

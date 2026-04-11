@@ -97,6 +97,12 @@ void AOldManGameMode::InitializeWorldState_Implementation()
         }
     }
 
+    UDataTable* AudioEffectConfigData = Cast<UDataTable>(AudioEffectConfig);
+    if (AudioEffectConfigData)
+    {
+        UAudioManager::GetInstance()->InitializeEffectSystem(AudioEffectConfigData);
+    }
+
     UDataTable* TaskConfigData = Cast<UDataTable>(TaskConfig);
     if (TaskConfigData)
     {

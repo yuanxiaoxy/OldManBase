@@ -40,4 +40,7 @@ private:
 
     /** Arc height for the jump (unused in current linear interpolation) */
     float ArcHeight;
+
+    bool InLeftOfTarget(const FVector& Forward, const FVector& StartPos, const FVector& TargetPos);
+
 };

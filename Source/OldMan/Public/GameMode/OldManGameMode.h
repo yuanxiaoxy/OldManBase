@@ -48,6 +48,8 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UDataTable* AudioConfig = nullptr;  
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UDataTable* AudioEffectConfig = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UDataTable* TaskConfig = nullptr;  
 
 private:

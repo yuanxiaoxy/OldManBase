@@ -2,6 +2,7 @@
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 #include "Components/Image.h"
+#include "IMediaEventSink.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()
@@ -45,7 +46,38 @@ void AOldManAnimationBall::BeginPlay()
 			PlayWall->SetActorTickEnabled(false);
 		}
 	}
+	//清空纹理
+	
 	//MediaPlayer->OpenSource(FileMediaSource);
+}
+
+void AOldManAnimationBall::PlayVideoInUI()
+{
+	if (Disposable)
+	{
+		//判断是否为一次性
+		if (IsDisposable)
+		{
+			Disposable = false;
+		}
+		BeforePreparation();
+		//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
+		//绑定事件
+		MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AOldManAnimationBall::PlayAniInUI);
+		//打开媒体源
+		MediaPlayer->OpenSource(FileMediaSource);
+		//如果是一次性的 销毁自己
+		if (!Disposable)
+		{
+			Print("执行死亡");
+			this->SetActorHiddenInGame(true);
+			this->SetActorEnableCollision(false);
+			this->SetActorTickEnabled(false);
+			//this->Destroy();
+		}
+
+	}
+
 }
 
 //在场景中播放
@@ -63,8 +95,6 @@ void AOldManAnimationBall::PlayAniInScene()
 	{
 		//为场景物体添加材质
 		PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
-		//打开媒体源
-		MediaPlayer->OpenSource(FileMediaSource);
 	}
 
 	if (ShouldFadeIn && FadeInMaterial)
@@ -88,8 +118,28 @@ void AOldManAnimationBall::PlayAniInUI()
 			curImg->SetBrushFromMaterial(PlayWallMaterial);
 		}
 	}
-	
-	MediaPlayer->OpenSource(FileMediaSource);
+
+
+}
+
+void AOldManAnimationBall::ChooseType()
+{
+	switch (myType)
+	{
+		case E_AniBallType::playOnScene:
+			PlayAniInScene();
+			break;
+		case E_AniBallType::playOnUI:
+			PlayAniInUI();
+			break;
+		case E_AniBallType::playAsText:
+			PlayText();
+			break;
+		default:
+			UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢"));
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢"));
+			break;
+	}
 }
 
 //对话框
@@ -111,10 +161,14 @@ void AOldManAnimationBall::PlayOver()
 		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true);
 
 	}
+	//取消绑定
+	MediaPlayer->OnPlaybackResumed.RemoveDynamic(this, &AOldManAnimationBall::ChooseType);
+	MediaPlayer->OnEndReached.RemoveDynamic(this, &AOldManAnimationBall::PlayOver);
+
 	//若是场景物体播放模式 失活PlayWall
 	if (myType == E_AniBallType::playOnScene)
 	{
-		if (!PlayWall->IsHidden())
+		if (!PlayWall->IsHidden() && !IsCreateOnly)
 		{
 			PlayWall->SetActorHiddenInGame(true);
 			PlayWall->SetActorEnableCollision(false);
@@ -126,8 +180,11 @@ void AOldManAnimationBall::PlayOver()
 	{
 		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel");
 	}
-
+	//停止播放
+	MediaPlayer->Close();
+	MediaTexture = nullptr;
 }
+
 
 //播放前准备
 void AOldManAnimationBall::BeforePreparation()
@@ -146,21 +203,12 @@ void AOldManAnimationBall::BeforePreparation()
 	if (PlayerInputCancel)
 	{
 		//Player->SetPlayerInput(false);
-		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(),false);
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), false);
 	}
 	//判断对话框是否自动播放
 	if (myType == E_AniBallType::playAsText)
 	{
-		
-	}
-	//如果是一次性的 销毁自己
-	if (!Disposable)
-	{
-		Print("执行死亡");
-		this->SetActorHiddenInGame(true);
-		this->SetActorEnableCollision(false);
-		this->SetActorTickEnabled(false);
-		//this->Destroy();
+
 	}
 }
 
@@ -185,22 +233,27 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 			}
 			BeforePreparation();
 			//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
-			switch (myType)
+			//绑定事件
+			MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AOldManAnimationBall::ChooseType);
+			//打开媒体源
+			if (!IsCreateOnly)
 			{
-			case E_AniBallType::playOnScene:
-				PlayAniInScene();
-				break;
-			case E_AniBallType::playOnUI:
-				PlayAniInUI();
-				break;
-			case E_AniBallType::playAsText:
-				PlayText();
-				break;
-			default:
-				UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢"));
-				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢"));
-				break;
+				MediaPlayer->OpenSource(FileMediaSource);
 			}
+			else
+			{
+				ChooseType();
+			}
+			//如果是一次性的 销毁自己
+			if (!Disposable)
+			{
+				Print("执行死亡");
+				this->SetActorHiddenInGame(true);
+				this->SetActorEnableCollision(false);
+				this->SetActorTickEnabled(false);
+				//this->Destroy();
+			}
+
 		}
 	}
 }

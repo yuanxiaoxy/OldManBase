@@ -55,7 +55,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
 	float CountdownTime= 0.0f;
 	//是否只生成物体
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	bool IsCreateOnly = false;
 	//从几秒开始播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
@@ -87,6 +87,8 @@ public:
 public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void StartFadeIn();
+	UFUNCTION(BlueprintCallable)
+	void PlayVideoInUI();
 
 private:
 	//进入触发框的玩家
@@ -94,13 +96,20 @@ private:
 	//一次性
 	bool Disposable = true;
 
+	UFUNCTION()
 	void PlayAniInScene();
-	void PlayAniInUI();
+	UFUNCTION()
+	void PlayAniInUI();	
+	UFUNCTION()
+	void ChooseType();
 	void PlayText();
 	UFUNCTION()
 	void PlayOver();
+
 	void BeforePreparation();
 	void Print(FString text);
+
+
 
 
 protected:

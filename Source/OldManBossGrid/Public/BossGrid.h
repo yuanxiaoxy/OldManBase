@@ -30,14 +30,27 @@ public:
 
 	int32 GridY;
 
+	bool bPlayerOnGrid = false;
+
 	
+
+private:
+	// 当前地块状态
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
+	EGridState CurrentGridState = EGridState::Safe;
+
+	float FlashSwitchTimer;
+	float FlashDurationTimer;
+
+
+
 public:	
 	// Sets default values for this actor's properties
 	ABossGrid();
 
 
 	UFUNCTION(BlueprintCallable, Category = "BossGrid")
-	void Initialize();
+	void Initialize(int32 X, int32 Y, FVector generate);
 
 	// 切换为危险区域块
 	UFUNCTION(BlueprintCallable, Category = "BossGrid|行为")
@@ -49,7 +62,7 @@ public:
 
 	// 地板块闪烁（传入闪烁时长，单位秒）
 	UFUNCTION(BlueprintCallable, Category = "BossGrid|行为")
-	void SwitchToFlash(int32 FlashTime);
+	void SwitchToFlash(float FlashTime);
 
 	// 玩家踩入地块事件
 	UFUNCTION()
@@ -63,8 +76,12 @@ public:
 	void OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void SetPos(int32 X, int32 Y);
 	
+
+
+
+private:
+	void SetPos(int32 X, int32 Y, FVector generate);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -75,15 +92,6 @@ public:
 
 
 
-
-private:
-	// 当前地块状态
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
-	EGridState CurrentGridState = EGridState::Safe;
-
-
-
-	float FlashSwitchTimer;
 
 };
 

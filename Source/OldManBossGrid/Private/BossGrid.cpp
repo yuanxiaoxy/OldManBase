@@ -26,28 +26,46 @@ void ABossGrid::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if (CurrentGridState == EGridState::Flashing)
 	{
+		if (!GridMeshComp || !SafeMaterial || DangerMaterials.Num() == 0)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] 闪烁失败：缺少材质或组件！"), *GetName());
+			SwitchToSafe(); // 出错了强制切回安全
+			return;
+		}
+
+
+
 		// 倒计时
 
+		FlashDurationTimer -= DeltaTime;
 		FlashSwitchTimer += DeltaTime;
-
 		// 每 0.2 秒切一次材质
 		if (FlashSwitchTimer >= FlashFrequency)
 		{
 			FlashSwitchTimer = 0.f;
 
-			// 交替切换安全 / 危险材质
-			if (GridMeshComp->GetMaterial(0) == SafeMaterial)
-				GridMeshComp->SetMaterial(0, DangerMaterials[0]);
-			else
-				GridMeshComp->SetMaterial(0, SafeMaterial);
-		}	
+			// 安全判断：获取当前材质
+			UMaterialInterface* CurrentMat = GridMeshComp->GetMaterial(0);
 
+			if (CurrentMat == SafeMaterial)
+			{
+				GridMeshComp->SetMaterial(0, DangerMaterials[0]);
+			}
+			else
+			{
+				GridMeshComp->SetMaterial(0, SafeMaterial);
+			}
+		}	
+		if (FlashDurationTimer <= 0)
+		{
+			SwitchToSafe();
+		}
 	}
 
 }
 
 
-void ABossGrid::Initialize()
+void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
 {
 
 	if (GridMeshComp == nullptr)
@@ -75,6 +93,9 @@ void ABossGrid::Initialize()
 	// 3. 订阅（绑定）重叠事件 —— 这就是你要的！
 	GridMeshComp->OnComponentBeginOverlap.AddDynamic(this, &ABossGrid::OnGridBeginOverlap);
 	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
+
+	
+	SetPos(X, Y, generate);
 }
 
 void ABossGrid::SwitchToDanger()
@@ -87,12 +108,15 @@ void ABossGrid::SwitchToDanger()
 
 void ABossGrid::SwitchToSafe()
 {
+	FlashDurationTimer = 0.f;
+	FlashSwitchTimer = 0.f;
 	CurrentGridState = EGridState::Safe;
 	GridMeshComp->SetMaterial(0, SafeMaterial);
 }
 
-void ABossGrid::SwitchToFlash(int32 FlashTime = 0)
+void ABossGrid::SwitchToFlash(float FlashTime = 2)
 {
+	FlashDurationTimer = FlashTime;
 	CurrentGridState = EGridState::Flashing;
 }
 
@@ -117,10 +141,13 @@ void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 
 }
 
-void ABossGrid::SetPos(int32 X, int32 Y)
+void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
 {
 	GridX = X;
 	GridY = Y;
+	FVector BoxExtent = GridMeshComp->Bounds.BoxExtent;
+	FVector NewLocation = generate + FVector(X * BoxExtent.X, Y * BoxExtent.Y , 0.f);
+	SetActorLocation(NewLocation);
 }	
 
 

@@ -1,6 +1,7 @@
 ﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
+#include "Components/Image.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()
@@ -78,6 +79,16 @@ void AOldManAnimationBall::PlayAniInUI()
 {
 	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
 	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", nullptr);
+	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI("AnimationPlayPanel");
+	if (curWidget != nullptr) 
+	{
+		UImage* curImg = Cast<UImage>(curWidget->GetWidgetFromName("Image_0"));
+		if (curImg)
+		{
+			curImg->SetBrushFromMaterial(PlayWallMaterial);
+		}
+	}
+	
 	MediaPlayer->OpenSource(FileMediaSource);
 }
 
@@ -115,15 +126,7 @@ void AOldManAnimationBall::PlayOver()
 	{
 		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel");
 	}
-	//如果是一次性的 销毁自己
-	if (!Disposable)
-	{
-		Print("执行死亡");
-		this->SetActorHiddenInGame(true);
-		this->SetActorEnableCollision(false);
-		this->SetActorTickEnabled(false);
-		//this->Destroy();
-	}
+
 }
 
 //播放前准备
@@ -149,6 +152,15 @@ void AOldManAnimationBall::BeforePreparation()
 	if (myType == E_AniBallType::playAsText)
 	{
 		
+	}
+	//如果是一次性的 销毁自己
+	if (!Disposable)
+	{
+		Print("执行死亡");
+		this->SetActorHiddenInGame(true);
+		this->SetActorEnableCollision(false);
+		this->SetActorTickEnabled(false);
+		//this->Destroy();
 	}
 }
 

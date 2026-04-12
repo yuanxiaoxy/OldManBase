@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -34,6 +34,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	float FlashDuriation = 2.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
+	TSubclassOf<ABossGrid> BossGridClass;
+
 	UPROPERTY(EditAnywhere, Category = "BossMapSet", meta = (UIMin = 1, UIMax = 20, ClampMin = 1, ClampMax = 20))
 	int32 MapWidth = 7;
 
@@ -44,7 +47,7 @@ public:
 	float DangerProbability = 8;
 
 private:
-	bool m_hasSafeInRange = false;
+	bool m_bHasSafeInRange = false;
 	TArray<ABossGrid*> m_SafeGrids;
 	ACharacter* m_Player = nullptr;
 	// 动态二维网格（根据宽高自动创建）
@@ -87,7 +90,7 @@ private:
 	bool IsInJumpRange(int32 PlayerX, int32 PlayerY, int32 TargetX, int32 TargetY);
 
 
-	void ForceRandomSafeInJumpRange();
+	void ForceRandomSafeInJumpRange(FIntPoint PlayerGrid);
 
 
 

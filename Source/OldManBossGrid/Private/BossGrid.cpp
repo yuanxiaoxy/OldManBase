@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BossGrid.h"
 
@@ -24,43 +24,6 @@ void ABossGrid::BeginPlay()
 void ABossGrid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (CurrentGridState == EGridState::Flashing)
-	{
-		if (!GridMeshComp || !SafeMaterial || DangerMaterials.Num() == 0)
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s] 闪烁失败：缺少材质或组件！"), *GetName());
-			SwitchToSafe(); // 出错了强制切回安全
-			return;
-		}
-
-
-
-		// 倒计时
-
-		FlashDurationTimer -= DeltaTime;
-		FlashSwitchTimer += DeltaTime;
-		// 每 0.2 秒切一次材质
-		if (FlashSwitchTimer >= FlashFrequency)
-		{
-			FlashSwitchTimer = 0.f;
-
-			// 安全判断：获取当前材质
-			UMaterialInterface* CurrentMat = GridMeshComp->GetMaterial(0);
-
-			if (CurrentMat == SafeMaterial)
-			{
-				GridMeshComp->SetMaterial(0, DangerMaterials[0]);
-			}
-			else
-			{
-				GridMeshComp->SetMaterial(0, SafeMaterial);
-			}
-		}	
-		if (FlashDurationTimer <= 0)
-		{
-			SwitchToSafe();
-		}
-	}
 
 }
 
@@ -98,27 +61,95 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
 	SetPos(X, Y, generate);
 }
 
-void ABossGrid::SwitchToDanger()
+void ABossGrid::SwitchToDanger(float FlashTime)
+{
+	if(CurrentGridState == EGridState::Danger)
+	{
+		return;
+	}
+
+	int32 randomIndex = FMath::RandRange(0, DangerMaterials.Num() - 1);
+	UMaterialInterface* nextMat = DangerMaterials[randomIndex];
+
+	// 延迟 FlashTime 秒后执行【真正的切换逻辑】
+	FTimerDelegate TimerDelegate;
+
+	// 绑定：要延迟执行的函数 + 传入参数
+	TimerDelegate.BindUObject(this, &ABossGrid::OnSwitchToDangerDelayed, nextMat);
+
+	// 设置定时器
+	GetWorldTimerManager().SetTimer(
+		m_TimerHandle_SwitchDanger,	// 定时器句柄
+		TimerDelegate,			// 要执行的函数
+		FlashTime,				// 延迟时间
+		false					// 不循环
+	);
+}
+
+void ABossGrid::OnSwitchToDangerDelayed(UMaterialInterface* nextMat)
 {
 	CurrentGridState = EGridState::Danger;
-	int32 randomIndex = FMath::RandRange(0, DangerMaterials.Num() - 1);
-	UMaterialInterface* next = DangerMaterials[randomIndex];
-	GridMeshComp->SetMaterial(0, next);
-}
+	GridMeshComp->SetMaterial(0, nextMat);
+}	
 
 void ABossGrid::SwitchToSafe()
 {
-	FlashDurationTimer = 0.f;
-	FlashSwitchTimer = 0.f;
+	// 停止所有计时器
+	GetWorldTimerManager().ClearTimer(TimerHandle_FlashSwitch);
+	GetWorldTimerManager().ClearTimer(TimerHandle_FlashDuration);
+
+	m_bIsFlashing = false;
 	CurrentGridState = EGridState::Safe;
 	GridMeshComp->SetMaterial(0, SafeMaterial);
 }
 
-void ABossGrid::SwitchToFlash(float FlashTime = 2)
+void ABossGrid::SwitchToFlash(float FlashTime /*= 2*/)
 {
-	FlashDurationTimer = FlashTime;
+	if (!GridMeshComp || !SafeMaterial || DangerMaterials.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] 闪烁失败：缺少材质或组件！"), *GetName());
+		SwitchToSafe();
+		return;
+	}
+
+	// 先清掉旧计时器，防止重复触发
+	GetWorldTimerManager().ClearTimer(TimerHandle_FlashSwitch);
+	GetWorldTimerManager().ClearTimer(TimerHandle_FlashDuration);
+
 	CurrentGridState = EGridState::Flashing;
+	m_bIsFlashing = true;
+
+	// 开始循环切换材质
+	GetWorldTimerManager().SetTimer(
+		TimerHandle_FlashSwitch,
+		FTimerDelegate::CreateUObject(this, &ABossGrid::ToggleFlashMaterial),
+		FlashFrequency, // 每XX秒闪一次
+		true // 循环
+	);
+
+	// 设置总时长，时间到停止
+	GetWorldTimerManager().SetTimer(
+		TimerHandle_FlashDuration,
+		FTimerDelegate::CreateUObject(this, &ABossGrid::SwitchToSafe),
+		FlashTime,
+		false
+	);
 }
+
+void ABossGrid::ToggleFlashMaterial()
+{
+	UMaterialInterface* CurrentMat = GridMeshComp->GetMaterial(0);
+
+	if (CurrentMat == SafeMaterial)
+	{
+		GridMeshComp->SetMaterial(0, DangerMaterials[0]);
+	}
+	else
+	{
+		GridMeshComp->SetMaterial(0, SafeMaterial);
+	}
+}
+
 
 void ABossGrid::OnGridBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp,

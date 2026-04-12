@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -32,15 +32,20 @@ public:
 
 	bool bPlayerOnGrid = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
+	EGridState CurrentGridState = EGridState::Safe;
 	
 
 private:
 	// 当前地块状态
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
-	EGridState CurrentGridState = EGridState::Safe;
 
-	float FlashSwitchTimer;
-	float FlashDurationTimer;
+	FTimerHandle TimerHandle_FlashSwitch;  // 材质切换计时器
+	FTimerHandle TimerHandle_FlashDuration; // 总时长计时器
+	bool m_bIsFlashing = false;
+
+	FTimerHandle m_TimerHandle_SwitchDanger;
+
+
 
 
 
@@ -54,7 +59,7 @@ public:
 
 	// 切换为危险区域块
 	UFUNCTION(BlueprintCallable, Category = "BossGrid|行为")
-	void SwitchToDanger();
+	void SwitchToDanger(float FlashTime);
 
 	// 切换为安全区域块
 	UFUNCTION(BlueprintCallable, Category = "BossGrid|行为")
@@ -82,6 +87,14 @@ public:
 
 private:
 	void SetPos(int32 X, int32 Y, FVector generate);
+
+	void OnSwitchToDangerDelayed(UMaterialInterface* nextMat);
+
+	void ToggleFlashMaterial();
+
+
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -224,6 +224,7 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) > -1)
 	{
+
 		if (Disposable)
 		{
 			//判断是否为一次性

@@ -10,7 +10,8 @@
 #include "GlobalEventName.h"
 #include "ItemBase/OldManCableBase.h"
 #include "Character/OldManAnimInstance.h"
-#include "Kismet/GameplayStatics.h" // Newly added for DeprojectScreenToWorld
+#include "Kismet/GameplayStatics.h" 
+#include "EffectManager/EffectManager.h"
 
 AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UOldManMovementComponent>(AOldManCharacter::CharacterMovementComponentName))
@@ -1003,6 +1004,8 @@ void AOldManCharacter::StartRightMousePull()
 
         SetPullItemState(true);
         curOldManPullItem->StartDragging();
+
+        UEffectManager::GetInstance()->PlayEffectAttached("Effect_OnPullItem", this, "PullItemEffectPos");
     }
 }
 
@@ -1014,6 +1017,7 @@ void AOldManCharacter::StopRightMousePull()
         FGameEventData tempEventData;
         UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputPullEnd.ToString(), tempEventData);
 
+        UEffectManager::GetInstance()->StopAllEffectsOfType("Effect_OnPullItem");
         curOldManPullItem->OnDismissChecked();
         curOldManPullItem->StopDragging();
         curOldManPullItem = nullptr;

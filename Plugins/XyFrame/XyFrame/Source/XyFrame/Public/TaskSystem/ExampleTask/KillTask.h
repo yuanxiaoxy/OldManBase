@@ -21,6 +21,19 @@ public:
     virtual void OnProgressUpdated_Implementation() override;
 
 
+    // 示例：获取击杀任务配置（蓝图可调用）
+    UFUNCTION(BlueprintPure, Category = "Task|Config")
+    bool GetKillConfig(int32& OutRequiredKills, FName& OutTargetEnemyType) const
+    {
+        if (const FKillTaskConfig* Config = CustomConfig.GetPtr<FKillTaskConfig>())
+        {
+            OutRequiredKills = Config->RequiredKills;
+            OutTargetEnemyType = Config->TargetEnemyType;
+            return true;
+        }
+        return false;
+    }
+
 private:
     int32 RequiredKills;
 };

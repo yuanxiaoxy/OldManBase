@@ -107,4 +107,11 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+
+
+private:
+	float TimerInterval = 0.0f;
+	const float WaitTime = 4.0f; // 4秒触发一次
+
+
 };

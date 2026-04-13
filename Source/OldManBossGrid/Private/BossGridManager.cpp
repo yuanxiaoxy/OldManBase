@@ -33,6 +33,7 @@ void ABossGridManager::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("BossGridManager 的 BossGridClass 是空指针！"));	
 		UGameplayStatics::SetGamePaused(GetWorld(), true);
 	}
+	GenerateMap();
 	
 }
 
@@ -41,6 +42,15 @@ void ABossGridManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 计时器累加
+	TimerInterval += DeltaTime;
+
+	// 每4秒执行一次
+	if (TimerInterval >= WaitTime)
+	{
+		TimerInterval = 0; // 重置时间
+		RandomSetMap();    // 调用你的函数
+	}
 }
 
 void ABossGridManager::GenerateMap()
@@ -75,6 +85,9 @@ void ABossGridManager::RandomSetMap()
 	FIntPoint PlayerGridIndex = GetPlayerGridIndex();
 	int32 PlayerGridX = PlayerGridIndex.X;
 	int32 PlayerGridY = PlayerGridIndex.Y;
+	PlayerGridX = 4;
+	PlayerGridY = 4;
+
 	//	先随机设置危险格子
 	for (int32 i = 0; i < m_Grids.Num(); i++)
 	{

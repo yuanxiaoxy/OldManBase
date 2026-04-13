@@ -17,11 +17,11 @@ public:
 	TArray<UMaterialInterface*> DangerMaterials;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BossGrid")
-	UMaterialInterface* SafeMaterial;
+	UMaterialInterface* SafeMaterial = nullptr;
 
 	// 地板块静态网格体组件（根组件）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BossGrid|组件")
-	UStaticMeshComponent* GridMeshComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|组件")
+	UStaticMeshComponent* GridMeshComp = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "BossGrid")
 	float FlashFrequency = 0.2f;

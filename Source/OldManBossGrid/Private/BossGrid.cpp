@@ -8,7 +8,8 @@ ABossGrid::ABossGrid()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	GridMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridMeshComp"));
+	RootComponent = GridMeshComp;
 	
 }
 
@@ -176,8 +177,25 @@ void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
 {
 	GridX = X;
 	GridY = Y;
-	FVector BoxExtent = GridMeshComp->Bounds.BoxExtent;
-	FVector NewLocation = generate + FVector(X * BoxExtent.X, Y * BoxExtent.Y , 0.f);
+	UStaticMesh* Mesh = GridMeshComp->GetStaticMesh();
+	if (Mesh == nullptr) return; // 防止空指针
+
+	// 2. 获取视觉模型的本地包围盒（真实大小，不带任何缩放）
+	FVector MeshLocalExtent = Mesh->GetBounds().BoxExtent;
+
+	// 3. 应用组件缩放，得到画面上的真实大小
+	FVector BoxExtent = MeshLocalExtent * GridMeshComp->GetComponentScale();
+	int32 Delta = 10;
+	// 格子宽度 = 2个半尺寸（完整大小） + 间距
+	float GridWidth = BoxExtent.X * 2 + Delta;
+	float GridHeight = BoxExtent.Y * 2 + Delta;
+
+	// 正确排列公式 ✅
+	FVector NewLocation = generate + FVector(
+		X * GridWidth,   // X方向：第几个格子 × 格子总宽度
+		Y * GridHeight,  // Y方向：第几个格子 × 格子总高度
+		0.f
+	);
 	SetActorLocation(NewLocation);
 }	
 

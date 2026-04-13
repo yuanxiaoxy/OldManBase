@@ -7,7 +7,7 @@ void UKillTask::InitializeTask(const FTaskConfigRow& ConfigRow)
 {
     Super::InitializeTask(ConfigRow);
 
-    const UKillTaskConfig* KillConfig = GetConfigData<UKillTaskConfig>();
+    /*const UKillTaskConfig* KillConfig = GetConfigData<UKillTaskConfig>();
     if (KillConfig)
     {
         RequiredKills = KillConfig->RequiredKills;
@@ -15,7 +15,7 @@ void UKillTask::InitializeTask(const FTaskConfigRow& ConfigRow)
     else
     {
         RequiredKills = 5;
-    }
+    }*/
 
     // 直接访问基类 protected 成员
     CustomProgressInt = 0;

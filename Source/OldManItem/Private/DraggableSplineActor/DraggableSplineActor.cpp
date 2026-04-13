@@ -47,14 +47,12 @@ void ADraggableSplineActor::Tick(float DeltaTime)
     // 自动回弹：以恒定速度移动 CurrentSplinePosition 回 DragStartPos
     if (inAutoBack && IfHasAutoBack)
     {
-        // 如果还没到达起点，继续移动
         if (CurrentSplinePosition != DragStartPos)
         {
             float Direction = (DragStartPos > CurrentSplinePosition) ? 1.0f : -1.0f;
             float Step = AutoBackSpeed * DeltaTime;
             float NewPosition = CurrentSplinePosition + Direction * Step;
 
-            // 检查是否越过目标
             if ((Direction > 0 && NewPosition >= DragStartPos) || (Direction < 0 && NewPosition <= DragStartPos))
             {
                 NewPosition = DragStartPos;
@@ -62,20 +60,17 @@ void ADraggableSplineActor::Tick(float DeltaTime)
 
             CurrentSplinePosition = NewPosition;
 
-            // 更新目标位置和旋转
             TargetLocation = SplineComponent->GetLocationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
             TargetRotation = SplineComponent->GetRotationAtTime(CurrentSplinePosition, ESplineCoordinateSpace::World);
-            MovementAlpha = 0.0f;   // 重新开始平滑移动
+            MovementAlpha = 0.0f;
         }
 
-        // 如果已经到达起点，且平滑插值已完成，则结束自动回弹
         if (CurrentSplinePosition == DragStartPos && MovementAlpha >= 1.0f)
         {
             StopAutoBack();
         }
     }
 
-    // 平滑移动插值
     if (MovementAlpha < 1.0f)
     {
         MovementAlpha = FMath::Min(MovementAlpha + DeltaTime * 8.0f, 1.0f);
@@ -84,7 +79,6 @@ void ADraggableSplineActor::Tick(float DeltaTime)
         SetMeshPositionAndRotation(NewLocation, NewRotation);
     }
 
-    // 调试绘制
     if (bShowDebugVisualization && SplineComponent)
     {
         const int32 NumSegments = 50;
@@ -156,11 +150,18 @@ void ADraggableSplineActor::StartDragging()
         bEnableEditorPreview = false;
     }
 #endif
+
+    // 广播拖动开始事件
+    OnDraggingStarted.Broadcast(this);
 }
 
 void ADraggableSplineActor::StopDragging()
 {
     bIsBeingDragged = false;
+
+    // 广播拖动停止事件（在自动回弹之前，表示用户操作结束）
+    OnDraggingStopped.Broadcast(this);
+
     if (!IfHasAutoBack)
     {
         bCouldPull = true;
@@ -185,7 +186,6 @@ void ADraggableSplineActor::StopAutoBack()
     inAutoBack = false;
     bCouldPull = true;
 
-    // 确保最终状态完全对齐
     CurrentSplinePosition = DragStartPos;
     TargetLocation = SplineComponent->GetLocationAtTime(DragStartPos, ESplineCoordinateSpace::World);
     TargetRotation = SplineComponent->GetRotationAtTime(DragStartPos, ESplineCoordinateSpace::World);

@@ -1,10 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// TaskTypes.h
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "SaveManager/SaveGameTool.h"
+#include "InstancedStruct.h" // 新增
 #include "TaskTypes.generated.h"
 
 class UTaskBase;
@@ -28,21 +28,42 @@ enum class ETaskSavePolicy : uint8
     Persistent    UMETA(DisplayName = "永久保存（本地持久化）")
 };
 
-UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
-class XYFRAME_API UTaskConfigDataBase : public UObject
+// ========== 结构体配置体系（替代原 UObject 体系） ==========
+
+/** 任务配置基础结构体，所有自定义配置必须继承自此结构体 */
+USTRUCT(BlueprintType)
+struct XYFRAME_API FTaskConfigBase
 {
     GENERATED_BODY()
-public:
 };
 
-UCLASS(Blueprintable, EditInlineNew)
-class XYFRAME_API UKillTaskConfig : public UTaskConfigDataBase
+/** 示例：击杀任务配置结构体 */
+USTRUCT(BlueprintType)
+struct XYFRAME_API FKillTaskConfig : public FTaskConfigBase
 {
     GENERATED_BODY()
-public:
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "KillTask")
     int32 RequiredKills = 5;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "KillTask")
+    FName TargetEnemyType;
 };
+
+/** 示例：收集任务配置结构体 */
+USTRUCT(BlueprintType)
+struct XYFRAME_API FCollectTaskConfig : public FTaskConfigBase
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CollectTask")
+    FName ItemID;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CollectTask")
+    int32 RequiredAmount = 1;
+};
+
+// ========== DataTable 行结构 ==========
 
 USTRUCT(BlueprintType)
 struct FTaskConfigRow : public FTableRowBase
@@ -70,8 +91,9 @@ struct FTaskConfigRow : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task")
     TSubclassOf<UTaskBase> TaskClass;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced, Category = "Task")
-    TObjectPtr<UTaskConfigDataBase> CustomConfig = nullptr;
+    // 使用 FInstancedStruct 替代原来的 TObjectPtr<UTaskConfigDataBase>
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task", meta = (BaseStruct = "/Script/XYFrame.TaskConfigBase"))
+    FInstancedStruct CustomConfig;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task")
     bool bEnableTick = true;
@@ -79,14 +101,15 @@ struct FTaskConfigRow : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableTick"))
     float TickInterval = 0.0f;
 
-    // 任务链：完成后是否有下一个任务
+    // 任务链
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task|Chain")
     bool bHasNextTask = false;
 
-    // 下一个任务ID（当 bHasNextTask 为 true 时有效）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Task|Chain", meta = (EditCondition = "bHasNextTask"))
     FName NextTaskID;
 };
+
+// ========== 保存数据结构（不变） ==========
 
 USTRUCT(BlueprintType)
 struct FTaskSaveData

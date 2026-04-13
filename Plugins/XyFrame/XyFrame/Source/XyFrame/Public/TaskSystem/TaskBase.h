@@ -1,10 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// TaskBase.h
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "TaskSystem/TaskTypes.h"
+#include "InstancedStruct.h"
 #include "TaskBase.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTaskStateChanged, FName, TaskID);
@@ -23,7 +23,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Task")
     virtual void InitializeTask(const FTaskConfigRow& ConfigRow);
 
-    // 生命周期函数（C++ 核心逻辑 + 蓝图事件）
+    // 生命周期函数
     UFUNCTION(BlueprintCallable, Category = "Task")
     virtual void StartTask();
 
@@ -74,13 +74,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Task")
     virtual void LoadTask(const FTaskSaveData& InData);
 
+    // 获取配置数据模板函数
     template <typename T>
     const T* GetConfigData() const
     {
-        return Cast<T>(CustomConfig);
+        return CustomConfig.GetPtr<T>();
     }
 
-    // C++ 委托（外部监听）
+    // 蓝图无法直接获取结构体内部字段，建议封装具体函数
+    UFUNCTION(BlueprintPure, Category = "Task|Config")
+    bool HasValidConfig() const { return CustomConfig.IsValid(); }
+
+    // C++ 委托
     UPROPERTY(BlueprintAssignable, Category = "Task")
     FOnTaskStateChanged OnStateChanged;
 
@@ -94,7 +99,7 @@ public:
     FOnTaskFailed OnFailed;
 
 protected:
-    // 以下所有蓝图事件均改为 BlueprintNativeEvent，并提供 C++ 默认实现，防止蓝图未重写时断言
+    // BlueprintNativeEvent 事件
     UFUNCTION(BlueprintNativeEvent, Category = "Task")
     void OnStartTask();
 
@@ -146,13 +151,12 @@ protected:
     ETaskState CurrentState;
     float ProgressPercent;
 
-    // 自定义进度（供子类使用）
+    // 自定义进度
     int32 CustomProgressInt;
     float CustomProgressFloat;
 
-    // 配置对象
-    UPROPERTY()
-    TObjectPtr<UTaskConfigDataBase> CustomConfig;
+    // 配置对象：改为 FInstancedStruct
+    FInstancedStruct CustomConfig;
 
     // 任务链
     bool bHasNextTask;

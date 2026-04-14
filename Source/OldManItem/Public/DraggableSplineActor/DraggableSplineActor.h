@@ -10,6 +10,11 @@
 #include "ItemBase/OldManPullItemBase.h"
 #include "DraggableSplineActor.generated.h"
 
+// ========== 新增委托声明 ==========
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDraggingStarted, ADraggableSplineActor*, DraggedActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDraggingStopped, ADraggableSplineActor*, DraggedActor);
+// =================================
+
 UCLASS()
 class OLDMANITEM_API ADraggableSplineActor : public AOldManPullItemBase
 {
@@ -107,6 +112,14 @@ public:
     UFUNCTION(BlueprintCallable)
     void ToggleDebugVisualization() { bShowDebugVisualization = !bShowDebugVisualization; }
 
+    // ========== 新增公共 Getter ==========
+    UFUNCTION(BlueprintPure, Category = "Drag")
+    float GetCurrentSplinePosition() const { return CurrentSplinePosition; }
+
+    UFUNCTION(BlueprintPure, Category = "Drag")
+    float GetDragStartPos() const { return DragStartPos; }
+    // ===================================
+
     UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor Preview")
     void UpdateEditorPreview();
 
@@ -115,6 +128,14 @@ public:
 
     UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor Preview")
     void ResetEditorPreview();
+
+    // ========== 新增拖动事件（蓝图可绑定） ==========
+    UPROPERTY(BlueprintAssignable, Category = "Drag")
+    FOnDraggingStarted OnDraggingStarted;
+
+    UPROPERTY(BlueprintAssignable, Category = "Drag")
+    FOnDraggingStopped OnDraggingStopped;
+    // =============================================
 
 protected:
     void StartAutoBack();

@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// TaskBase.cpp
 #include "TaskSystem/TaskBase.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
@@ -10,7 +9,6 @@ UTaskBase::UTaskBase()
     , ProgressPercent(0.0f)
     , CustomProgressInt(0)
     , CustomProgressFloat(0.0f)
-    , CustomConfig(nullptr)
     , bEnableTick(true)
     , TickInterval(0.0f)
     , bHasNextTask(false)
@@ -25,7 +23,7 @@ void UTaskBase::InitializeTask(const FTaskConfigRow& ConfigRow)
     SavePolicy = ConfigRow.SavePolicy;
     bAutoStart = ConfigRow.bAutoStart;
     bRepeatable = ConfigRow.bRepeatable;
-    CustomConfig = ConfigRow.CustomConfig;
+    CustomConfig = ConfigRow.CustomConfig;  // FInstancedStruct 拷贝赋值
     bEnableTick = ConfigRow.bEnableTick;
     TickInterval = ConfigRow.TickInterval;
     bHasNextTask = ConfigRow.bHasNextTask;
@@ -41,7 +39,7 @@ void UTaskBase::StartTask()
         SetState(ETaskState::Running);
         ResetTickTimer();
         UE_LOG(LogTemp, Log, TEXT("Task started: %s"), *TaskID.ToString());
-        OnStartTask(); // BlueprintNativeEvent
+        OnStartTask();
     }
     else
     {
@@ -157,6 +155,9 @@ void UTaskBase::SaveTask(FTaskSaveData& OutData) const
     OutData.ProgressInt = CustomProgressInt;
     OutData.ProgressFloat = CustomProgressFloat;
     OutData.bIsCompleted = (CurrentState == ETaskState::Completed);
+
+    // 注意：CustomConfig 结构体未保存，可根据需求添加序列化逻辑
+    // 例如：将 CustomConfig 序列化到 OutData 的附加字段中
 }
 
 void UTaskBase::LoadTask(const FTaskSaveData& InData)
@@ -165,13 +166,14 @@ void UTaskBase::LoadTask(const FTaskSaveData& InData)
     CustomProgressInt = InData.ProgressInt;
     CustomProgressFloat = InData.ProgressFloat;
 
-    // 子类应重写 OnProgressUpdated 来更新 ProgressPercent
     ProgressPercent = 0.0f;
 
     if (CurrentState == ETaskState::Running)
     {
         OnStateChanged.Broadcast(TaskID);
     }
+
+    // CustomConfig 在 InitializeTask 时已从配置表加载，加载存档不覆盖
 }
 
 void UTaskBase::SetState(ETaskState NewState)
@@ -210,41 +212,12 @@ UWorld* UTaskBase::GetWorld() const
 }
 
 // ========== BlueprintNativeEvent 默认实现 ==========
-void UTaskBase::OnStartTask_Implementation()
-{
-    // 默认空实现，蓝图子类可选择重写
-}
-
-void UTaskBase::OnPauseTask_Implementation()
-{
-}
-
-void UTaskBase::OnResumeTask_Implementation()
-{
-}
-
-void UTaskBase::OnAbandonTask_Implementation()
-{
-}
-
-void UTaskBase::OnCompleteTask_Implementation()
-{
-}
-
-void UTaskBase::OnFailTask_Implementation()
-{
-}
-
-void UTaskBase::OnResetTask_Implementation()
-{
-}
-
-void UTaskBase::OnTick_Implementation(float DeltaTime)
-{
-    // 默认空实现，蓝图子类可选择重写
-}
-
-void UTaskBase::OnProgressUpdated_Implementation()
-{
-    // 子类重写实现进度逻辑
-}
+void UTaskBase::OnStartTask_Implementation() {}
+void UTaskBase::OnPauseTask_Implementation() {}
+void UTaskBase::OnResumeTask_Implementation() {}
+void UTaskBase::OnAbandonTask_Implementation() {}
+void UTaskBase::OnCompleteTask_Implementation() {}
+void UTaskBase::OnFailTask_Implementation() {}
+void UTaskBase::OnResetTask_Implementation() {}
+void UTaskBase::OnTick_Implementation(float DeltaTime) {}
+void UTaskBase::OnProgressUpdated_Implementation() {}

@@ -1,4 +1,4 @@
-﻿#include "Character/OldManCameraComponent.h"
+#include "Character/OldManCameraComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
@@ -10,10 +10,8 @@ UOldManCameraComponent::UOldManCameraComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
 
-    // 创建TimelineComponent
     FadeHitchcockZoomTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("HitchcockZoomTimeline"));
 
-    // 初始化变量
     CameraBoom = nullptr;
     FollowCamera = nullptr;
     CachedOldManCharacter = nullptr;
@@ -121,7 +119,6 @@ void UOldManCameraComponent::UpdateCameraRotation(float DeltaTime)
         return;
     }
 
-    // 直接应用输入增量（不再乘以DeltaTime * CameraFrameRate）
     if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
     {
         DesiredCameraRotation.Yaw += CurrentTurnInput;
@@ -150,9 +147,8 @@ void UOldManCameraComponent::UpdateCameraRotationInGravity(float DeltaTime)
 
     if (FMath::Abs(CurrentTurnInput) > 0.01f || FMath::Abs(CurrentLookUpInput) > 0.01f)
     {
-        // 直接使用输入增量（不再乘以DeltaTime * 60.0f）
         float YawInput = CurrentTurnInput;
-        float PitchInput = -CurrentLookUpInput; // 上下反转
+        float PitchInput = -CurrentLookUpInput;
 
         FQuat GravityAlignment = FQuat::FindBetweenNormals(FVector::UpVector, GravityUp);
         FQuat LocalQuat = GravityAlignment.Inverse() * CurrentQuat;
@@ -303,6 +299,35 @@ void UOldManCameraComponent::SmoothCameraRotate(float DeltaTime)
     {
         CameraBoom->SetWorldRotation(CurrentCameraRotation);
     }
+}
+
+void UOldManCameraComponent::ResetCameraTransform(const FRotator& DefaultRotation)
+{
+    // 重置旋转（内部变量）
+    DesiredCameraRotation = DefaultRotation;
+    CurrentCameraRotation = DefaultRotation;
+
+    // 直接应用到弹簧臂
+    if (CameraBoom)
+    {
+        CameraBoom->SetWorldRotation(CurrentCameraRotation);
+    }
+
+    // 重置相机距离和偏移为原始值（保证位置正确）
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = OriginalCameraDistance;
+        CameraBoom->SocketOffset = MyCameraData.CameraOffset;
+    }
+
+    // 更新当前缓存值
+    CurCameraDistance = OriginalCameraDistance;
+    CurCameraFOV = OriginalCameraFOV;
+
+    //if (APlayerController* PlayerController = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+    //{
+    //    PlayerController->SetControlRotation(CurrentCameraRotation);
+    //}
 }
 
 void UOldManCameraComponent::SetCameraTarget(AOldManCharacter* targetActor)

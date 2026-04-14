@@ -179,7 +179,7 @@ void AOldManCharacter::SetUseCustomGravity(bool CustomGravityOnEnable)
         SetCameraInSlopeMode();
         CameraComponent->SetCameraInHitchcock(CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetFOV,
             CharacterAttributes->OldManCameraHitchcockData.HitchcockZoomTargetDistance);
-        UMonoManager::GetInstance()->SetInterval<AOldManCharacter>(0.05f, "PerformGravityRaycast", this, &AOldManCharacter::SetGravityDirection);
+        UMonoManager::GetInstance()->SetInterval<AOldManCharacter>(CharacterAttributes->CheckFrequency, "PerformGravityRaycast", this, &AOldManCharacter::SetGravityDirection);
     }
     else
     {
@@ -860,7 +860,7 @@ void AOldManCharacter::InitializeEvent()
 
     UMyEventManager::GetInstance()->RegisterCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), this, &AOldManCharacter::UpdateInputActive);
 
-    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool, FVector, FRotator>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool, FVector, FRotator, bool>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_LockMouseKey, this, &AOldManCharacter::OnLockMouseKey);
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockAttack, this, &AOldManCharacter::OnUnLockCharacterPull);
@@ -1108,20 +1108,35 @@ void AOldManCharacter::SetNextCable(AOldManCableBase* newCable, bool left)
 #pragma endregion
 
 #pragma region Character Param
-void AOldManCharacter::OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition, FRotator ReBornRotation)
+void AOldManCharacter::OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition, FRotator ReBornRotation, bool ifResetCamera)
 {
-    bool bShowMouseCursor = OldManController->bShowMouseCursor;
+    bool bShowMouseCursor = OldManController ? OldManController->bShowMouseCursor : false;
     InitializeParam();
+
+    // ========== 重置相机位置和旋转（不停止动画、不停止抖动） ==========
+    if (CameraComponent && ifResetCamera)
+    {
+        // 使用重生旋转作为相机默认朝向，Pitch 和 Roll 归零
+        FRotator DefaultCamRotation = ReBornRotation;
+        DefaultCamRotation.Pitch = 0.0f;
+        DefaultCamRotation.Roll = 0.0f;
+        CameraComponent->ResetCameraTransform(DefaultCamRotation);
+    }
+
     PlayerRebornData.IfWaitInput = IfWaitInput;
     PlayerRebornData.ReBornPosition = ReBornPosition;
     PlayerRebornData.ReBornRotation = ReBornRotation;
+
     UStateMachineManager* StateMachineManager = UStateMachineManager::GetStateMachineManager();
     if (StateMachineManager)
     {
         StateMachine->InitializeWithState(UOldManRebornState::StaticClass(), this);
     }
 
-    OldManController->SetShowMouseCursor(bShowMouseCursor);
+    if (OldManController)
+    {
+        OldManController->SetShowMouseCursor(bShowMouseCursor);
+    }
 }
 
 bool AOldManCharacter::IsAlive()

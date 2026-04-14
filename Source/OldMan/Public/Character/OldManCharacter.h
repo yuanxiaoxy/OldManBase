@@ -457,7 +457,7 @@ public:
 #pragma region Character Param
 public:
     UFUNCTION()
-    void OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition, FRotator ReBornRotation);
+    void OnPlayerRespawn(bool IfWaitInput, FVector ReBornPosition, FRotator ReBornRotation, bool ReSetCameraPos);
 
     virtual bool IsAlive() override;
 

@@ -57,6 +57,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
     void ShootInk(FVector2D pos, APlayerController* PC);
 
+    UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
+    void ShootMultiInk(FVector2D topPos, APlayerController* PC, int32 Count = 6, float SpawnInterval = 0.06f, float StepY = 0.08f);
+
     // 清理所有ApproachEnemy
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
     void ClearAllApproachEnemies();
@@ -121,6 +124,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     TArray<UTexture2D*> InkTextures;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    FActiveInk MultiInkSettings;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    TArray<UTexture2D*> MultiInkTextures;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     float FlashDistance = -1.0f;

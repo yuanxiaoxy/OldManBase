@@ -34,6 +34,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
 	EGridState CurrentGridState = EGridState::Safe;
+
 	
 
 private:

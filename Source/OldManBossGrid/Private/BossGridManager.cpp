@@ -77,10 +77,44 @@ void ABossGridManager::GenerateMap()
 
 
 
-void ABossGridManager::RandomSetMap()
+void ABossGridManager::RandomSetMap(
+	FIntPoint start1 = FIntPoint::NoneValue,
+	FIntPoint start2 = FIntPoint::NoneValue,
+	FIntPoint start3 = FIntPoint::NoneValue,
+	FIntPoint start4 = FIntPoint::NoneValue,
+	FIntPoint end = FIntPoint::NoneValue
+)
 {
-	//AllSetSafe();
+	TSet<FIntPoint> StartEndPoints;
+
+	// 只添加不是空值的有效点
+	if (start1 != FIntPoint::NoneValue)
+	{
+		ABossGrid* Grid = m_Grids[start1.X][start1.Y];
+		StartEndPoints.Add(start1);
+	}
+	if (start2 != FIntPoint::NoneValue)
+	{
+		ABossGrid* Grid = m_Grids[start2.X][start2.Y];
+		StartEndPoints.Add(start2);
+	}
+	if (start3 != FIntPoint::NoneValue)
+	{
+		ABossGrid* Grid = m_Grids[start3.X][start3.Y];
+		StartEndPoints.Add(start3);
+	}
+	if (start4 != FIntPoint::NoneValue)
+	{
+		ABossGrid* Grid = m_Grids[start4.X][start4.Y];
+		StartEndPoints.Add(start4);
+	}
+	if (end != FIntPoint::NoneValue)
+	{
+		ABossGrid* Grid = m_Grids[end.X][end.Y];
+		StartEndPoints.Add(end);
+	}
 	
+
 	m_bHasSafeInRange = false;
 	FIntPoint PlayerGridIndex = GetPlayerGridIndex();
 	int32 PlayerGridX = PlayerGridIndex.X;

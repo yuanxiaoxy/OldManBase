@@ -72,7 +72,13 @@ public:
 	/// 随机设置地块状态，保证玩家在跳跃范围内至少有一个安全格子
 	/// </summary>
 	UFUNCTION(BlueprintCallable, Category = "BossGridManager")
-	void RandomSetMap();
+	void RandomSetMap(
+		FIntPoint start1 = FIntPoint::NoneValue,
+		FIntPoint start2 = FIntPoint::NoneValue,
+		FIntPoint start3 = FIntPoint::NoneValue,
+		FIntPoint start4 = FIntPoint::NoneValue,
+		FIntPoint end = FIntPoint::NoneValue
+		);
 		
 	/// <summary>
 	/// 设置所有格子为安全状态（用于玩家死亡后重置地图）

@@ -222,6 +222,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|slope")
     float DoubleJumpForceInSlope = 600.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|slope")
+    float CheckFrequency = 0.1f;
+
     //缆绳属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Cable")
     float MoveSpeedInCable = 1500.0f;

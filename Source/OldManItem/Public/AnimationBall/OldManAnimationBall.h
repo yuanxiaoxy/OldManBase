@@ -99,7 +99,7 @@ private:
 	UFUNCTION()
 	void PlayAniInScene();
 	UFUNCTION()
-	void PlayAniInUI();	
+	void PlayAniInUI();
 	UFUNCTION()
 	void ChooseType();
 	void PlayText();

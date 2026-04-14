@@ -39,7 +39,7 @@ void AOldManAnimationBall::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体上的材质"));
 		}
 		//失活场景物体
-		if (!PlayWall->IsHidden())
+		if (PlayWall && !PlayWall->IsHidden())
 		{
 			PlayWall->SetActorHiddenInGame(true);
 			PlayWall->SetActorEnableCollision(false);
@@ -47,12 +47,18 @@ void AOldManAnimationBall::BeginPlay()
 		}
 	}
 	//清空纹理
-	
+	MediaPlayer->Close();
 	//MediaPlayer->OpenSource(FileMediaSource);
 }
 
 void AOldManAnimationBall::PlayVideoInUI()
 {
+	if (MediaPlayer->IsPlaying())
+	{
+		MediaPlayer->Pause();
+		MediaPlayer->Close();
+	}
+
 	if (Disposable)
 	{
 		//判断是否为一次性
@@ -210,6 +216,26 @@ void AOldManAnimationBall::BeforePreparation()
 	{
 
 	}
+	//创建音频播放组件
+	UMediaSoundComponent* DynamicMediaSoundComponent = NewObject<UMediaSoundComponent>(this, UMediaSoundComponent::StaticClass());
+	if (DynamicMediaSoundComponent)
+	{
+		// 注册组件，使其能被 Tick 并参与渲染
+		DynamicMediaSoundComponent->RegisterComponent();
+
+		// 1. 设置位置：将其附加到根组件[reference:2]
+		DynamicMediaSoundComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+		// 2. （可选）手动设置相对位置
+		// DynamicMediaSoundComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f));
+
+		// 3. 关联 MediaPlayer（可选）
+		// DynamicMediaSoundComponent->SetMediaPlayer(MyMediaPlayer);
+
+		// 4. 将组件添加到 Actor 的组件列表，便于管理和查询
+		AddInstanceComponent(DynamicMediaSoundComponent);
+		DynamicMediaSoundComponent->SetMediaPlayer(MediaPlayer);
+	}
 }
 
 void AOldManAnimationBall::Print(FString text)
@@ -224,7 +250,11 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) > -1)
 	{
-
+		if (MediaPlayer->IsPlaying())
+		{
+			MediaPlayer->Pause();
+			MediaPlayer->Close();
+		}
 		if (Disposable)
 		{
 			//判断是否为一次性

@@ -20,6 +20,7 @@ public class OldManItem : ModuleRules
             "InputCore",
             "MediaAssets",
             "MediaUtils",
+            "UMG",
             "XyFrame"
         });
 

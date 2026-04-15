@@ -15,6 +15,11 @@ AXyPlayerControllerBase::AXyPlayerControllerBase()
     CachedXyCharacter = nullptr;
     bCachedCharacterValid = false;
     LastHardwareDeviceType = EHardwareDevicePrimaryType::Unspecified;
+
+    // 初始化缓存
+    CachedInputMode = EUIInputMode::GameOnly;
+    CachedFocusWidget = nullptr;
+    bCachedShowMouse = false;
 }
 
 void AXyPlayerControllerBase::BeginPlay()
@@ -132,8 +137,27 @@ void AXyPlayerControllerBase::HandleCharacterDeath()
     SetInputEnabled(false);
 }
 
+// ========== 修改：SetUIInputMode 增加缓存检查 ==========
 void AXyPlayerControllerBase::SetUIInputMode(EUIInputMode NewMode, UUserWidget* FocusWidget, bool bShowMouse, bool bEnablePawnInput)
 {
+    // 检查是否需要更新：模式相同、焦点相同、鼠标显示相同
+    bool bSameMode = (NewMode == CachedInputMode);
+    bool bSameFocus = (FocusWidget == CachedFocusWidget.Get());
+    bool bSameMouse = (bShowMouse == bCachedShowMouse);
+
+    if (bSameMode && bSameFocus && bSameMouse)
+    {
+        // 完全一致，无需任何操作
+        UE_LOG(LogTemp, Verbose, TEXT("SetUIInputMode - No change, skipping."));
+        return;
+    }
+
+    // 更新缓存
+    CachedInputMode = NewMode;
+    CachedFocusWidget = FocusWidget;
+    bCachedShowMouse = bShowMouse;
+
+    // 执行实际的输入模式切换
     switch (NewMode)
     {
     case EUIInputMode::GameOnly:

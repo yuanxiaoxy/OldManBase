@@ -13,6 +13,9 @@ UUIManager* TSingleton<UUIManager>::SingletonInstance = nullptr;
 
 UUIManager::UUIManager()
     : bIsShuttingDown(false)
+    , CurrentAppliedInputMode(EUIInputMode::GameOnly)
+    , CurrentAppliedFocusWidget(nullptr)
+    , bCurrentAppliedShowMouse(false)
 {
     WorldContext = nullptr;
     UIConfigData = nullptr;
@@ -697,76 +700,115 @@ void UUIManager::DeactivatePreviousUIInput()
 
 void UUIManager::ActivateTopUIInput()
 {
-    for (int32 i = UIStack.Num() - 1; i >= 0; --i)
-    {
-        FUILayerNode& Node = UIStack[i];
-        if (Node.Widget && Node.Widget->IsVisible() && Node.bModifyInput)
-        {
-            UUIBase* TopUIBase = Cast<UUIBase>(Node.Widget);
-            if (TopUIBase && TopUIBase->GetInputMode() != EUIInputMode::GameOnly)
-            {
-                TopUIBase->ActivateInput();
-                CurrentInputActiveUI = TopUIBase;
-                return;
-            }
-        }
-    }
+    // 此函数已废弃，仅保留空实现或调用 HandleStackChange
+    HandleStackChange();
 }
 
+// ========== 核心修改：HandleStackChange ==========
 void UUIManager::HandleStackChange()
 {
     if (bIsShuttingDown) return;
 
-    // 找到顶层可见且允许修改输入的 UI
-    UUIBase* NewTopUI = nullptr;
+    APlayerController* PC = GetPlayerController();
+    AXyPlayerControllerBase* XyPC = Cast<AXyPlayerControllerBase>(PC);
+    if (!XyPC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUIManager::HandleStackChange - PlayerController is not of type AXyPlayerControllerBase"));
+        return;
+    }
+
+    // 1. 寻找需要激活的顶层 UI（bModifyInput=true, 可见, 且 InputMode != GameOnly）
+    UUIBase* DesiredUI = nullptr;
     for (int32 i = UIStack.Num() - 1; i >= 0; --i)
     {
         FUILayerNode& Node = UIStack[i];
         if (Node.Widget && Node.Widget->IsVisible() && Node.bModifyInput)
         {
-            NewTopUI = Cast<UUIBase>(Node.Widget);
-            break;
+            UUIBase* Candidate = Cast<UUIBase>(Node.Widget);
+            if (Candidate && Candidate->GetInputMode() != EUIInputMode::GameOnly)
+            {
+                DesiredUI = Candidate;
+                break;
+            }
         }
     }
 
-    // 只有当找到了新的顶层 UI 且与当前激活的不同时，才切换输入状态
-    if (NewTopUI && NewTopUI != CurrentInputActiveUI.Get())
+    // 2. 计算期望的输入模式和焦点控件
+    EUIInputMode DesiredMode = EUIInputMode::GameOnly;
+    UUserWidget* DesiredFocus = nullptr;
+    bool bDesiredShowMouse = false;
+
+    if (DesiredUI)
     {
-        // 停用之前的输入（如果存在）
-        if (CurrentInputActiveUI.IsValid())
+        DesiredMode = DesiredUI->GetInputMode();
+        bDesiredShowMouse = DesiredUI->ShouldShowMouseCursor();
+        DesiredFocus = FindFirstFocusableWidget(DesiredUI);
+        if (!DesiredFocus) DesiredFocus = DesiredUI;
+    }
+
+    // 3. 检查是否需要切换（模式变化 或 焦点控件变化 或 鼠标显示状态变化）
+    bool bNeedSwitch = (DesiredMode != CurrentAppliedInputMode);
+    if (!bNeedSwitch && DesiredMode != EUIInputMode::GameOnly)
+    {
+        // 对于 UI 模式，若焦点控件或鼠标显示状态发生变化也需要更新
+        if (DesiredFocus != CurrentAppliedFocusWidget.Get() || bDesiredShowMouse != bCurrentAppliedShowMouse)
+            bNeedSwitch = true;
+    }
+    else if (!bNeedSwitch && DesiredMode == EUIInputMode::GameOnly)
+    {
+        // 游戏模式也可能需要更新鼠标显示（例如某些场景强制隐藏鼠标）
+        if (bDesiredShowMouse != bCurrentAppliedShowMouse)
+            bNeedSwitch = true;
+    }
+
+    if (!bNeedSwitch)
+    {
+        // 无需切换输入模式，但需要确保 UI 激活状态与 CurrentInputActiveUI 一致（同步状态）
+        if (DesiredUI && DesiredUI != CurrentInputActiveUI.Get())
+        {
+            if (CurrentInputActiveUI.IsValid())
+                CurrentInputActiveUI->DeactivateInput(true);
+            DesiredUI->ActivateInput();
+            CurrentInputActiveUI = DesiredUI;
+        }
+        else if (!DesiredUI && CurrentInputActiveUI.IsValid())
         {
             CurrentInputActiveUI->DeactivateInput(true);
             CurrentInputActiveUI = nullptr;
         }
-
-        APlayerController* PC = GetPlayerController();
-        AXyPlayerControllerBase* XyPC = Cast<AXyPlayerControllerBase>(PC);
-        if (!XyPC)
-        {
-            UE_LOG(LogTemp, Error, TEXT("UUIManager::HandleStackChange - PlayerController is not of type AXyPlayerControllerBase"));
-            return;
-        }
-
-        EUIInputMode TopUIMode = NewTopUI->GetInputMode();
-        bool bShowMouse = NewTopUI->ShouldShowMouseCursor();
-        NewTopUI->ActivateInput();
-        CurrentInputActiveUI = NewTopUI;
-
-        UUserWidget* FocusWidget = FindFirstFocusableWidget(NewTopUI);
-        if (!FocusWidget) FocusWidget = NewTopUI;
-
-        XyPC->SetUIInputMode(TopUIMode, FocusWidget, bShowMouse, true);
-        if (FocusWidget) FocusWidget->SetFocus();
-
-        UE_LOG(LogTemp, Log, TEXT("HandleStackChange - Activated UI: %s, Mode: %s"),
-            *NewTopUI->GetName(), *UEnum::GetValueAsString(TopUIMode));
+        return;
     }
-    else if (!NewTopUI)
+
+    // 4. 执行切换：停用旧的 UI 输入，激活新的 UI 输入
+    if (CurrentInputActiveUI.IsValid())
     {
-        // 没有 bModifyInput=true 的可见 UI，不改变当前输入状态
-        UE_LOG(LogTemp, Log, TEXT("HandleStackChange - No visible UI with bModifyInput=true, keeping current input mode."));
+        CurrentInputActiveUI->DeactivateInput(true);
+        CurrentInputActiveUI = nullptr;
     }
-    // 如果 NewTopUI 存在但等于 CurrentInputActiveUI，无需操作
+
+    if (DesiredUI)
+    {
+        DesiredUI->ActivateInput();
+        CurrentInputActiveUI = DesiredUI;
+    }
+
+    // 5. 调用 PlayerController 设置输入模式（仅当真正需要切换时）
+    XyPC->SetUIInputMode(DesiredMode, DesiredFocus, bDesiredShowMouse, true);
+
+    // 6. 设置焦点（如果焦点控件有效且不是游戏模式）
+    if (DesiredFocus && DesiredMode != EUIInputMode::GameOnly)
+    {
+        DesiredFocus->SetFocus();
+    }
+
+    // 7. 更新缓存
+    CurrentAppliedInputMode = DesiredMode;
+    CurrentAppliedFocusWidget = DesiredFocus;
+    bCurrentAppliedShowMouse = bDesiredShowMouse;
+
+    UE_LOG(LogTemp, Log, TEXT("HandleStackChange - Switched to Mode: %s, UI: %s"),
+        *UEnum::GetValueAsString(DesiredMode),
+        DesiredUI ? *DesiredUI->GetName() : TEXT("None"));
 }
 
 // ========== 查询方法 ==========

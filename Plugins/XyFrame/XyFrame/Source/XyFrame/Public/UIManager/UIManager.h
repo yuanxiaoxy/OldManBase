@@ -260,6 +260,11 @@ private:
     // 关闭标志，用于析构时跳过清理操作
     bool bIsShuttingDown;
 
+    // ========== 输入状态缓存（新增） ==========
+    EUIInputMode CurrentAppliedInputMode;
+    TWeakObjectPtr<UUserWidget> CurrentAppliedFocusWidget;
+    bool bCurrentAppliedShowMouse;
+
     // ========== 私有核心方法 ==========
 
     // 显示/隐藏/关闭的内部实现（不触发公共事件，仅操作UI和栈）

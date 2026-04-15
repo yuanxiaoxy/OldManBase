@@ -86,4 +86,9 @@ private:
     mutable class AXyCharacterBase* CachedXyCharacter;
     mutable bool bCachedCharacterValid;
     EHardwareDevicePrimaryType LastHardwareDeviceType;
+
+    // ========== 输入状态缓存（新增） ==========
+    EUIInputMode CachedInputMode;
+    TWeakObjectPtr<UUserWidget> CachedFocusWidget;
+    bool bCachedShowMouse;
 };

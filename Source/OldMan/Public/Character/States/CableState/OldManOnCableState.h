@@ -101,4 +101,7 @@ protected:
 
     /** Sets up transition rules for this state */
     virtual void SetupTransitionRules() override;
+
+    /** 自动计算在当前电缆上的移动方向 */
+    void AutoDetermineCableDirection();
 };

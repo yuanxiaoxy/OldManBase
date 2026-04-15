@@ -7,7 +7,6 @@ void UOldManOnCableHorizontalJumpState::Enter()
 {
     Super::Enter();
 
-    // Disable gravity and enable custom movement
     UCharacterMovementComponent* Movement = GetCharacterMovement();
     if (Movement)
     {
@@ -20,10 +19,12 @@ void UOldManOnCableHorizontalJumpState::Enter()
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
-        // Play the horizontal jump animation
-        Character->PlayOnCableHoriaontalJumpAnimation(Character->IsLeftCable);
-        Character->SetCurrentCable(Character->NextCable);
+        // 继承当前滑索的移动方向
+        bool bTargetMoveForward = Character->GetCableMoveDirectionSign() > 0;
+        Character->SetCurrentCableWithDirection(Character->NextCable, bTargetMoveForward);
         CurrentCable = Character->NextCable;
+
+        Character->PlayOnCableHoriaontalJumpAnimation(Character->IsLeftCable);
 
         JumpStartPosition = Character->GetActorLocation();
 
@@ -36,13 +37,9 @@ void UOldManOnCableHorizontalJumpState::Enter()
         }
 
         if (Character->IsLeftCable)
-        {
             SetPlayerCurMoveState(EPlayerBaseMoveState::LeftHorizontalJump);
-        }
         else
-        {
             SetPlayerCurMoveState(EPlayerBaseMoveState::RightHorizontalJump);
-        }
     }
 }
 

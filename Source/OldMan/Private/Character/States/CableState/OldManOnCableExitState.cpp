@@ -41,16 +41,14 @@ void UOldManOnCableExitState::LaunchCharacterAtCableEnd()
     UCharacterMovementComponent* MovementComp = GetCharacterMovement();
     if (MovementComp)
     {
-        // Set movement mode to falling
         MovementComp->SetMovementMode(MOVE_Falling);
 
-        // Calculate launch velocity
-        FVector LaunchDirection = GetLaunchDirection();
+        // 获取发射方向：使用角色当前面朝方向（已根据移动方向正确设置）
+        FVector LaunchDirection = Character->GetActorForwardVector();
         float LaunchSpeed = Character->CharacterAttributes->MoveSpeedInCable *
             Character->CharacterAttributes->MoveSpeedMutiInEndCable;
         FVector LaunchVelocity = LaunchDirection * LaunchSpeed;
 
-        // Apply velocity
         MovementComp->Velocity = LaunchVelocity;
         Character->LaunchCharacter(LaunchVelocity, false, true);
 
@@ -60,6 +58,7 @@ void UOldManOnCableExitState::LaunchCharacterAtCableEnd()
 
 FVector UOldManOnCableExitState::GetLaunchDirection()
 {
+    // 此函数可能不再需要，但保留以防其他地方调用
     AOldManCharacter* Character = GetOldManCharacter();
     return Character ? Character->GetActorForwardVector() : FVector::ForwardVector;
 }

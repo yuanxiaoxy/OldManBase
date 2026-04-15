@@ -1,4 +1,4 @@
-﻿#include "AnimationBall/OldManAnimationBall.h"
+#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 #include "Components/Image.h"
@@ -184,7 +184,7 @@ void AOldManAnimationBall::PlayOver()
 	//若是UI物体，关闭UI
 	if (myType == E_AniBallType::playOnUI)
 	{
-		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel");
+		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel", false, true);
 	}
 	//停止播放
 	MediaPlayer->Close();

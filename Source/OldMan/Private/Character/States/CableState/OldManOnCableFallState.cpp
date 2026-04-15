@@ -136,11 +136,12 @@ void UOldManOnCableFallState::HandleCableInput(float DeltaTime)
 void UOldManOnCableFallState::OnCableDetectionBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     AOldManCableBase* Cable = Cast<AOldManCableBase>(OtherActor);
-    if (Cable && GetOldManCharacter())
-    {
-        // Optional: handle cable overlap if needed
-        UE_LOG(LogTemp, Verbose, TEXT("FallState: Overlap with cable %s"), *Cable->GetName());
-    }
+    AOldManCharacter* Character = GetOldManCharacter();
+    if (!Cable || !Character) return;
+
+    if (Character->CurrentCable == Cable) return;
+
+    Character->SetCurrentCable(Cable);
 }
 
 void UOldManOnCableFallState::OnCableDetectionEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)

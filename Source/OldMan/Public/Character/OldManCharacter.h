@@ -452,6 +452,19 @@ public:
     void SetCurrentCable(AOldManCableBase* newCable);
     UFUNCTION(BlueprintCallable, Category = "InterectItem")
     void SetNextCable(AOldManCableBase* newCable, bool left);
+
+public:
+    // ========== Cable Movement Direction ==========
+    /** 当前滑索移动方向：true=正向（从起点到终点），false=反向（从终点到起点） */
+    UPROPERTY(BlueprintReadOnly, Category = "Cable")
+    bool bCableMoveForward = true;
+
+    /** 设置当前电缆并指定移动方向（手动指定，跳过自动计算） */
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    void SetCurrentCableWithDirection(AOldManCableBase* newCable, bool bMoveForward);
+
+    /** 获取当前滑索移动方向符号（+1 正向，-1 反向） */
+    float GetCableMoveDirectionSign() const { return bCableMoveForward ? 1.0f : -1.0f; }
 #pragma endregion
 
 #pragma region Character Param

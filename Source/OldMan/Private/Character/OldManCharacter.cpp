@@ -1081,29 +1081,48 @@ void AOldManCharacter::InterectCurOldManInterectItem(FOldManItemInteractData int
     }
 }
 
+void AOldManCharacter::SetNextCable(AOldManCableBase* newCable, bool left)
+{
+    NextCable = newCable;
+    IsLeftCable = left;
+}
+
 void AOldManCharacter::SetCurrentCable(AOldManCableBase* newCable)
 {
     if (newCable == CurrentCable)
-    {
         return;
-    }
 
     if (newCable == nullptr)
     {
         bHasCable = false;
         CurrentCable = nullptr;
+        bCableMoveForward = true;
     }
     else
     {
         bHasCable = true;
         CurrentCable = newCable;
+        // 不设置 bCableMoveForward，由后续自动计算决定
     }
 }
 
-void AOldManCharacter::SetNextCable(AOldManCableBase* newCable, bool left)
+void AOldManCharacter::SetCurrentCableWithDirection(AOldManCableBase* newCable, bool bMoveForward)
 {
-    NextCable = newCable;
-    IsLeftCable = left;
+    if (newCable == CurrentCable && bCableMoveForward == bMoveForward)
+        return;
+
+    if (newCable == nullptr)
+    {
+        bHasCable = false;
+        CurrentCable = nullptr;
+        bCableMoveForward = true;
+    }
+    else
+    {
+        bHasCable = true;
+        CurrentCable = newCable;
+        bCableMoveForward = bMoveForward;
+    }
 }
 #pragma endregion
 

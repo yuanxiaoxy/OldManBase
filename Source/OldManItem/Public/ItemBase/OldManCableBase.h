@@ -29,7 +29,6 @@ protected:
     virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
-    // Cable Components
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cable")
     class USceneComponent* RootSceneComponent;
 
@@ -39,14 +38,12 @@ public:
     UPROPERTY()
     TArray<class USplineMeshComponent*> SplineMeshComponents;
 
-    // Cable Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
     float CableRadius = 50.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
     float EndDetectionDistance = 100.0f;
 
-    // Visual Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Visual")
     class UStaticMesh* CableMesh;
 
@@ -71,11 +68,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Visual")
     float TangentScale = 1.0f;
 
-    // Movement Direction
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Movement")
-    bool bReverseMovementDirection = false;
+    // bReverseMovementDirection 已完全删除
 
-    // Collision Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Collision")
     FName CollisionProfileName = TEXT("BlockAll");
 
@@ -83,7 +77,6 @@ public:
     bool bGenerateOverlapEvents = false;
 
 public:
-    // Cable Navigation API
     UFUNCTION(BlueprintCallable, Category = "Cable")
     FVector GetStartLocation() const;
 
@@ -114,7 +107,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Cable")
     FVector MoveAlongCable(const FVector& CurrentPosition, float Distance) const;
 
-    // Cable Visualization
     UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
     void GenerateCableMesh();
 
@@ -124,14 +116,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
     void UpdateCableVisualization();
 
-    // Cable Collision
     UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
     void UpdateCableCollision();
 
     UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
     void SetCollisionEnabled(bool bEnable);
 
-    // Helper Functions
     UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
     FVector GetForwardAxisVector() const;
 

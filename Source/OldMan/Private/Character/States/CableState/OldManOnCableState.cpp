@@ -19,8 +19,10 @@ void UOldManOnCableState::Enter()
     DetectionLength = Character->CharacterAttributes->HorizontalJumpLength;
     DetectionHeight = Character->CharacterAttributes->HorizontalJumpHeight;
 
-    // Reset state variables
     CurrentCableDistance = 0.0f;
+
+    // 自动计算移动方向
+    AutoDetermineCableDirection();
 }
 
 void UOldManOnCableState::Update(float DeltaTime)
@@ -213,13 +215,20 @@ void UOldManOnCableState::AlignCharacterWithCable(const FVector& WorldPosition)
     AOldManCharacter* Character = GetOldManCharacter();
     if (!Character || !CurrentCable) return;
 
-    // Get full transform of the cable at the current position
+    // 获取电缆在该位置的原始变换（切线指向终点）
     FTransform CableTransform = CurrentCable->GetTransformAtPosition(WorldPosition);
-
-    // Get cable rotation
     FRotator CableRotation = CableTransform.Rotator();
 
-    // Set character rotation to align with cable
+    // 如果移动方向是反向，则翻转角色的前向方向（绕上轴旋转180度）
+    if (!Character->bCableMoveForward)
+    {
+        // 翻转Yaw角180度，使得角色面向电缆切线反方向
+        CableRotation.Yaw += 180.0f;
+        // 可选：同时翻转Pitch和Roll以保持正确姿态（根据你的需求决定是否启用）
+        // CableRotation.Pitch = -CableRotation.Pitch;
+        // CableRotation.Roll = -CableRotation.Roll;
+    }
+
     Character->SetActorRotation(CableRotation);
 }
 
@@ -294,4 +303,40 @@ void UOldManOnCableState::ApplyCableGravity(float DeltaTime)
             5.0f
         );
     }
+}
+
+void UOldManOnCableState::AutoDetermineCableDirection()
+{
+    AOldManCharacter* Character = GetOldManCharacter();
+    if (!Character || !CurrentCable) return;
+
+    // 获取角色在电缆上的最近点
+    FVector NearestPoint = CurrentCable->FindNearestPosition(Character->GetActorLocation());
+    // 电缆在该点的切线方向（从起点指向终点）
+    FVector CableDir = CurrentCable->GetDirectionAtPosition(NearestPoint);
+    CableDir.Normalize();
+
+    // 决定移动方向的参考向量：优先使用移动输入方向，如果没有输入则使用角色面朝方向
+    FVector ReferenceDir = Character->GetActorForwardVector(); // 默认面朝方向
+    if (Character->HasMovementInput())
+    {
+        // 使用世界空间下的移动输入方向（已由相机旋转转换）
+        FVector InputDir = Character->GetMovementDirectionFromCamera();
+        if (!InputDir.IsNearlyZero())
+        {
+            ReferenceDir = InputDir;
+        }
+    }
+
+    // 计算参考方向与电缆切线的点积
+    float Dot = FVector::DotProduct(ReferenceDir, CableDir);
+
+    // 如果点积为正，则向电缆终点方向移动（正向）；否则向起点方向移动（反向）
+    bool bMoveForward = (Dot >= 0.0f);
+
+    // 设置移动方向
+    Character->bCableMoveForward = bMoveForward;
+
+    UE_LOG(LogTemp, Log, TEXT("AutoDetermineCableDirection: ReferenceDir=%s, CableDir=%s, Dot=%.2f, MoveForward=%d"),
+        *ReferenceDir.ToString(), *CableDir.ToString(), Dot, bMoveForward);
 }

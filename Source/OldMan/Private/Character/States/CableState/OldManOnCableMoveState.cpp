@@ -48,10 +48,12 @@ void UOldManOnCableMoveState::SetupTransitionRules()
 {
     Super::SetupTransitionRules();
 
-    // Override base transitions
     ADD_LAMBDA_TRANSITION(UOldManOnCableExitState, [this]() {
         AOldManCharacter* Character = GetOldManCharacter();
-        return CurrentCableDistance >= Character->CurrentCable->GetCableLength();
+        if (!Character || !Character->CurrentCable) return false;
+        float CableLength = Character->CurrentCable->GetCableLength();
+        const float Epsilon = 1.0f; // 容差，确保反向时也能触发
+        return CurrentCableDistance <= Epsilon || CurrentCableDistance >= CableLength - Epsilon;
         }, "NoCable");
 
     ADD_LAMBDA_TRANSITION(UOldManOnCableJumpState, [this]() {
@@ -82,22 +84,15 @@ void UOldManOnCableMoveState::UpdateCableMovement(float DeltaTime)
     AOldManCharacter* Character = GetOldManCharacter();
     if (!Character || !Character->CurrentCable) return;
 
-    // Use a fixed speed value, not based on cable length
     float MoveSpeed = Character->CharacterAttributes->MoveSpeedInCable;
+    float Direction = Character->GetCableMoveDirectionSign();
 
-    // Update distance along the cable
-    CurrentCableDistance += MoveSpeed * DeltaTime;
+    CurrentCableDistance += MoveSpeed * Direction * DeltaTime;
+    CurrentCableDistance = FMath::Clamp(CurrentCableDistance, 0.0f, Character->CurrentCable->GetCableLength());
 
-    // Get position along the cable (automatically handles spline curve)
     FVector NewPosition = Character->CurrentCable->GetPositionAtDistance(CurrentCableDistance);
-
-    // Calculate position adjusted for capsule radius
     FVector AdjustedPosition = CalculateCharacterPositionOnCable(NewPosition);
-
-    // Update character location
     Character->SetActorLocation(AdjustedPosition);
-
-    // Align character rotation with cable tangent
     AlignCharacterWithCable(NewPosition);
 }
 

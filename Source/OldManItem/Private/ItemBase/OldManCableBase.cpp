@@ -6,7 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
-#include "TimerManager.h"   // 用于延迟碰撞更新
+#include "TimerManager.h"
 
 AOldManCableBase::AOldManCableBase()
 {
@@ -18,19 +18,16 @@ AOldManCableBase::AOldManCableBase()
     CableSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("CableSpline"));
     CableSplineComponent->SetupAttachment(RootComponent);
 
-    // 初始化两个点
     CableSplineComponent->AddSplinePoint(FVector(0, 0, 0), ESplineCoordinateSpace::Local);
     CableSplineComponent->AddSplinePoint(FVector(500, 0, 0), ESplineCoordinateSpace::Local);
     CableSplineComponent->SetSplinePointType(0, ESplinePointType::Linear);
     CableSplineComponent->SetSplinePointType(1, ESplinePointType::Linear);
 
-    // 默认值
     CableScale = FVector2D(0.1f, 0.1f);
     SegmentLength = 100.0f;
     bEnableCollision = true;
     bShowInEditor = true;
     TangentScale = 1.0f;
-    bReverseMovementDirection = false;
     CollisionProfileName = TEXT("BlockAll");
     bGenerateOverlapEvents = false;
 }
@@ -40,7 +37,6 @@ void AOldManCableBase::BeginPlay()
     Super::BeginPlay();
     GenerateCableMesh();
 
-    // 延迟一帧更新碰撞，确保所有 SplineMeshComponent 完全注册
     FTimerHandle TimerHandle;
     GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
         {
@@ -57,32 +53,17 @@ void AOldManCableBase::OnConstruction(const FTransform& Transform)
     }
 }
 
-// ============ Cable Navigation API ============
+// ============ Cable Navigation API（全部移除方向翻转） ============
 
 FVector AOldManCableBase::GetStartLocation() const
 {
-    if (bReverseMovementDirection)
-    {
-        int32 LastPointIndex = CableSplineComponent->GetNumberOfSplinePoints() - 1;
-        return CableSplineComponent->GetLocationAtSplinePoint(LastPointIndex, ESplineCoordinateSpace::World);
-    }
-    else
-    {
-        return CableSplineComponent->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World);
-    }
+    return CableSplineComponent->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World);
 }
 
 FVector AOldManCableBase::GetEndLocation() const
 {
-    if (bReverseMovementDirection)
-    {
-        return CableSplineComponent->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World);
-    }
-    else
-    {
-        int32 LastPointIndex = CableSplineComponent->GetNumberOfSplinePoints() - 1;
-        return CableSplineComponent->GetLocationAtSplinePoint(LastPointIndex, ESplineCoordinateSpace::World);
-    }
+    int32 LastPointIndex = CableSplineComponent->GetNumberOfSplinePoints() - 1;
+    return CableSplineComponent->GetLocationAtSplinePoint(LastPointIndex, ESplineCoordinateSpace::World);
 }
 
 float AOldManCableBase::GetCableLength() const
@@ -125,34 +106,20 @@ bool AOldManCableBase::IsAtEndOfCable(const FVector& WorldPosition) const
 FVector AOldManCableBase::GetDirectionAtPosition(const FVector& WorldPosition) const
 {
     float NearestDistance = FindNearestDistanceAlongSpline(WorldPosition);
-    FVector Direction;
-    if (bReverseMovementDirection)
-    {
-        float AdjustedDistance = GetCableLength() - NearestDistance;
-        Direction = CableSplineComponent->GetDirectionAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
-        Direction = -Direction;
-    }
-    else
-    {
-        Direction = CableSplineComponent->GetDirectionAtDistanceAlongSpline(NearestDistance, ESplineCoordinateSpace::World);
-    }
-    return Direction;
+    return CableSplineComponent->GetDirectionAtDistanceAlongSpline(NearestDistance, ESplineCoordinateSpace::World);
 }
 
 FVector AOldManCableBase::GetTangentAtPosition(const FVector& WorldPosition) const
 {
     float NearestDistance = FindNearestDistanceAlongSpline(WorldPosition);
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - NearestDistance) : NearestDistance;
-    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World) * TangentScale;
-    if (bReverseMovementDirection) Tangent = -Tangent;
+    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(NearestDistance, ESplineCoordinateSpace::World) * TangentScale;
     return Tangent;
 }
 
 FVector AOldManCableBase::MoveAlongCable(const FVector& CurrentPosition, float Distance) const
 {
     float CurrentDistance = FindNearestDistanceAlongSpline(CurrentPosition);
-    float AdjustedDistance = bReverseMovementDirection ? -Distance : Distance;
-    float NewDistance = FMath::Clamp(CurrentDistance + AdjustedDistance, 0.0f, GetCableLength());
+    float NewDistance = FMath::Clamp(CurrentDistance + Distance, 0.0f, GetCableLength());
     return GetPositionAtDistance(NewDistance);
 }
 
@@ -211,7 +178,6 @@ void AOldManCableBase::GenerateCableMesh()
             SplineMeshComponent->SetEndPosition(EndPos);
             SplineMeshComponent->SetEndTangent(EndTangent);
 
-            // 设置前向轴
             ESplineMeshAxis::Type ForwardAxis = ESplineMeshAxis::X;
             switch (CableForwardAxis)
             {
@@ -234,7 +200,6 @@ void AOldManCableBase::GenerateCableMesh()
             SplineMeshComponent->SetStartScale(CableScale);
             SplineMeshComponent->SetEndScale(CableScale);
 
-            // 临时设置碰撞（正式设置在 UpdateCableCollision 中）
             if (bEnableCollision)
             {
                 SplineMeshComponent->SetCollisionProfileName(CollisionProfileName);
@@ -284,7 +249,6 @@ void AOldManCableBase::UpdateCableCollision()
                 Comp->SetCollisionProfileName(CollisionProfileName);
             else
             {
-                // 手动设置所有通道为阻挡，但排除视线和相机通道（性能优化）
                 Comp->SetCollisionResponseToAllChannels(ECR_Block);
                 Comp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
                 Comp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
@@ -292,7 +256,7 @@ void AOldManCableBase::UpdateCableCollision()
             Comp->SetCollisionObjectType(ECC_WorldDynamic);
             Comp->SetGenerateOverlapEvents(bGenerateOverlapEvents);
             Comp->SetNotifyRigidBodyCollision(true);
-            Comp->RecreatePhysicsState();  // 强制刷新物理状态
+            Comp->RecreatePhysicsState();
         }
         else
         {
@@ -313,22 +277,17 @@ void AOldManCableBase::SetCollisionEnabled(bool bEnable)
 float AOldManCableBase::FindNearestDistanceAlongSpline(const FVector& WorldPosition) const
 {
     float InputKey = CableSplineComponent->FindInputKeyClosestToWorldLocation(WorldPosition);
-    float Distance = CableSplineComponent->GetDistanceAlongSplineAtSplineInputKey(InputKey);
-    if (bReverseMovementDirection) Distance = GetCableLength() - Distance;
-    return Distance;
+    return CableSplineComponent->GetDistanceAlongSplineAtSplineInputKey(InputKey);
 }
 
 FVector AOldManCableBase::GetPositionAtDistance(float Distance) const
 {
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - Distance) : Distance;
-    return CableSplineComponent->GetLocationAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
+    return CableSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 }
 
 FVector AOldManCableBase::GetTangentAtDistance(float Distance) const
 {
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - Distance) : Distance;
-    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World) * TangentScale;
-    if (bReverseMovementDirection) Tangent = -Tangent;
+    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World) * TangentScale;
     return Tangent;
 }
 
@@ -340,8 +299,7 @@ FVector AOldManCableBase::GetUpVectorAtPosition(const FVector& WorldPosition) co
 
 FVector AOldManCableBase::GetUpVectorAtDistance(float Distance) const
 {
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - Distance) : Distance;
-    return CableSplineComponent->GetUpVectorAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
+    return CableSplineComponent->GetUpVectorAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 }
 
 FVector AOldManCableBase::GetRightVectorAtPosition(const FVector& WorldPosition) const
@@ -352,29 +310,21 @@ FVector AOldManCableBase::GetRightVectorAtPosition(const FVector& WorldPosition)
 
 FVector AOldManCableBase::GetRightVectorAtDistance(float Distance) const
 {
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - Distance) : Distance;
-    return CableSplineComponent->GetRightVectorAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
+    return CableSplineComponent->GetRightVectorAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 }
 
 FTransform AOldManCableBase::GetTransformAtPosition(const FVector& WorldPosition) const
 {
     float Distance = FindNearestDistanceAlongSpline(WorldPosition);
-    float AdjustedDistance = bReverseMovementDirection ? (GetCableLength() - Distance) : Distance;
-    FVector Location = CableSplineComponent->GetLocationAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
-    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
-    FVector UpVector = CableSplineComponent->GetUpVectorAtDistanceAlongSpline(AdjustedDistance, ESplineCoordinateSpace::World);
+    FVector Location = CableSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+    FVector Tangent = CableSplineComponent->GetTangentAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+    FVector UpVector = CableSplineComponent->GetUpVectorAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
     Tangent.Normalize();
     UpVector.Normalize();
     FVector RightVector = FVector::CrossProduct(UpVector, Tangent).GetSafeNormal();
     FVector RealUpVector = FVector::CrossProduct(Tangent, RightVector).GetSafeNormal();
     FMatrix RotationMatrix(Tangent, RightVector, RealUpVector, FVector::ZeroVector);
     FRotator Rotation = RotationMatrix.Rotator();
-    if (bReverseMovementDirection)
-    {
-        Rotation.Yaw += 180.0f;
-        Rotation.Pitch = -Rotation.Pitch;
-        Rotation.Roll = -Rotation.Roll;
-    }
     return FTransform(Rotation, Location);
 }
 
@@ -416,7 +366,6 @@ void AOldManCableBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
         PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, bEnableCollision) ||
         PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, bShowInEditor) ||
         PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, TangentScale) ||
-        PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, bReverseMovementDirection) ||
         PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, CollisionProfileName) ||
         PropertyName == GET_MEMBER_NAME_CHECKED(AOldManCableBase, bGenerateOverlapEvents) ||
         PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, SplineCurves))

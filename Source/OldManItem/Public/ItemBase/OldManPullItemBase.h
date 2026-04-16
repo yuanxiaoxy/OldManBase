@@ -27,8 +27,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void StartDragging();
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStartDragging();
+
 	UFUNCTION(BlueprintCallable)
 	virtual void StopDragging();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStopDragging();
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnBeChecked();

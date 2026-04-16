@@ -72,12 +72,15 @@ public:
 	/// 随机设置地块状态，保证玩家在跳跃范围内至少有一个安全格子
 	/// </summary>
 	UFUNCTION(BlueprintCallable, Category = "BossGridManager")
-	void RandomSetMap(
-		FIntPoint start1 = FIntPoint::NoneValue,
-		FIntPoint start2 = FIntPoint::NoneValue,
-		FIntPoint start3 = FIntPoint::NoneValue,
-		FIntPoint start4 = FIntPoint::NoneValue,
-		FIntPoint end = FIntPoint::NoneValue
+	void RandomSetMap();
+
+	UFUNCTION(BlueprintCallable, Category = "BossGridManager")
+	void RandomSetMapWithPoints(
+		FIntPoint start1,
+		FIntPoint start2,
+		FIntPoint start3,
+		FIntPoint start4,
+		FIntPoint end
 		);
 		
 	/// <summary>

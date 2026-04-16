@@ -77,40 +77,52 @@ void ABossGridManager::GenerateMap()
 
 
 
-void ABossGridManager::RandomSetMap(
-	FIntPoint start1 = FIntPoint::NoneValue,
-	FIntPoint start2 = FIntPoint::NoneValue,
-	FIntPoint start3 = FIntPoint::NoneValue,
-	FIntPoint start4 = FIntPoint::NoneValue,
-	FIntPoint end = FIntPoint::NoneValue
+void ABossGridManager::RandomSetMap()
+{
+	const FIntPoint NonePoint(-1, -1);
+	RandomSetMapWithPoints(NonePoint, NonePoint, NonePoint, NonePoint, NonePoint);
+}
+
+void ABossGridManager::RandomSetMapWithPoints(
+	FIntPoint start1,
+	FIntPoint start2,
+	FIntPoint start3,
+	FIntPoint start4,
+	FIntPoint end
 )
 {
+	const FIntPoint NonePoint(-1, -1);
 	TSet<FIntPoint> StartEndPoints;
 
 	// 只添加不是空值的有效点
-	if (start1 != FIntPoint::NoneValue)
+	if (start1 != NonePoint)
 	{
 		ABossGrid* Grid = m_Grids[start1.X][start1.Y];
+		Grid->SwitchToSafe();
 		StartEndPoints.Add(start1);
 	}
-	if (start2 != FIntPoint::NoneValue)
+	if (start2 != NonePoint)
 	{
 		ABossGrid* Grid = m_Grids[start2.X][start2.Y];
+		Grid->SwitchToSafe();
 		StartEndPoints.Add(start2);
 	}
-	if (start3 != FIntPoint::NoneValue)
+	if (start3 != NonePoint)
 	{
 		ABossGrid* Grid = m_Grids[start3.X][start3.Y];
+		Grid->SwitchToSafe();
 		StartEndPoints.Add(start3);
 	}
-	if (start4 != FIntPoint::NoneValue)
+	if (start4 != NonePoint)
 	{
 		ABossGrid* Grid = m_Grids[start4.X][start4.Y];
+		Grid->SwitchToSafe();
 		StartEndPoints.Add(start4);
 	}
-	if (end != FIntPoint::NoneValue)
+	if (end != NonePoint)
 	{
 		ABossGrid* Grid = m_Grids[end.X][end.Y];
+		Grid->SwitchToSafe();
 		StartEndPoints.Add(end);
 	}
 	

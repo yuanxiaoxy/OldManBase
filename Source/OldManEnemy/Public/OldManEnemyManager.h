@@ -10,8 +10,14 @@
 #include "SingletonBase/SingletonBase.h"
 #include "EnemyPatrolPoint.h"
 #include "FEnemyLocationInfo.h"
+#include "EShootInkType.h"
 #include "Containers/Map.h"
+
 #include "OldManEnemyManager.generated.h"
+
+DECLARE_DELEGATE_TwoParams(FApproachEnemyInkShootDelegate, FVector2D, APlayerController*);
+
+
 
 class  AEnemyPatrolPoint;
 class  AAdEnemyAIController;
@@ -59,6 +65,15 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
     void ShootMultiInk(FVector2D topPos, APlayerController* PC, int32 Count = 6, float SpawnInterval = 0.06f, float StepY = 0.08f);
+
+    UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
+    void ShootApproachEnemyInk(FVector2D pos, APlayerController* PC);
+
+    UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
+    void SetApproachEnemyInkMode(EApproachEnemyInkMode NewMode);
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EnemyManager/ApproachEnemy")
+    EApproachEnemyInkMode GetApproachEnemyInkMode() const { return ApproachEnemyInkMode; }
 
     // 清理所有ApproachEnemy
     UFUNCTION(BlueprintCallable, Category = "EnemyManager/ApproachEnemy")
@@ -132,6 +147,15 @@ public:
     TArray<UTexture2D*> MultiInkTextures;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    int32 ApproachEnemyMultiInkCount = 6;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    float ApproachEnemyMultiInkSpawnInterval = 0.06f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
+    float ApproachEnemyMultiInkStepY = 0.08f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
     float FlashDistance = -1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy")
@@ -160,6 +184,14 @@ public:
 
 
 private:
+    void ShootMultiInk_Default(FVector2D pos, APlayerController* PC);
+    void RefreshApproachEnemyInkDelegate();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EnemyManager/ApproachEnemy", meta = (AllowPrivateAccess = "true"))
+    EApproachEnemyInkMode ApproachEnemyInkMode = EApproachEnemyInkMode::Single;
+
+    FApproachEnemyInkShootDelegate ApproachEnemyInkDelegate;
+
     UObjectPoolManager* PoolManager;
 
     UOldManEnemyManager();

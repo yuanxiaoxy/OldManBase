@@ -30,6 +30,8 @@ void UOldManEnemyManager::InitializeSingleton()
     PoolManager->InitializeSingleton();
     PoolManager->Preload(AdEnemyBPClass, 10);
     PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
+
+    RefreshApproachEnemyInkDelegate();
     
     //StartAdEnemyGenerator();
     //StartApproachEnemyGenerator();
@@ -261,7 +263,7 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
 
     if (InkTextures.Num() <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("喷墨贴图未设置"))
+        UE_LOG(LogTemp, Warning, TEXT("喷墨贴图未设置"));
     }
     else
     {
@@ -274,6 +276,44 @@ void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
         NewInk.Texture = InkTextures[randomIdx];
         OldManHUD->AddInk(NewInk);
     }
+}
+
+void UOldManEnemyManager::ShootMultiInk_Default(FVector2D pos, APlayerController* PC)
+{
+    ShootMultiInk(pos, PC, ApproachEnemyMultiInkCount, ApproachEnemyMultiInkSpawnInterval, ApproachEnemyMultiInkStepY);
+}
+
+void UOldManEnemyManager::RefreshApproachEnemyInkDelegate()
+{
+    ApproachEnemyInkDelegate.Unbind();
+
+    switch (ApproachEnemyInkMode)
+    {
+    case EApproachEnemyInkMode::Multi:
+        ApproachEnemyInkDelegate.BindUObject(this, &UOldManEnemyManager::ShootMultiInk_Default);
+        break;
+    case EApproachEnemyInkMode::Single:
+    default:
+        ApproachEnemyInkDelegate.BindUObject(this, &UOldManEnemyManager::ShootInk);
+        break;
+    }
+}
+
+void UOldManEnemyManager::SetApproachEnemyInkMode(EApproachEnemyInkMode NewMode)
+{
+    ApproachEnemyInkMode = NewMode;
+    RefreshApproachEnemyInkDelegate();
+}
+
+void UOldManEnemyManager::ShootApproachEnemyInk(FVector2D pos, APlayerController* PC)
+{
+    if (ApproachEnemyInkDelegate.IsBound())
+    {
+        ApproachEnemyInkDelegate.Execute(pos, PC);
+        return;
+    }
+
+    ShootInk(pos, PC);
 }
 
 void UOldManEnemyManager::ShootMultiInk(FVector2D topPos, APlayerController* PC, int32 Count, float SpawnInterval, float StepY)

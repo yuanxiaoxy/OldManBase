@@ -1,7 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Kismet/KismetMathLibrary.h"
 #include "Boss/OldManBossHead.h"
+#include "Kismet/KismetMathLibrary.h"
+
 
 // Sets default values
 AOldManBossHead::AOldManBossHead()
@@ -109,11 +110,11 @@ void AOldManBossHead::SetAllPartActive(bool Active)
 
 void AOldManBossHead::SetAllPartBack()
 {
-	LeftEyebrowClose();
-	RightEyebrowClose();
-	ChinClose();
-	LeftEarBack();
-	RightEarBack();
+	if (!IsLeftEyebrowOpen)LeftEyebrowClose();
+	if (!IsRightEyebrowOpen)RightEyebrowClose();
+	if (!IsChinOpen)ChinClose();
+	if (LeftEarProgress != 0)LeftEarBack();
+	if (RightEarProgress != 0)RightEarBack();
 }
 
 void AOldManBossHead::LeftEyebrowOpen()
@@ -435,7 +436,7 @@ void AOldManBossHead::Tick(float DeltaTime)
 			// 直接设置到精确目标
 			LeftEyebrow->SetActorLocationAndRotation(IsLeftEyebrowOpen ? LeftEyebrowInitialPos : LeftEyebrowOpenPos, IsLeftEyebrowOpen ? LeftEyebrowInitialRot : LeftEyebrowOpenRot, false, nullptr, ETeleportType::None);
 			IsLeftEyebrowMoving = false;
-			SetActorTickEnabled(false); // 停止Tick
+			
 			IsLeftEyebrowOpen = IsLeftEyebrowOpen ? false : true;
 		}
 	}
@@ -463,7 +464,6 @@ void AOldManBossHead::Tick(float DeltaTime)
 			// 直接设置到精确目标
 			RightEyebrow->SetActorLocationAndRotation(IsRightEyebrowOpen ? RightEyebrowInitialPos : RightEyebrowOpenPos, IsRightEyebrowOpen ? RightEyebrowInitialRot : RightEyebrowOpenRot, false, nullptr, ETeleportType::None);
 			IsRightEyebrowMoving = false;
-			SetActorTickEnabled(false); // 停止Tick
 			IsRightEyebrowOpen = IsRightEyebrowOpen ? false : true;
 		}
 	}
@@ -572,10 +572,9 @@ void AOldManBossHead::Tick(float DeltaTime)
 			}
 
 		}
-		if (!IsChinMoving && IsShangBaLMoving && !IsShangBaMidMoving && !IsShangBaRMoving)
+		if (!IsChinMoving && !IsShangBaLMoving && !IsShangBaMidMoving && !IsShangBaRMoving)
 		{
 			IsChinAllMoving = false;
-			SetActorTickEnabled(false); // 停止Tick
 			IsChinOpen = IsChinOpen ? false : true;
 		}
 	}
@@ -599,7 +598,6 @@ void AOldManBossHead::Tick(float DeltaTime)
 			// 直接设置到精确目标
 			SetActorRotation(LeftEarInitialRot);
 			IsLeftEarBackMoving = false;
-			SetActorTickEnabled(false); // 停止Tick
 			JudgeLeftEarRight();
 		}
 	}
@@ -622,11 +620,13 @@ void AOldManBossHead::Tick(float DeltaTime)
 			// 直接设置到精确目标
 			SetActorRotation(RightEarInitialRot);
 			IsRightEarBackMoving = false;
-			SetActorTickEnabled(false); // 停止Tick
 			JudgeLeftEarRight();
 		}
 	}
-
+	if (!IsRightEarBackMoving && !IsLeftEarBackMoving && !IsChinAllMoving && !IsRightEyebrowMoving && !IsLeftEyebrowMoving)
+	{
+		SetActorTickEnabled(false); // 停止Tick
+	}
 
 }
 

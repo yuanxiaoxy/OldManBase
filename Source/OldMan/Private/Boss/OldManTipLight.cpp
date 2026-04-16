@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
+//#include "TimerManager.h"
 #include "Boss/OldManTipLight.h"
 
 // Sets default values
@@ -12,21 +13,15 @@ AOldManTipLight::AOldManTipLight()
 	
 }
 
+
+
 // Called when the game starts or when spawned
 void AOldManTipLight::BeginPlay()
 {
 	Super::BeginPlay();
 	MyMeshComponent = FindComponentByClass<UStaticMeshComponent>();
 	CanRunning = true;
-	if (!OldManTips)
-	{
-		UE_LOG(LogTemp, Error, TEXT("BossTP_可以移动老人头提示物体不存在"));
-		CanRunning = false;
-	}
-	else
-	{
-		TipsMeshComponent = OldManTips->FindComponentByClass<UStaticMeshComponent>();
-	}
+
 	if (!OldManMove)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_可以移动老人头材质不存在"));
@@ -37,27 +32,27 @@ void AOldManTipLight::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("BossTP_不可移动老人头材质不存在"));
 		CanRunning = false;
 	}
-	if (!LeftEyebrow)
+	if (!LeftEyebrowRun && !LeftEyebrowStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_移动左眉毛材质不存在"));
 		CanRunning = false;
 	}
-	if (!RightEyebrow)
+	if (!RightEyebrowRun && !RightEyebrowStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_移动右眉毛材质不存在"));
 		CanRunning = false;
 	}
-	if (!Chin)
+	if (!ChinRun && !ChinStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_张嘴材质不存在"));
 		CanRunning = false;
 	}
-	if (!TurnHeadLeft)
+	if (!TurnHeadLeftRun && !TurnHeadLeftStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_左转头材质不存在"));
 		CanRunning = false;
 	}
-	if (!TurnHeadRight)
+	if (!TurnHeadRightRun && !TurnHeadRightStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_右转头材质不存在"));
 		CanRunning = false;
@@ -66,48 +61,73 @@ void AOldManTipLight::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BossTP_待机材质不存在"));
 		//找不到Wait材质时拿自身默认材质替代
-		UMaterial* MaterialInterface = Cast<UMaterial>(MyMeshComponent->GetMaterial(0));
+		UMaterial* MaterialInterface = Cast<UMaterial>(MyMeshComponent->GetMaterial(1));
 	}
+	if (!BiggerLightGreen && !BiggerLightRed && !SmallLightRed && !SmallLightGreen)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BossTP_灯光不全"));
+		CanRunning = false;
+	}
+	//初始化数值
+	if (!CanRunning)return;
+	CurType = ECurOperationType::LeftEyebrow;
+	SmallLightGreenPointLight = SmallLightGreen->FindComponentByClass<UPointLightComponent>();
+	SmallLightRedPointLight = SmallLightRed->FindComponentByClass<UPointLightComponent>();
+	BiggerLightGreenPointLight = BiggerLightGreen->FindComponentByClass<UPointLightComponent>();
+	BiggerLightRedPointLight = BiggerLightRed->FindComponentByClass<UPointLightComponent>();
 
+	//SwitchCanMoveMat(OldManHeadCanMove);
 }
-
+ 
 void AOldManTipLight::SwitchCanMoveMat(bool CanMove)
 {
 	if (CanRunning)
 	{
+		OldManHeadCanMove = CanMove;
 		if (CanMove)
 		{
-			TipsMeshComponent->SetMaterial(0, OldManMove);
+			MyMeshComponent->SetMaterial(CanMoveIndex, OldManMove);
+			SmallLightGreenPointLight->SetVisibility(true);
+			SmallLightRedPointLight->SetVisibility(false);
+			BiggerLightGreenPointLight->SetVisibility(true);
+			BiggerLightRedPointLight->SetVisibility(false);
+			SwitchOperationMat(CurType);
 		}
 		else
 		{
-			TipsMeshComponent->SetMaterial(0, OldManStop);
+			MyMeshComponent->SetMaterial(CanMoveIndex, OldManStop);
+			SmallLightGreenPointLight->SetVisibility(false);
+			SmallLightRedPointLight->SetVisibility(true);
+			BiggerLightGreenPointLight->SetVisibility(false);
+			BiggerLightRedPointLight->SetVisibility(true);
+			SwitchOperationMat(CurType);
 		}
 	}
 }
 
-void AOldManTipLight::SwitchOperationMat(ECurOperation TargetOperation)
+void AOldManTipLight::SwitchOperationMat(ECurOperationType TargetOperation)
 {
 	if (CanRunning)
 	{
-		switch (TargetOperation)
+		CurType = TargetOperation;
+		switch (CurType)
 		{
-			case ECurOperation::LeftEyebrow:
-				MyMeshComponent->SetMaterial(0, LeftEyebrow);
+			case ECurOperationType::LeftEyebrow:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? LeftEyebrowRun : LeftEyebrowStop);
 				break;
-			case ECurOperation::RightEyebrow:
-				MyMeshComponent->SetMaterial(0, RightEyebrow);
+			case ECurOperationType::RightEyebrow:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? RightEyebrowRun : RightEyebrowStop);
 				break;
-			case ECurOperation::Chin:
-				MyMeshComponent->SetMaterial(0, Chin);
+			case ECurOperationType::Chin:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? ChinRun : ChinStop);
 				break;
-			case ECurOperation::TurnHeadLeft:
-				MyMeshComponent->SetMaterial(0, TurnHeadLeft);
+			case ECurOperationType::TurnHeadLeft:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? TurnHeadLeftRun : TurnHeadLeftStop);
 				break;
-			case ECurOperation::TurnHeadRight:
-				MyMeshComponent->SetMaterial(0, TurnHeadRight);
+			case ECurOperationType::TurnHeadRight:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? TurnHeadRightRun : TurnHeadRightStop);
 				break;
-			case ECurOperation::None:
+			case ECurOperationType::None:
 			default:
 				break;
 		}

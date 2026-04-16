@@ -9,8 +9,10 @@ void AOldManPullItemBase::HandleMouseData(const FVector& ViewDirection, float In
 
 void AOldManPullItemBase::StartDragging()
 {
+	OnStartDragging();
 }
 
 void AOldManPullItemBase::StopDragging()
 {
+	OnStopDragging();
 }

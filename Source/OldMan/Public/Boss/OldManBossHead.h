@@ -82,6 +82,9 @@ public:
 	//物体移动速度
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AllSpeed")
 	float AllEarSpeed = 1;
+	//物体移动速度
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
+	bool AllPartsMovingEnd = true;
 
 	//左眉毛
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LeftEyebrow")
@@ -147,6 +150,8 @@ public:
 	FRotator LeftEarMax;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LeftEar")
 	FRotator LeftEarDetectionRange;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LeftEar")
+	bool LeftEarBackCompelete = false;
 
 	//右耳朵
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RightEar")
@@ -161,6 +166,8 @@ public:
 	FRotator RightEarMax;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RightEar")
 	FRotator RightEarDetectionRange;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RightEar")
+	bool RightEarBackCompelete = false;
 
 	//当前阶段
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RightEar")

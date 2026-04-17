@@ -9,7 +9,7 @@ AOldManBossHead::AOldManBossHead()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 }
 
 //根据记录数据更新老人头位置  没有平滑直接到位
@@ -110,9 +110,10 @@ void AOldManBossHead::SetAllPartActive(bool Active)
 
 void AOldManBossHead::SetAllPartBack()
 {
-	if (!IsLeftEyebrowOpen)LeftEyebrowClose();
-	if (!IsRightEyebrowOpen)RightEyebrowClose();
-	if (!IsChinOpen)ChinClose();
+	AllPartsMovingEnd = true;
+	if (IsLeftEyebrowOpen)LeftEyebrowClose();
+	if (IsRightEyebrowOpen)RightEyebrowClose();
+	if (IsChinOpen)ChinClose();
 	if (LeftEarProgress != 0)LeftEarBack();
 	if (RightEarProgress != 0)RightEarBack();
 }
@@ -130,7 +131,7 @@ void AOldManBossHead::LeftEyebrowOpen()
 
 void AOldManBossHead::LeftEyebrowClose()
 {
-	if (CanRunning && IsLeftEyebrowActive)
+	if (CanRunning)
 	{
 		PrimaryActorTick.bStartWithTickEnabled = true;
 		SetActorTickEnabled(true); // 开启Tick
@@ -158,7 +159,7 @@ void AOldManBossHead::RightEyebrowOpen()
 
 void AOldManBossHead::RightEyebrowClose()
 {
-	if (CanRunning && IsRightEyebrowActive)
+	if (CanRunning)
 	{
 		PrimaryActorTick.bStartWithTickEnabled = true;
 		SetActorTickEnabled(true); // 开启Tick
@@ -191,7 +192,7 @@ void AOldManBossHead::ChinOpen()
 
 void AOldManBossHead::ChinClose()
 {
-	if (CanRunning && IsChinActive)
+	if (CanRunning)
 	{
 		PrimaryActorTick.bStartWithTickEnabled = true;
 		SetActorTickEnabled(true); // 开启Tick
@@ -239,11 +240,12 @@ void AOldManBossHead::LeftEarDraged(float curProgress)
 
 void AOldManBossHead::LeftEarBack()
 {
-	if (CanRunning && IsLeftEarActive)
+	if (CanRunning)
 	{
 		PrimaryActorTick.bStartWithTickEnabled = true;
 		SetActorTickEnabled(true); // 开启Tick
 		IsLeftEarBackMoving = true;
+		LeftEarBackCompelete = false;
 	}
 
 }
@@ -292,11 +294,12 @@ void AOldManBossHead::RightEarDraged(float curProgress)
 
 void AOldManBossHead::RightEarBack()
 {
-	if (CanRunning && IsRightEarActive)
+	if (CanRunning)
 	{
 		PrimaryActorTick.bStartWithTickEnabled = true;
 		SetActorTickEnabled(true); // 开启Tick
 		IsRightEarBackMoving = true;
+		RightEarBackCompelete = false;
 	}
 
 }
@@ -413,6 +416,17 @@ void AOldManBossHead::BeginPlay()
 void AOldManBossHead::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (!IsRightEarBackMoving && !IsLeftEarBackMoving && !IsChinAllMoving && !IsRightEyebrowMoving && !IsLeftEyebrowMoving)
+	{
+		SetActorTickEnabled(true); // 停止Tick
+		AllPartsMovingEnd = true;
+		return;
+	}
+	else
+	{
+		AllPartsMovingEnd = false;
+	}
+
 	//左眉毛
 	if (IsLeftEyebrowMoving)
 	{
@@ -437,7 +451,7 @@ void AOldManBossHead::Tick(float DeltaTime)
 			LeftEyebrow->SetActorLocationAndRotation(IsLeftEyebrowOpen ? LeftEyebrowInitialPos : LeftEyebrowOpenPos, IsLeftEyebrowOpen ? LeftEyebrowInitialRot : LeftEyebrowOpenRot, false, nullptr, ETeleportType::None);
 			IsLeftEyebrowMoving = false;
 			
-			IsLeftEyebrowOpen = IsLeftEyebrowOpen ? false : true;
+			IsLeftEyebrowOpen = !IsLeftEyebrowOpen;
 		}
 	}
 
@@ -464,7 +478,7 @@ void AOldManBossHead::Tick(float DeltaTime)
 			// 直接设置到精确目标
 			RightEyebrow->SetActorLocationAndRotation(IsRightEyebrowOpen ? RightEyebrowInitialPos : RightEyebrowOpenPos, IsRightEyebrowOpen ? RightEyebrowInitialRot : RightEyebrowOpenRot, false, nullptr, ETeleportType::None);
 			IsRightEyebrowMoving = false;
-			IsRightEyebrowOpen = IsRightEyebrowOpen ? false : true;
+			IsRightEyebrowOpen = !IsRightEyebrowOpen;
 		}
 	}
 
@@ -550,8 +564,8 @@ void AOldManBossHead::Tick(float DeltaTime)
 		if (IsShangBaRMoving)
 		{
 			// 获取当前位置和旋转
-			FVector CurrentRELocation = ShangBaMid->GetActorLocation();
-			FRotator CurrentRERotation = ShangBaMid->GetActorRotation();
+			FVector CurrentRELocation = ShangBaR->GetActorLocation();//把这个和下面哪个改成ShangBaMid会导致运行时张开嘴巴后检测无法进入下一阶段，但在嘴巴张开后打开细节面板或在577行打断点就可以正常运行？？？？？？？？？？？？？？
+			FRotator CurrentRERotation = ShangBaR->GetActorRotation();
 			// 计算新位置 (指数插值，DeltaTime * InterpSpeed 控制衰减速度)
 			FVector NewRELocation = UKismetMathLibrary::VInterpTo(CurrentRELocation, IsChinOpen ? ShangBaRInitialPos : ShangBaROpenPos, DeltaTime, AllSpeed);
 			// 计算新旋转 (RInterpTo 内部使用最短路径插值)
@@ -575,7 +589,7 @@ void AOldManBossHead::Tick(float DeltaTime)
 		if (!IsChinMoving && !IsShangBaLMoving && !IsShangBaMidMoving && !IsShangBaRMoving)
 		{
 			IsChinAllMoving = false;
-			IsChinOpen = IsChinOpen ? false : true;
+			IsChinOpen = !IsChinOpen;
 		}
 	}
 
@@ -593,12 +607,14 @@ void AOldManBossHead::Tick(float DeltaTime)
 		FQuat QuatB = LeftEarInitialRot.Quaternion();
 		float AngleDiffRadians = QuatA.AngularDistance(QuatB);
 
-		if (AngleDiffRadians <= 0.05f)
+		if (AngleDiffRadians <= 0.1f)
 		{
 			// 直接设置到精确目标
 			SetActorRotation(LeftEarInitialRot);
 			IsLeftEarBackMoving = false;
 			JudgeLeftEarRight();
+			LeftEarBackCompelete = true;
+			LeftEarProgress = 0;
 		}
 	}
 	//右转头
@@ -615,17 +631,15 @@ void AOldManBossHead::Tick(float DeltaTime)
 		FQuat QuatB = RightEarInitialRot.Quaternion();
 		float AngleDiffRadians = QuatA.AngularDistance(QuatB);
 
-		if (AngleDiffRadians <= 0.05f)
+		if (AngleDiffRadians <= 0.2f)
 		{
 			// 直接设置到精确目标
 			SetActorRotation(RightEarInitialRot);
 			IsRightEarBackMoving = false;
-			JudgeLeftEarRight();
+			JudgeRightEarRight();
+			RightEarBackCompelete = true;
+			RightEarProgress = 0;
 		}
-	}
-	if (!IsRightEarBackMoving && !IsLeftEarBackMoving && !IsChinAllMoving && !IsRightEyebrowMoving && !IsLeftEyebrowMoving)
-	{
-		SetActorTickEnabled(false); // 停止Tick
 	}
 
 }

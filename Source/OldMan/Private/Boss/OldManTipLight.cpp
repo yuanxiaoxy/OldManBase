@@ -32,27 +32,27 @@ void AOldManTipLight::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("BossTP_不可移动老人头材质不存在"));
 		CanRunning = false;
 	}
-	if (!LeftEyebrowRun && !LeftEyebrowStop)
+	if (!LeftEyebrowRun || !LeftEyebrowStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_移动左眉毛材质不存在"));
 		CanRunning = false;
 	}
-	if (!RightEyebrowRun && !RightEyebrowStop)
+	if (!RightEyebrowRun || !RightEyebrowStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_移动右眉毛材质不存在"));
 		CanRunning = false;
 	}
-	if (!ChinRun && !ChinStop)
+	if (!ChinRun || !ChinStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_张嘴材质不存在"));
 		CanRunning = false;
 	}
-	if (!TurnHeadLeftRun && !TurnHeadLeftStop)
+	if (!TurnHeadLeftRun || !TurnHeadLeftStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_左转头材质不存在"));
 		CanRunning = false;
 	}
-	if (!TurnHeadRightRun && !TurnHeadRightStop)
+	if (!TurnHeadRightRun || !TurnHeadRightStop)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossTP_右转头材质不存在"));
 		CanRunning = false;
@@ -63,7 +63,7 @@ void AOldManTipLight::BeginPlay()
 		//找不到Wait材质时拿自身默认材质替代
 		UMaterial* MaterialInterface = Cast<UMaterial>(MyMeshComponent->GetMaterial(1));
 	}
-	if (!BiggerLightGreen && !BiggerLightRed && !SmallLightRed && !SmallLightGreen)
+	if (!BiggerLightGreen || !BiggerLightRed || !SmallLightRed || !SmallLightGreen)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BossTP_灯光不全"));
 		CanRunning = false;
@@ -126,6 +126,9 @@ void AOldManTipLight::SwitchOperationMat(ECurOperationType TargetOperation)
 				break;
 			case ECurOperationType::TurnHeadRight:
 				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? TurnHeadRightRun : TurnHeadRightStop);
+				break;
+			case ECurOperationType::Eyebrow:
+				MyMeshComponent->SetMaterial(BiggerLishtIndex, OldManHeadCanMove ? EyebrowRun : EyebrowStop);
 				break;
 			case ECurOperationType::None:
 			default:

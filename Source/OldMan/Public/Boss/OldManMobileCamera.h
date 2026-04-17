@@ -27,7 +27,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 	UFUNCTION(BlueprintCallable)
-	void BeginScan(float time);	//开始扫描
+	void BeginScan(float time);	//开始扫描 有时间
+	UFUNCTION(BlueprintCallable)
+	void BeginScanWithoutParm();	//开始扫描 无时间
 	UFUNCTION(BlueprintCallable)
 	void CloseLight();		//关闭灯光
 

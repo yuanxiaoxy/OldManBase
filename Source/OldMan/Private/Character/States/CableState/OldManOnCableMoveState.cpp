@@ -1,4 +1,4 @@
-#include "Character/States/CableState/OldManOnCableMoveState.h"
+﻿#include "Character/States/CableState/OldManOnCableMoveState.h"
 #include "Character/OldManCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/States/CableState/OldManOnCableExitState.h"
@@ -22,6 +22,12 @@ void UOldManOnCableMoveState::Enter()
         CurrentCableDistance = Character->CurrentCable->FindNearestDistanceAlongSpline(Character->GetActorLocation());
 
         SetPlayerCurMoveState(EPlayerBaseMoveState::Walk);
+        //玩家进入滑索事件
+        if (CurrentCable)
+        {
+            CurrentCable->CharacterEnterCable(Character->bCableMoveForward);
+        }
+
     }
 }
 
@@ -30,6 +36,12 @@ void UOldManOnCableMoveState::Exit()
     Super::Exit();
 
     AOldManCharacter* Character = GetOldManCharacter();
+    //玩家退出滑索事件
+    if (CurrentCable)
+    {
+        CurrentCable->CharacterExitCable(Character->bCableMoveForward);
+    }
+
     if (Character)
     {
         Character->SetCurrentCable(nullptr);

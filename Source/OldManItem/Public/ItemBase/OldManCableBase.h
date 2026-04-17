@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -75,6 +75,14 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Collision")
     bool bGenerateOverlapEvents = false;
+
+    //玩家进入滑索事件
+    UFUNCTION(BlueprintImplementableEvent, Category = "Cable|Events")
+    void CharacterEnterCable(bool CableMoveForward);
+    //玩家退出滑索事件
+    UFUNCTION(BlueprintImplementableEvent, Category = "Cable|Events")
+    void CharacterExitCable(bool CableMoveForward);
+
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Cable")

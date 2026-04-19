@@ -139,6 +139,12 @@ void ABossGridManager::RandomSetMapWithPoints(
 	{
 		for (int32 j = 0; j < m_Grids[i].Num(); j++)
 		{
+			const FIntPoint CurrPoint(i, j);
+			if (StartEndPoints.Contains(CurrPoint))
+			{
+				continue;
+			}
+
 			// 80% 危险，20% 安全，难度很高
 			bool bDanger = FMath::RandRange(0, 9) < DangerProbability;
 			ABossGrid* Grid = m_Grids[i][j];

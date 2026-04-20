@@ -87,6 +87,8 @@ public:
 public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void StartFadeIn();
+	UFUNCTION(BlueprintImplementableEvent)
+	void VideoPlayCompelete();		//关闭开启
 	UFUNCTION(BlueprintCallable)
 	void PlayVideoInUI();
 

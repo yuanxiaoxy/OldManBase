@@ -76,7 +76,7 @@ void ABossGridManager::GenerateMap()
 			NewGrid->AttachToActor(AttachParent, FAttachmentTransformRules::KeepRelativeTransform);
 			NewGrid->SetActorRelativeRotation(FRotator::ZeroRotator);
 			NewGrid->Initialize(i, j, FVector::ZeroVector, GenerationDelta);
-
+			NewGrid->FindComponentByClass<UStaticMeshComponent>()->SetCollisionProfileName(TEXT("BlockAll"));
 			m_Grids[i].Add(NewGrid);
 			if (!m_bSetExtent)
 			{

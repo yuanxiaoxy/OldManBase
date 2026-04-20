@@ -37,7 +37,7 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate, int32 delta)
 		return;
 	}
 
-	if (SafeMaterial == nullptr)
+	if (SafeMaterials.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[%s] SafeMaterial 是空指针！"), *GetName());
 	}
@@ -47,7 +47,10 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate, int32 delta)
 		UE_LOG(LogTemp, Error, TEXT("[%s] DangerMaterials 是空列表!"), *GetName());
 	}
 
-	GridMeshComp->SetMaterial(0, SafeMaterial);
+	for (int i = 0; i < SafeMaterials.Num(); i++)
+	{
+		GridMeshComp->SetMaterial(i, SafeMaterials[i]);
+	}
 
 	// 2. 开启碰撞 + 设置为 Overlap 模式
 	GridMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -89,7 +92,11 @@ void ABossGrid::SwitchToDanger(float FlashTime)
 void ABossGrid::OnSwitchToDangerDelayed(UMaterialInterface* nextMat)
 {
 	CurrentGridState = EGridState::Danger;
-	GridMeshComp->SetMaterial(0, nextMat);
+	for (int i = 0; i < DangerMaterials.Num(); i++)
+	{
+		GridMeshComp->SetMaterial(i, DangerMaterials[i]);
+
+	}
 }	
 
 void ABossGrid::SwitchToSafe()
@@ -100,12 +107,15 @@ void ABossGrid::SwitchToSafe()
 
 	m_bIsFlashing = false;
 	CurrentGridState = EGridState::Safe;
-	GridMeshComp->SetMaterial(0, SafeMaterial);
+	for (int i = 0; i < SafeMaterials.Num(); i++)
+	{
+		GridMeshComp->SetMaterial(i, SafeMaterials[i]);
+	}
 }
 
 void ABossGrid::SwitchToFlash(float FlashTime /*= 2*/)
 {
-	if (!GridMeshComp || !SafeMaterial || DangerMaterials.Num() == 0)
+	if (!GridMeshComp || SafeMaterials.Num() == 0 || DangerMaterials.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[%s] 闪烁失败：缺少材质或组件！"), *GetName());
 		SwitchToSafe();
@@ -140,13 +150,19 @@ void ABossGrid::ToggleFlashMaterial()
 {
 	UMaterialInterface* CurrentMat = GridMeshComp->GetMaterial(0);
 
-	if (CurrentMat == SafeMaterial)
+	if (CurrentMat == SafeMaterials[0])
 	{
-		GridMeshComp->SetMaterial(0, DangerMaterials[0]);
+		for (int i = 0; i < DangerMaterials.Num(); i++)
+		{
+			GridMeshComp->SetMaterial(i, DangerMaterials[i]);
+		}
 	}
 	else
 	{
-		GridMeshComp->SetMaterial(0, SafeMaterial);
+		for (int i = 0; i < SafeMaterials.Num(); i++)
+		{
+			GridMeshComp->SetMaterial(i, SafeMaterials[i]);
+		}
 	}
 }
 
@@ -157,9 +173,10 @@ void ABossGrid::OnGridBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 {
 	if (CurrentGridState != EGridState::Danger)
 	{
+		OnPlayerInSafe(OtherActor);
 		return;
 	}
-
+	OnPlayerInDanger(OtherActor);
 }
 
 void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -169,7 +186,7 @@ void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	{
 		return;
 	}
-
+	OnPlayerOutDanger(OtherActor);
 }
 
 void ABossGrid::SetPos(int32 X, int32 Y, FVector generate, int32 delta)

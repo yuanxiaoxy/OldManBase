@@ -17,7 +17,7 @@ public:
 	TArray<UMaterialInterface*> DangerMaterials;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BossGrid")
-	UMaterialInterface* SafeMaterial = nullptr;
+	TArray<UMaterialInterface*> SafeMaterials;
 
 	// 地板块静态网格体组件（根组件）
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|组件")
@@ -75,12 +75,20 @@ public:
 	void OnGridBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
+	//蓝图用
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPlayerInDanger(AActor* OtherActor);
+	//蓝图用
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPlayerInSafe(AActor* OtherActor);
 
 	// 玩家离开地块事件
 	UFUNCTION()
 	void OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	//蓝图用
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPlayerOutDanger(AActor* OtherActor);
 
 	
 

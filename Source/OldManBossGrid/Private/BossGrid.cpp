@@ -28,7 +28,7 @@ void ABossGrid::Tick(float DeltaTime)
 }
 
 
-void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
+void ABossGrid::Initialize(int32 X, int32 Y, FVector generate, int32 delta)
 {
 
 	if (GridMeshComp == nullptr)
@@ -58,7 +58,7 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
 	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
 
 	
-	SetPos(X, Y, generate);
+	SetPos(X, Y, generate, delta);
 }
 
 void ABossGrid::SwitchToDanger(float FlashTime)
@@ -172,7 +172,7 @@ void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 
 }
 
-void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
+void ABossGrid::SetPos(int32 X, int32 Y, FVector generate, int32 delta)
 {
 	GridX = X;
 	GridY = Y;
@@ -184,10 +184,9 @@ void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
 
 	// 3. 应用组件缩放，得到画面上的真实大小
 	FVector BoxExtent = MeshLocalExtent * GridMeshComp->GetComponentScale();
-	int32 Delta = 10;
 	// 格子宽度 = 2个半尺寸（完整大小） + 间距
-	float GridWidth = BoxExtent.X * 2 + Delta;
-	float GridHeight = BoxExtent.Y * 2 + Delta;
+	float GridWidth = BoxExtent.X * 2 + delta;
+	float GridHeight = BoxExtent.Y * 2 + delta;
 
 	FVector Offset(
 		X * GridWidth,

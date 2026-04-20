@@ -75,7 +75,7 @@ void ABossGridManager::GenerateMap()
 
 			NewGrid->AttachToActor(AttachParent, FAttachmentTransformRules::KeepRelativeTransform);
 			NewGrid->SetActorRelativeRotation(FRotator::ZeroRotator);
-			NewGrid->Initialize(i, j, FVector::ZeroVector);
+			NewGrid->Initialize(i, j, FVector::ZeroVector, GenerationDelta);
 
 			m_Grids[i].Add(NewGrid);
 			if (!m_bSetExtent)

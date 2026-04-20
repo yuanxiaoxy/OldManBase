@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "ToolDev_1",
+	"Description": "",
+	"Category": "Other",
+	"CreatedBy": "yuanxiaoxy",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ToolDev_1",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

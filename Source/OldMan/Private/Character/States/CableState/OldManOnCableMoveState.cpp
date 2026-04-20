@@ -1,4 +1,4 @@
-﻿#include "Character/States/CableState/OldManOnCableMoveState.h"
+#include "Character/States/CableState/OldManOnCableMoveState.h"
 #include "Character/OldManCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/States/CableState/OldManOnCableExitState.h"
@@ -68,10 +68,10 @@ void UOldManOnCableMoveState::SetupTransitionRules()
         return CurrentCableDistance <= Epsilon || CurrentCableDistance >= CableLength - Epsilon;
         }, "NoCable");
 
-    ADD_LAMBDA_TRANSITION(UOldManOnCableJumpState, [this]() {
-        AOldManCharacter* Character = GetOldManCharacter();
-        return Character && Character->bHasJumpInput && !Character->NextCable;
-        }, "Jump");
+    //ADD_LAMBDA_TRANSITION(UOldManOnCableJumpState, [this]() {
+    //    AOldManCharacter* Character = GetOldManCharacter();
+    //    return Character && Character->bHasJumpInput && !Character->NextCable;
+    //    }, "Jump");
 
     ADD_LAMBDA_TRANSITION(UOldManOnCableHorizontalJumpState, [this]() {
         AOldManCharacter* Character = GetOldManCharacter();
@@ -99,6 +99,10 @@ void UOldManOnCableMoveState::UpdateCableMovement(float DeltaTime)
     float MoveSpeed = Character->CharacterAttributes->MoveSpeedInCable;
     float Direction = Character->GetCableMoveDirectionSign();
 
+    // 如果是单向滑索，强制方向固定，不依赖于 bCableMoveForward（但已经由 AutoDetermineCableDirection 确定了）
+    // 这里我们可以保留 Direction 的计算，因为单向滑索的 bCableMoveForward 在 AutoDetermineCableDirection 中会被正确设置。
+    // 但我们仍需确保单向滑索不会因为玩家输入而改变方向，MoveAlongCable 已经处理了强制方向，所以这里使用 Direction 没问题。
+
     CurrentCableDistance += MoveSpeed * Direction * DeltaTime;
     CurrentCableDistance = FMath::Clamp(CurrentCableDistance, 0.0f, Character->CurrentCable->GetCableLength());
 
@@ -107,7 +111,6 @@ void UOldManOnCableMoveState::UpdateCableMovement(float DeltaTime)
     Character->SetActorLocation(AdjustedPosition);
     AlignCharacterWithCable(NewPosition);
 }
-
 void UOldManOnCableMoveState::HandleCableInput(float DeltaTime)
 {
     AOldManCharacter* Character = GetOldManCharacter();

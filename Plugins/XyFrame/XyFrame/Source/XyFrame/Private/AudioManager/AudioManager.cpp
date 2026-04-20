@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 #include "TimerManager.h"
+#include "UObject/SoftObjectPath.h"
 
 template<>
 UAudioManager* TSingleton<UAudioManager>::SingletonInstance = nullptr;
@@ -56,6 +57,59 @@ const FAudioConfig* UAudioManager::GetAudioConfig(FName SoundID) const
     return AudioDataTable->FindRow<FAudioConfig>(SoundID, ContextString);
 }
 
+USoundBase* UAudioManager::LoadSoundAsset(const TSoftObjectPtr<USoundBase>& SoftPtr)
+{
+    if (SoftPtr.IsNull())
+        return nullptr;
+
+    FSoftObjectPath AssetPath = SoftPtr.ToSoftObjectPath();
+    if (TObjectPtr<USoundBase>* Cached = LoadedSoundCache.Find(AssetPath))
+    {
+        if (IsValid(*Cached))
+            return *Cached;
+        else
+            LoadedSoundCache.Remove(AssetPath);
+    }
+
+    USoundBase* Loaded = SoftPtr.LoadSynchronous();
+    if (Loaded)
+    {
+        LoadedSoundCache.Add(AssetPath, Loaded);
+    }
+    return Loaded;
+}
+
+USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
+{
+    if (!Config)
+        return nullptr;
+
+    // 优先使用随机池
+    if (Config->SoundAssets.Num() > 0)
+    {
+        // 过滤掉无效的空软引用
+        TArray<TSoftObjectPtr<USoundBase>> ValidAssets;
+        for (const TSoftObjectPtr<USoundBase>& SoftPtr : Config->SoundAssets)
+        {
+            if (!SoftPtr.IsNull())
+                ValidAssets.Add(SoftPtr);
+        }
+        if (ValidAssets.Num() > 0)
+        {
+            int32 Index = FMath::RandRange(0, ValidAssets.Num() - 1);
+            return LoadSoundAsset(ValidAssets[Index]);
+        }
+    }
+
+    // 回退到单个资源
+    if (!Config->SoundAsset.IsNull())
+    {
+        return LoadSoundAsset(Config->SoundAsset);
+    }
+
+    return nullptr;
+}
+
 UAudioComponent* UAudioManager::PlaySound(
     UObject* WorldContextObject,
     FName SoundID,
@@ -87,13 +141,20 @@ UAudioComponent* UAudioManager::PlaySound(
     }
 
     const FAudioConfig* Config = GetAudioConfig(SoundID);
-    if (!Config || Config->SoundAsset.IsNull())
+    if (!Config)
     {
-        UE_LOG(LogTemp, Error, TEXT("SoundID %s not found or invalid!"), *SoundID.ToString());
+        UE_LOG(LogTemp, Error, TEXT("SoundID %s not found in data table!"), *SoundID.ToString());
         return nullptr;
     }
 
-    // ===== 自动停止同类声音（仅限 Voice 和 BGM） =====
+    USoundBase* SoundAsset = GetRandomSoundFromConfig(Config);
+    if (!SoundAsset)
+    {
+        UE_LOG(LogTemp, Error, TEXT("No valid sound asset for SoundID %s (random pool empty and single asset missing)"), *SoundID.ToString());
+        return nullptr;
+    }
+
+    // 自动停止同类声音（Voice 和 BGM）
     if (Config->Category == EAudioCategory::Voice || Config->Category == EAudioCategory::BGM)
     {
         TArray<UAudioComponent*> ComponentsToStop;
@@ -116,7 +177,6 @@ UAudioComponent* UAudioManager::PlaySound(
                 SafelyDestroyAudioComponent(Comp);
         }
     }
-    // ===== 结束自动停止 =====
 
     float ActualFadeIn = FadeInTime;
     if (ActualFadeIn <= 0.0f && Config->FadeInTime > 0.0f)
@@ -124,12 +184,6 @@ UAudioComponent* UAudioManager::PlaySound(
 
     UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
     if (!World) return nullptr;
-    USoundBase* SoundAsset = Config->SoundAsset.LoadSynchronous();
-    if (!SoundAsset)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load sound: %s"), *SoundID.ToString());
-        return nullptr;
-    }
 
     UAudioComponent* AudioComponent = NewObject<UAudioComponent>(AttachActor ? AttachActor : World->GetWorldSettings());
     if (!AudioComponent) return nullptr;
@@ -189,7 +243,6 @@ void UAudioManager::HandleAudioFinished()
 
     for (UAudioComponent* Comp : CompletedComponents)
     {
-        // 移除效果控制器
         if (TObjectPtr<UAudioEffectController>* Ctrl = ComponentEffectControllers.Find(Comp))
         {
             (*Ctrl)->ClearEffect();
@@ -333,7 +386,6 @@ void UAudioManager::PlayBGM(UObject* WorldContextObject, FName SoundID, float Fa
         else
             ActualFadeIn = 0.0f;
     }
-    // 停止旧 BGM 的逻辑已内置在 PlaySound 中
     PlaySound(WorldContextObject, SoundID, nullptr, FVector::ZeroVector, ActualFadeIn);
 }
 
@@ -422,7 +474,7 @@ void UAudioManager::PlayVoice(
     float FadeOutTime,
     float PitchMultiplier)
 {
-    (void)FadeOutTime; // 消除未使用参数警告
+    (void)FadeOutTime;
     float ActualFadeIn = FadeInTime;
     if (ActualFadeIn < 0.0f)
     {
@@ -432,7 +484,6 @@ void UAudioManager::PlayVoice(
         else
             ActualFadeIn = 0.0f;
     }
-    // 停止旧 Voice 的逻辑已内置在 PlaySound 中
     PlaySound(WorldContextObject, SoundID, AttachActor, FVector::ZeroVector, ActualFadeIn, 0.0f, PitchMultiplier);
 }
 
@@ -630,7 +681,6 @@ void UAudioManager::PrintCategoryStatus(EAudioCategory Category)
 // ========== Shutdown 安全清理 ==========
 void UAudioManager::Shutdown()
 {
-    // 清除所有待处理的定时器
     for (FTimerHandle& Handle : PendingDestroyTimers)
     {
         if (UWorld* World = GetWorld())
@@ -640,7 +690,6 @@ void UAudioManager::Shutdown()
     }
     PendingDestroyTimers.Empty();
 
-    // 立即停止并销毁所有音频组件
     TArray<UAudioComponent*> ComponentsToDestroy;
     ActiveComponents.GenerateKeyArray(ComponentsToDestroy);
     for (UAudioComponent* Comp : ComponentsToDestroy)
@@ -655,8 +704,10 @@ void UAudioManager::Shutdown()
     CurrentBGMComponent = nullptr;
     CurrentVoiceComponent = nullptr;
 
-    // 清理效果系统
     ShutdownEffectSystem();
+
+    // 清理资源缓存
+    LoadedSoundCache.Empty();
 
     UE_LOG(LogTemp, Log, TEXT("AudioManager Shutdown completed"));
 }
@@ -716,7 +767,7 @@ void UAudioManager::SafelyDestroyAudioComponent(UAudioComponent* AudioComponent)
     AudioComponent->DestroyComponent();
 }
 
-// ========== 新增：音频效果系统实现 ==========
+// ========== 音频效果系统 ==========
 void UAudioManager::InitializeEffectSystem(UDataTable* InEffectPresetTable)
 {
     EffectPresetTable = InEffectPresetTable;
@@ -731,10 +782,7 @@ void UAudioManager::InitializeEffectSystem(UDataTable* InEffectPresetTable)
 
 UAudioEffectController* UAudioManager::GetOrCreateEffectController(UAudioComponent* AudioComponent)
 {
-    if (!AudioComponent)
-    {
-        return nullptr;
-    }
+    if (!AudioComponent) return nullptr;
 
     if (TObjectPtr<UAudioEffectController>* Found = ComponentEffectControllers.Find(AudioComponent))
     {
@@ -800,7 +848,6 @@ void UAudioManager::StartSoundLowPassLerp(FName SoundID, float TargetCutoff, flo
         if (Pair.Value == SoundID)
         {
             UAudioEffectController* Controller = GetOrCreateEffectController(Pair.Key);
-            // 调用 C++ 便捷重载（两个参数，自动传空委托）
             Controller->StartLowPassCutoffLerp(TargetCutoff, Duration);
         }
     }

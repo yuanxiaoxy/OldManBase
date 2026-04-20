@@ -9,9 +9,8 @@
 #include "Engine/DataTable.h"
 #include "AudioManager.generated.h"
 
-class UAudioEffectController; // 前置声明
+class UAudioEffectController;
 
-// 音频类别
 UENUM(BlueprintType)
 enum class EAudioCategory : uint8
 {
@@ -24,7 +23,6 @@ enum class EAudioCategory : uint8
 
 ENUM_RANGE_BY_COUNT(EAudioCategory, 5)
 
-// 音频配置结构
 USTRUCT(BlueprintType)
 struct FAudioConfig : public FTableRowBase
 {
@@ -36,8 +34,13 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     EAudioCategory Category = EAudioCategory::SFX;
 
+    // 原有单个资源（保留兼容）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TSoftObjectPtr<USoundBase> SoundAsset;
+
+    // 新增：随机池（多个资源）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    TArray<TSoftObjectPtr<USoundBase>> SoundAssets;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     bool bLooping = false;
@@ -61,7 +64,6 @@ struct FAudioConfig : public FTableRowBase
     float FadeOutTime = 0.0f;
 };
 
-// 音频效果类型
 UENUM(BlueprintType)
 enum class EAudioEffectType : uint8
 {
@@ -69,10 +71,8 @@ enum class EAudioEffectType : uint8
     LowPassFilter,
     HighPassFilter,
     BandPassFilter,
-    // 可扩展
 };
 
-// 音频效果预设（DataTable 行）
 USTRUCT(BlueprintType)
 struct FAudioEffectPreset : public FTableRowBase
 {
@@ -81,7 +81,6 @@ struct FAudioEffectPreset : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
     EAudioEffectType EffectType = EAudioEffectType::LowPassFilter;
 
-    // 低通滤波器参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect|LowPass", meta = (EditCondition = "EffectType == EAudioEffectType::LowPassFilter"))
     float InitialCutoffFrequency = 5000.0f;
 
@@ -116,7 +115,6 @@ public:
     UAudioManager();
     virtual ~UAudioManager() override;
 
-    // ========== 基础音频接口 ==========
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Initialize(UDataTable* InAudioDataTable);
 
@@ -140,7 +138,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void StopAllSoundsByCategory(EAudioCategory Category, float FadeOutTime = 0.0f);
 
-    // ========== 分类音频接口 ==========
     // SFX
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
@@ -201,7 +198,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void StopUISound(FName SoundID, float FadeOutTime = 0.0f);
 
-    // ========== 音量控制 ==========
+    // Volume
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetCategoryVolume(EAudioCategory Category, float NewVolume);
 
@@ -214,7 +211,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void ResetAllVolumes();
 
-    // ========== 查询 ==========
+    // Query
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsSoundPlaying(FName SoundID) const;
 
@@ -227,18 +224,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsVoicePlaying() const;
 
-    // ========== 调试 ==========
+    // Debug
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintAudioSystemStatus();
 
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintCategoryStatus(EAudioCategory Category);
 
-    // ========== 安全清理（关卡切换前调用） ==========
+    // Shutdown
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Shutdown();
 
-    // ========== 委托 ==========
+    // Delegates
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundStarted OnSoundStarted;
 
@@ -251,7 +248,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio")
     bool IsInitialized() const { return AudioDataTable != nullptr; }
 
-    // ========== 新增：音频效果系统接口 ==========
+    // Effect system
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void InitializeEffectSystem(UDataTable* InEffectPresetTable);
 
@@ -274,7 +271,6 @@ public:
     void ShutdownEffectSystem();
 
 protected:
-    // 效果系统 Tick
     void TickEffectControllers();
 
 private:
@@ -294,7 +290,7 @@ private:
 
     TArray<FTimerHandle> PendingDestroyTimers;
 
-    // 效果系统成员
+    // Effect system
     UPROPERTY()
     TObjectPtr<UDataTable> EffectPresetTable;
 
@@ -303,7 +299,12 @@ private:
 
     FTimerHandle EffectTickTimerHandle;
 
+    // 资源缓存
+    TMap<FSoftObjectPath, TObjectPtr<USoundBase>> LoadedSoundCache;
+
     const FAudioConfig* GetAudioConfig(FName SoundID) const;
+    USoundBase* LoadSoundAsset(const TSoftObjectPtr<USoundBase>& SoftPtr);
+    USoundBase* GetRandomSoundFromConfig(const FAudioConfig* Config);
 
     UFUNCTION()
     void HandleAudioFinished();
@@ -311,6 +312,5 @@ private:
     UWorld* GetWorld() const;
 
     void FadeOutAndDestroyAudioComponent(UAudioComponent* AudioComponent, float FadeOutTime);
-
     void SafelyDestroyAudioComponent(UAudioComponent* AudioComponent);
 };

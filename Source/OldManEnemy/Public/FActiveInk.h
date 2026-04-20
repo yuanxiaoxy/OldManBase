@@ -25,7 +25,16 @@ struct FActiveInk {
     float SwingBackDelay = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk", meta = (ClampMin = "0.0"))
+    float MultiSwingBackDelay = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk", meta = (ClampMin = "0.0"))
     float SwingToggleInterval = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk", meta = (ClampMin = "0.0"))
+    float SpawnDelay = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk", meta = (ClampMin = "0.0"))
+    float PopDuration = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActikveInk",
         meta = (UIMin = "0.0", UIMax = "1.0", ClampMin = "0.0", ClampMax = "1.0"))

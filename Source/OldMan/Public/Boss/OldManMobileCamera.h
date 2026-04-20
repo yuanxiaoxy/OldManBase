@@ -16,8 +16,6 @@ class OLDMAN_API AOldManMobileCamera : public AActor
 public:
 	// Sets default values for this actor's properties
 	AOldManMobileCamera();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpotLight")
-	AActor* SpotLight;		//聚光灯
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -32,8 +30,8 @@ public:
 	void BeginScanWithoutParm();	//开始扫描 无时间
 	UFUNCTION(BlueprintCallable)
 	void CloseLight();		//关闭灯光
-
-private:
-
-	USpotLightComponent* mySpotLight;
+	UFUNCTION(BlueprintImplementableEvent)
+	void Open();		//关闭开启
+	UFUNCTION(BlueprintImplementableEvent)
+	void Close();		//关闭
 };

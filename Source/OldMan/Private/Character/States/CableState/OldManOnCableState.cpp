@@ -61,6 +61,34 @@ void UOldManOnCableState::UpdateNearbyCableDetection(float HorizontalDir)
         Character->SetNextCable(RightCable.Cable, false);
         Character->IsLeftCable = false;   // 标记向右跳
         Character->NextCableJumpPosition = RightCable.Position;  // 保存目标位置
+
+        UWorld* World = Character->GetWorld();
+        if (World)
+        {
+            // Calculate box center and extent in local space
+            FVector BoxExtent = FVector(DetectionLength * 0.5f, LateralJumpDistance * 0.5f, DetectionHeight * 0.5f);
+            FVector RightBoxCenter = CharacterLocation + (CharacterRight * LateralJumpDistance * 0.5f);
+
+            // Draw debug box using character's rotation
+            DrawDebugBox(
+                World,
+                RightBoxCenter,
+                BoxExtent,
+                CharacterRotation.Quaternion(),
+                FColor::Green,
+                false,
+                -1.0f,
+                0,
+                2.0f
+            );
+
+            // If cable detected, draw connection lines
+            if (RightCable.Cable)
+            {
+                DrawDebugLine(World, CharacterLocation, RightCable.Position, FColor::Green, false, -1.0f, 0, 2.0f);
+                DrawDebugSphere(World, RightCable.Position, 20.0f, 8, FColor::Green, false, -1.0f, 0, 2.0f);
+            }
+        }
     }
     else if (HorizontalDir < 0)
     {
@@ -68,6 +96,31 @@ void UOldManOnCableState::UpdateNearbyCableDetection(float HorizontalDir)
         Character->SetNextCable(LeftCable.Cable, true);
         Character->IsLeftCable = true;    // 标记向左跳
         Character->NextCableJumpPosition = LeftCable.Position;   // 保存目标位置
+
+        UWorld* World = Character->GetWorld();
+        if (World)
+        {
+            FVector BoxExtent = FVector(DetectionLength * 0.5f, LateralJumpDistance * 0.5f, DetectionHeight * 0.5f);
+            FVector LeftBoxCenter = CharacterLocation + (-CharacterRight * LateralJumpDistance * 0.5f);
+
+            DrawDebugBox(
+                World,
+                LeftBoxCenter,
+                BoxExtent,
+                CharacterRotation.Quaternion(),
+                FColor::Blue,
+                false,
+                -1.0f,
+                0,
+                2.0f
+            );
+
+            if (LeftCable.Cable)
+            {
+                DrawDebugLine(World, CharacterLocation, LeftCable.Position, FColor::Blue, false, -1.0f, 0, 2.0f);
+                DrawDebugSphere(World, LeftCable.Position, 20.0f, 8, FColor::Blue, false, -1.0f, 0, 2.0f);
+            }
+        }
     }
 }
 
@@ -81,7 +134,7 @@ FCableDetectionResult UOldManOnCableState::FindCableInBox(const FVector& Directi
     FRotator CharacterRotation = Character->GetActorRotation();
 
     FVector BoxCenter = CharacterLocation + (Direction * Width * 0.5f);
-    FVector BoxExtent = FVector(Length * 0.5f, Width * 0.5f, Height * 0.5f);
+    FVector BoxExtent = FVector(Length * 0.5f, Width * 0.5f, Height);
 
     TArray<FOverlapResult> OverlapResults;
     FCollisionQueryParams QueryParams;

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -23,6 +23,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleMouseData(const FVector& ViewDirection, float Intensity);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_HandleMouseData(const FVector& ViewDirection, float Intensity);
 
 	UFUNCTION(BlueprintCallable)
 	virtual void StartDragging();

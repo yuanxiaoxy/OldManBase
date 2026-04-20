@@ -446,6 +446,8 @@ public:
     AOldManCableBase* NextCable;
     UPROPERTY(BlueprintReadWrite, Category = "CableItem")
     bool IsLeftCable;
+    UPROPERTY()
+    FVector NextCableJumpPosition = FVector::ZeroVector;
 
 public:
     UFUNCTION(BlueprintCallable, Category = "InterectItem")

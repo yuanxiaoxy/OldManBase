@@ -6,11 +6,10 @@
 // Sets default values
 ABossGrid::ABossGrid()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	GridMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridMeshComp"));
 	RootComponent = GridMeshComp;
-	
+	GridMeshComp->SetMobility(EComponentMobility::Movable);
 }
 
 // Called when the game starts or when spawned
@@ -190,13 +189,20 @@ void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
 	float GridWidth = BoxExtent.X * 2 + Delta;
 	float GridHeight = BoxExtent.Y * 2 + Delta;
 
-	// 正确排列公式 ✅
-	FVector NewLocation = generate + FVector(
-		X * GridWidth,   // X方向：第几个格子 × 格子总宽度
-		Y * GridHeight,  // Y方向：第几个格子 × 格子总高度
+	FVector Offset(
+		X * GridWidth,
+		Y * GridHeight,
 		0.f
 	);
-	SetActorLocation(NewLocation);
+
+	if (GetAttachParentActor())
+	{
+		SetActorRelativeLocation(generate + Offset);
+	}
+	else
+	{
+		SetActorLocation(generate + Offset);
+	}
 }	
 
 

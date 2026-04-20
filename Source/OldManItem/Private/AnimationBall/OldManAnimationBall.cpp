@@ -1,4 +1,4 @@
-#include "AnimationBall/OldManAnimationBall.h"
+﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 #include "Components/Image.h"
@@ -160,6 +160,7 @@ void AOldManAnimationBall::PlayOver()
 	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
 	//终止播放
 	MediaPlayer->Close();
+	VideoPlayCompelete();
 	//恢复玩家输入
 	if (PlayerInputCancel)
 	{

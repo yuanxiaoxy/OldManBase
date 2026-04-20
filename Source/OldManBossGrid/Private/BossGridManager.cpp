@@ -61,9 +61,22 @@ void ABossGridManager::GenerateMap()
 		m_Grids.Add(TArray<ABossGrid*>());
 		for (int32 j = 0; j < MapHeight; j++)
 		{
-			// UE 生成 Actor 的正确写法
-			ABossGrid* NewGrid = GetWorld()->SpawnActor<ABossGrid>(BossGridClass);
-			NewGrid->Initialize(i, j, m_GenerateVector);
+			AActor* AttachParent = GenerateCenter ? GenerateCenter : this;
+
+			FVector SpawnLocation = AttachParent ? AttachParent->GetActorLocation() : FVector::ZeroVector;
+			FRotator SpawnRotation = AttachParent ? AttachParent->GetActorRotation() : FRotator::ZeroRotator;
+			FActorSpawnParameters SpawnParams;
+
+			ABossGrid* NewGrid = GetWorld()->SpawnActor<ABossGrid>(BossGridClass, SpawnLocation, SpawnRotation, SpawnParams);
+			if (!NewGrid)
+			{
+				continue;
+			}
+
+			NewGrid->AttachToActor(AttachParent, FAttachmentTransformRules::KeepRelativeTransform);
+			NewGrid->SetActorRelativeRotation(FRotator::ZeroRotator);
+			NewGrid->Initialize(i, j, FVector::ZeroVector);
+
 			m_Grids[i].Add(NewGrid);
 			if (!m_bSetExtent)
 			{

@@ -56,7 +56,7 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, Category = "BossGrid")
-	void Initialize(int32 X, int32 Y, FVector generate);
+	void Initialize(int32 X, int32 Y, FVector generate, int32 delta);
 
 	// 切换为危险区域块
 	UFUNCTION(BlueprintCallable, Category = "BossGrid|行为")
@@ -87,7 +87,7 @@ public:
 
 
 private:
-	void SetPos(int32 X, int32 Y, FVector generate);
+	void SetPos(int32 X, int32 Y, FVector generate, int32 delta);
 
 	void OnSwitchToDangerDelayed(UMaterialInterface* nextMat);
 

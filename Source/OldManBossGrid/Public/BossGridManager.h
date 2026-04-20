@@ -37,6 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	TSubclassOf<ABossGrid> BossGridClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
+	int32 GenerationDelta = 10;
+
 	UPROPERTY(EditAnywhere, Category = "BossMapSet", meta = (UIMin = 1, UIMax = 20, ClampMin = 1, ClampMax = 20))
 	int32 MapWidth = 7;
 
@@ -45,6 +48,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "BossMapSet", meta = (UIMin = 0, UIMax = 10, ClampMin = 0, ClampMax = 10))
 	float DangerProbability = 8;
+
+	
+	
 
 private:
 	bool m_bHasSafeInRange = false;

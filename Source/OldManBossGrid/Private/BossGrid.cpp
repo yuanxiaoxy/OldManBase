@@ -6,11 +6,10 @@
 // Sets default values
 ABossGrid::ABossGrid()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	GridMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridMeshComp"));
 	RootComponent = GridMeshComp;
-	
+	GridMeshComp->SetMobility(EComponentMobility::Movable);
 }
 
 // Called when the game starts or when spawned
@@ -29,7 +28,7 @@ void ABossGrid::Tick(float DeltaTime)
 }
 
 
-void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
+void ABossGrid::Initialize(int32 X, int32 Y, FVector generate, int32 delta)
 {
 
 	if (GridMeshComp == nullptr)
@@ -59,7 +58,7 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate)
 	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
 
 	
-	SetPos(X, Y, generate);
+	SetPos(X, Y, generate, delta);
 }
 
 void ABossGrid::SwitchToDanger(float FlashTime)
@@ -173,7 +172,7 @@ void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 
 }
 
-void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
+void ABossGrid::SetPos(int32 X, int32 Y, FVector generate, int32 delta)
 {
 	GridX = X;
 	GridY = Y;
@@ -185,18 +184,24 @@ void ABossGrid::SetPos(int32 X, int32 Y, FVector generate)
 
 	// 3. 应用组件缩放，得到画面上的真实大小
 	FVector BoxExtent = MeshLocalExtent * GridMeshComp->GetComponentScale();
-	int32 Delta = 10;
 	// 格子宽度 = 2个半尺寸（完整大小） + 间距
-	float GridWidth = BoxExtent.X * 2 + Delta;
-	float GridHeight = BoxExtent.Y * 2 + Delta;
+	float GridWidth = BoxExtent.X * 2 + delta;
+	float GridHeight = BoxExtent.Y * 2 + delta;
 
-	// 正确排列公式 ✅
-	FVector NewLocation = generate + FVector(
-		X * GridWidth,   // X方向：第几个格子 × 格子总宽度
-		Y * GridHeight,  // Y方向：第几个格子 × 格子总高度
+	FVector Offset(
+		X * GridWidth,
+		Y * GridHeight,
 		0.f
 	);
-	SetActorLocation(NewLocation);
+
+	if (GetAttachParentActor())
+	{
+		SetActorRelativeLocation(generate + Offset);
+	}
+	else
+	{
+		SetActorLocation(generate + Offset);
+	}
 }	
 
 

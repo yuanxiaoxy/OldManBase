@@ -33,4 +33,6 @@ private:
 
     /** Current input direction (lateral) */
     float CurrentInputDirection = 0.0f;
+
+    FName MoveSoundName;
 };

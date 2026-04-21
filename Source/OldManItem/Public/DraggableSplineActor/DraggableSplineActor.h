@@ -8,6 +8,7 @@
 #include "Engine/Engine.h"
 #include "DrawDebugHelpers.h"
 #include "ItemBase/OldManPullItemBase.h"
+#include "EventManager/MyEventManager.h"
 #include "DraggableSplineActor.generated.h"
 
 // ========== 新增委托声明 ==========
@@ -63,6 +64,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BluePrintReadWrite, Category = "Drag", meta = (ClampMin = 0.1f, ClampMax = 5.0f))
     float AutoBackSpeed = 1.0f;
+
+    UPROPERTY(EditAnywhere, BluePrintReadWrite, Category = "Debug")
+    bool BeDragWithLoading = false;
 
     UPROPERTY(EditAnywhere, BluePrintReadWrite, Category = "Debug")
     bool bShowDebugVisualization = true;

@@ -1,4 +1,4 @@
-﻿#include "Character/OldManCharacter.h"
+#include "Character/OldManCharacter.h"
 #include "Character/OldManPersonPlayerController.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/States/OldManIdleState.h"
@@ -12,6 +12,7 @@
 #include "Character/OldManAnimInstance.h"
 #include "Kismet/GameplayStatics.h" 
 #include "EffectManager/EffectManager.h"
+#include "AudioManager/AudioManager.h"
 
 AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UOldManMovementComponent>(AOldManCharacter::CharacterMovementComponentName))
@@ -902,6 +903,8 @@ void AOldManCharacter::FireBullet(AActor* actor)
 
     if (Bullet)
     {
+        UAudioManager::GetInstance()->PlaySound(this, "SFX_Shoot");
+
         UMonoManager::GetInstance()->SetTimeout(CharacterAttributes->OldManDetectionData.CoolDown, this, &AOldManCharacter::CancelFireCoolDown);
 
         FVector bulletDir = FollowCamera->GetForwardVector();;

@@ -27,7 +27,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GlobalTagName")
 	static FName GetTag_DetcedItem() { return Tag_DetcedItem; }
 
+	static const FName Tag_WaterGround;
+	UFUNCTION(BlueprintCallable, Category = "GlobalTagName")
+	static FName GetTag_WaterGround() { return Tag_WaterGround; }
+
 	static const FName Tag_SlopeGround;
 	UFUNCTION(BlueprintCallable, Category = "GlobalTagName")
 	static FName GetTag_SlopeGround() { return Tag_SlopeGround; }
+
+	static const FName Tag_ElectricityCable;
+	UFUNCTION(BlueprintCallable, Category = "GlobalTagName")
+	static FName GetTag_ElectricityCable() { return Tag_ElectricityCable; }
 };

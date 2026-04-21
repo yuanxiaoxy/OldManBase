@@ -2,6 +2,7 @@
 #include "Character/States/CableState/OldManOnCableMoveState.h"
 #include "Character/OldManCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "AudioManager/AudioManager.h"
 
 void UOldManOnCableHorizontalJumpState::Enter()
 {
@@ -40,6 +41,8 @@ void UOldManOnCableHorizontalJumpState::Enter()
             SetPlayerCurMoveState(EPlayerBaseMoveState::LeftHorizontalJump);
         else
             SetPlayerCurMoveState(EPlayerBaseMoveState::RightHorizontalJump);
+
+        UAudioManager::GetInstance()->PlaySound(Character, "SFX_ChangeCable");
     }
 }
 

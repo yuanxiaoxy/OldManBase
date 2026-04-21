@@ -4,6 +4,8 @@
 #include "Character/States/CableState/OldManOnCableExitState.h"
 #include "Character/States/CableState/OldManOnCableJumpState.h"
 #include "Character/States/CableState/OldManOnCableHorizontalJumpState.h"
+#include "GlobalTagName.h"
+#include "AudioManager/AudioManager.h"
 
 void UOldManOnCableMoveState::Enter()
 {
@@ -28,6 +30,15 @@ void UOldManOnCableMoveState::Enter()
             CurrentCable->CharacterEnterCable(Character->bCableMoveForward);
         }
 
+        if (CurrentCable->Tags.Find(UGlobalTagName::Tag_ElectricityCable) > -1)
+        {
+            MoveSoundName = "SFX_Cable_ElectricityMove";
+        }
+        else
+        {
+            MoveSoundName = "SFX_Cable_CommonMove";
+        }
+        UAudioManager::GetInstance()->PlaySound(Character, MoveSoundName);
     }
 }
 
@@ -46,6 +57,8 @@ void UOldManOnCableMoveState::Exit()
     {
         Character->SetCurrentCable(nullptr);
     }
+
+    UAudioManager::GetInstance()->StopSound(MoveSoundName);
 }
 
 void UOldManOnCableMoveState::Update(float DeltaTime)

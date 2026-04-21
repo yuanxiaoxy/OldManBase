@@ -4,6 +4,7 @@
 #include "Components/SplineComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
+#include "GlobalEventName.h"
 
 ADraggableSplineActor::ADraggableSplineActor()
 {
@@ -79,6 +80,14 @@ void ADraggableSplineActor::Tick(float DeltaTime)
         SetMeshPositionAndRotation(NewLocation, NewRotation);
     }
 
+    if (BeDragWithLoading && (bIsBeingDragged || inAutoBack))
+    {
+        FGameEventData DragEventData;
+        DragEventData.Values.Add(CurrentSplinePosition);
+        DragEventData.Actors.Add(this);
+        UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputDraging.ToString(), DragEventData);
+    }
+
     if (bShowDebugVisualization && SplineComponent)
     {
         const int32 NumSegments = 50;
@@ -136,6 +145,8 @@ void ADraggableSplineActor::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 void ADraggableSplineActor::StartDragging()
 {
+    Super::StartDragging();
+
     bCouldPull = false;
     if (inAutoBack)
         StopAutoBack();
@@ -157,6 +168,8 @@ void ADraggableSplineActor::StartDragging()
 
 void ADraggableSplineActor::StopDragging()
 {
+    Super::StopDragging();
+
     bIsBeingDragged = false;
 
     // 广播拖动停止事件（在自动回弹之前，表示用户操作结束）

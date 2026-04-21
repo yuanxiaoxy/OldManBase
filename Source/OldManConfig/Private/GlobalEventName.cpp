@@ -17,6 +17,8 @@ const FName UGlobalEventName::Key_Input_InputDeviceChanged = FName("Key_Input_In
 const FName UGlobalEventName::Key_Input_InputPullStart = FName("Key_Input_InputPullStart");
 const FName UGlobalEventName::Key_Input_InputPullEnd = FName("Key_Input_InputPullEnd");
 
+const FName UGlobalEventName::Key_Input_InputDraging = FName("Key_Input_InputDraging");
+
 const FName UGlobalEventName::Key_Input_InputAttack = FName("Key_Input_InputAttack");
 
 const FName UGlobalEventName::Key_Input_LockMouseKey = FName("Key_Input_LockMouseKey");

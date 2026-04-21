@@ -5,6 +5,9 @@
 #include "Engine/Engine.h"
 #include "TimerManager.h"
 #include "UObject/SoftObjectPath.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundAttenuation.h"
 
 template<>
 UAudioManager* TSingleton<UAudioManager>::SingletonInstance = nullptr;
@@ -154,6 +157,25 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
+    // ====== 根据配置表设置循环播放 ======
+    if (Config->bLooping)
+    {
+        if (USoundWave* SoundWave = Cast<USoundWave>(SoundAsset))
+        {
+            SoundWave->bLooping = true;
+            UE_LOG(LogTemp, Log, TEXT("Set looping on SoundWave for SoundID: %s"), *SoundID.ToString());
+        }
+        else if (USoundCue* SoundCue = Cast<USoundCue>(SoundAsset))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset is a SoundCue. Please ensure the Cue itself is set up to loop."), *SoundID.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset type '%s' may not support dynamic looping."), *SoundID.ToString(), *SoundAsset->GetClass()->GetName());
+        }
+    }
+    // ====== 循环设置结束 ======
+
     // 自动停止同类声音（Voice 和 BGM）
     if (Config->Category == EAudioCategory::Voice || Config->Category == EAudioCategory::BGM)
     {
@@ -206,7 +228,25 @@ UAudioComponent* UAudioManager::PlaySound(
         break;
     }
     AudioComponent->bAllowSpatialization = bAllowSpatialization;
-    AudioComponent->AttenuationSettings = Config->AttenuationSettings.Get();
+
+    // ====== 修复音频衰减未生效：正确加载并应用 AttenuationSettings ======
+    if (!Config->AttenuationSettings.IsNull())
+    {
+        USoundAttenuation* Attenuation = Cast<USoundAttenuation>(Config->AttenuationSettings.LoadSynchronous());
+        if (Attenuation)
+        {
+            AudioComponent->AttenuationSettings = Attenuation;
+            UE_LOG(LogTemp, Verbose, TEXT("Applied AttenuationSettings for SoundID: %s"), *SoundID.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to load AttenuationSettings for SoundID: %s"), *SoundID.ToString());
+        }
+    }
+    // ====== 衰减设置结束 ======
+
+    // 统一由管理器管理生命周期，避免自动销毁
+    AudioComponent->bAutoDestroy = false;
 
     if (AttachActor && AttachActor->GetRootComponent())
     {
@@ -227,7 +267,7 @@ UAudioComponent* UAudioManager::PlaySound(
         AudioComponent->Play();
 
     OnSoundStarted.Broadcast(SoundID);
-    UE_LOG(LogTemp, Log, TEXT("Playing sound: %s, Category: %s, FadeIn: %.2f"), *SoundID.ToString(), *UEnum::GetValueAsString(Config->Category), ActualFadeIn);
+    UE_LOG(LogTemp, Log, TEXT("Playing sound: %s, Category: %s, FadeIn: %.2f, Looping: %d"), *SoundID.ToString(), *UEnum::GetValueAsString(Config->Category), ActualFadeIn, Config->bLooping);
     return AudioComponent;
 }
 

@@ -7,6 +7,8 @@
 #include "EBossGridState.h"
 #include "BossGrid.generated.h"
 
+class UBoxComponent;
+
 UCLASS()
 class OLDMANBOSSGRID_API ABossGrid : public AActor
 {
@@ -23,6 +25,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|组件")
 	UStaticMeshComponent* GridMeshComp = nullptr;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|组件")
+	UBoxComponent* BoxCollision = nullptr;
+
 	UPROPERTY(EditAnywhere, Category = "BossGrid")
 	float FlashFrequency = 0.2f;
 
@@ -31,6 +36,7 @@ public:
 	int32 GridY;
 
 	bool bPlayerOnGrid = false;
+	AActor* PlayerActorOnGrid = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossGrid|状态", meta = (AllowPrivateAccess = "true"))
 	EGridState CurrentGridState = EGridState::Safe;

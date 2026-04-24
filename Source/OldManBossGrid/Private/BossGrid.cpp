@@ -1,7 +1,44 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BossGrid.h"
 
+#include "Components/BoxComponent.h"
+#include "GameFramework/Pawn.h"
+
+namespace
+{
+	TSet<TWeakObjectPtr<AActor>> GDangerEffectActors;
+
+	bool IsPlayerActor(const AActor* Actor)
+	{
+		const APawn* Pawn = Cast<APawn>(Actor);
+		return Pawn && Pawn->IsPlayerControlled();
+	}
+
+	bool TryEnterDanger(AActor* Actor)
+	{
+		if (!Actor)
+		{
+			return false;
+		}
+		const TWeakObjectPtr<AActor> Key = Actor;
+		if (GDangerEffectActors.Contains(Key))
+		{
+			return false;
+		}
+		GDangerEffectActors.Add(Key);
+		return true;
+	}
+
+	void LeaveDanger(AActor* Actor)
+	{
+		if (!Actor)
+		{
+			return;
+		}
+		GDangerEffectActors.Remove(TWeakObjectPtr<AActor>(Actor));
+	}
+}
 
 // Sets default values
 ABossGrid::ABossGrid()
@@ -10,6 +47,13 @@ ABossGrid::ABossGrid()
 	GridMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridMeshComp"));
 	RootComponent = GridMeshComp;
 	GridMeshComp->SetMobility(EComponentMobility::Movable);
+
+	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
+	BoxCollision->SetupAttachment(RootComponent);
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	BoxCollision->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	BoxCollision->SetGenerateOverlapEvents(true);
+	BoxCollision->SetBoxExtent(FVector(50.0f, 50.0f, 50.0f));
 }
 
 // Called when the game starts or when spawned
@@ -52,13 +96,14 @@ void ABossGrid::Initialize(int32 X, int32 Y, FVector generate, int32 delta)
 		GridMeshComp->SetMaterial(i, SafeMaterials[i]);
 	}
 
-	// 2. 开启碰撞 + 设置为 Overlap 模式
-	GridMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	GridMeshComp->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	if (!BoxCollision)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] BoxCollision 是空指针！"), *GetName());
+		return;
+	}
 
-	// 3. 订阅（绑定）重叠事件 —— 这就是你要的！
-	GridMeshComp->OnComponentBeginOverlap.AddDynamic(this, &ABossGrid::OnGridBeginOverlap);
-	GridMeshComp->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
+	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ABossGrid::OnGridBeginOverlap);
+	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ABossGrid::OnGridEndOverlap);
 
 	
 	SetPos(X, Y, generate, delta);
@@ -95,7 +140,14 @@ void ABossGrid::OnSwitchToDangerDelayed(UMaterialInterface* nextMat)
 	for (int i = 0; i < DangerMaterials.Num(); i++)
 	{
 		GridMeshComp->SetMaterial(i, DangerMaterials[i]);
+	}
 
+	if (bPlayerOnGrid && PlayerActorOnGrid && IsPlayerActor(PlayerActorOnGrid))
+	{
+		if (TryEnterDanger(PlayerActorOnGrid))
+		{
+			OnPlayerInDanger(PlayerActorOnGrid);
+		}
 	}
 }	
 
@@ -110,6 +162,12 @@ void ABossGrid::SwitchToSafe()
 	for (int i = 0; i < SafeMaterials.Num(); i++)
 	{
 		GridMeshComp->SetMaterial(i, SafeMaterials[i]);
+	}
+
+	if (bPlayerOnGrid && PlayerActorOnGrid && IsPlayerActor(PlayerActorOnGrid))
+	{
+		LeaveDanger(PlayerActorOnGrid);
+		OnPlayerInSafe(PlayerActorOnGrid);
 	}
 }
 
@@ -171,17 +229,41 @@ void ABossGrid::OnGridBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsPlayerActor(OtherActor))
+	{
+		return;
+	}
+
+	bPlayerOnGrid = true;
+	PlayerActorOnGrid = OtherActor;
+
 	if (CurrentGridState != EGridState::Danger)
 	{
+		LeaveDanger(OtherActor);
 		OnPlayerInSafe(OtherActor);
 		return;
 	}
-	OnPlayerInDanger(OtherActor);
+
+	if (TryEnterDanger(OtherActor))
+	{
+		OnPlayerInDanger(OtherActor);
+	}
 }
 
 void ABossGrid::OnGridEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	if (!IsPlayerActor(OtherActor))
+	{
+		return;
+	}
+
+	if (OtherActor == PlayerActorOnGrid)
+	{
+		bPlayerOnGrid = false;
+		PlayerActorOnGrid = nullptr;
+	}
+
 	if (CurrentGridState != EGridState::Danger)
 	{
 		return;
@@ -204,6 +286,12 @@ void ABossGrid::SetPos(int32 X, int32 Y, FVector generate, int32 delta)
 	// 格子宽度 = 2个半尺寸（完整大小） + 间距
 	float GridWidth = BoxExtent.X * 2 + delta;
 	float GridHeight = BoxExtent.Y * 2 + delta;
+
+	if (BoxCollision)
+	{
+		const float Extra = static_cast<float>(delta) * 0.5f;
+		BoxCollision->SetBoxExtent(FVector(BoxExtent.X + Extra, BoxExtent.Y + Extra * 2, FMath::Max(BoxExtent.Z, 100.0f)));
+	}
 
 	FVector Offset(
 		X * GridWidth,

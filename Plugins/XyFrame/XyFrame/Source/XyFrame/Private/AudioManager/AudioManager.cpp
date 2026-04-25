@@ -90,7 +90,6 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
     // 优先使用随机池
     if (Config->SoundAssets.Num() > 0)
     {
-        // 过滤掉无效的空软引用
         TArray<TSoftObjectPtr<USoundBase>> ValidAssets;
         for (const TSoftObjectPtr<USoundBase>& SoftPtr : Config->SoundAssets)
         {
@@ -113,6 +112,69 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
     return nullptr;
 }
 
+bool UAudioManager::ShouldPlayByProbability(float Probability) const
+{
+    Probability = FMath::Clamp(Probability, 0.0f, 1.0f);
+    float RandomValue = FMath::FRand();
+    return RandomValue <= Probability;
+}
+
+// [NEW] 立即停止所有相同 SoundID 的实例（用于重新播放）
+void UAudioManager::StopAllInstancesOfSoundID(FName SoundID)
+{
+    TArray<UAudioComponent*> ComponentsToStop;
+    for (auto& Pair : ActiveComponents)
+    {
+        if (Pair.Value == SoundID)
+        {
+            ComponentsToStop.Add(Pair.Key);
+        }
+    }
+
+    for (UAudioComponent* Comp : ComponentsToStop)
+    {
+        // 立即停止，不淡出
+        if (IsValid(Comp))
+        {
+            Comp->Stop();
+        }
+        // 清理效果控制器
+        if (TObjectPtr<UAudioEffectController>* Ctrl = ComponentEffectControllers.Find(Comp))
+        {
+            (*Ctrl)->ClearEffect();
+            ComponentEffectControllers.Remove(Comp);
+        }
+        ActiveComponents.Remove(Comp);
+        if (Comp == CurrentVoiceComponent) CurrentVoiceComponent = nullptr;
+        if (Comp == CurrentBGMComponent) CurrentBGMComponent = nullptr;
+        if (IsValid(Comp))
+        {
+            Comp->DestroyComponent();
+        }
+    }
+}
+
+UAudioComponent* UAudioManager::PlaySoundWithProbability(
+    UObject* WorldContextObject,
+    FName SoundID,
+    float Probability,
+    AActor* AttachActor,
+    FVector Location,
+    float FadeInTime,
+    float Delay,
+    float PitchMultiplier)
+{
+    if (ShouldPlayByProbability(Probability))
+    {
+        return PlaySound(WorldContextObject, SoundID, AttachActor, Location, FadeInTime, Delay, PitchMultiplier);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Verbose, TEXT("PlaySoundWithProbability: SoundID %s skipped (Probability=%.2f)"), *SoundID.ToString(), Probability);
+        return nullptr;
+    }
+}
+
 UAudioComponent* UAudioManager::PlaySound(
     UObject* WorldContextObject,
     FName SoundID,
@@ -122,6 +184,34 @@ UAudioComponent* UAudioManager::PlaySound(
     float Delay,
     float PitchMultiplier)
 {
+    // [NEW] 先检查配置，确定是否需要重新播放
+    const FAudioConfig* Config = GetAudioConfig(SoundID);
+    if (!Config)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SoundID %s not found in data table!"), *SoundID.ToString());
+        return nullptr;
+    }
+
+    // [NEW] 如果允许重新播放，则停止当前所有相同 SoundID 的实例
+    if (Config->bAllowRestart)
+    {
+        // 检查当前是否已有实例正在播放
+        bool bHasExisting = false;
+        for (auto& Pair : ActiveComponents)
+        {
+            if (Pair.Value == SoundID)
+            {
+                bHasExisting = true;
+                break;
+            }
+        }
+        if (bHasExisting)
+        {
+            UE_LOG(LogTemp, Log, TEXT("PlaySound: SoundID %s already playing, restarting (bAllowRestart=true)"), *SoundID.ToString());
+            StopAllInstancesOfSoundID(SoundID);
+        }
+    }
+
     if (Delay > 0.0f)
     {
         FTimerDelegate TimerDel;
@@ -143,13 +233,6 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
-    const FAudioConfig* Config = GetAudioConfig(SoundID);
-    if (!Config)
-    {
-        UE_LOG(LogTemp, Error, TEXT("SoundID %s not found in data table!"), *SoundID.ToString());
-        return nullptr;
-    }
-
     USoundBase* SoundAsset = GetRandomSoundFromConfig(Config);
     if (!SoundAsset)
     {
@@ -157,7 +240,7 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
-    // ====== 根据配置表设置循环播放 ======
+    // 根据配置表设置循环播放
     if (Config->bLooping)
     {
         if (USoundWave* SoundWave = Cast<USoundWave>(SoundAsset))
@@ -174,7 +257,6 @@ UAudioComponent* UAudioManager::PlaySound(
             UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset type '%s' may not support dynamic looping."), *SoundID.ToString(), *SoundAsset->GetClass()->GetName());
         }
     }
-    // ====== 循环设置结束 ======
 
     // 自动停止同类声音（Voice 和 BGM）
     if (Config->Category == EAudioCategory::Voice || Config->Category == EAudioCategory::BGM)
@@ -229,7 +311,7 @@ UAudioComponent* UAudioManager::PlaySound(
     }
     AudioComponent->bAllowSpatialization = bAllowSpatialization;
 
-    // ====== 修复音频衰减未生效：正确加载并应用 AttenuationSettings ======
+    // 修复音频衰减未生效：正确加载并应用 AttenuationSettings
     if (!Config->AttenuationSettings.IsNull())
     {
         USoundAttenuation* Attenuation = Cast<USoundAttenuation>(Config->AttenuationSettings.LoadSynchronous());
@@ -243,9 +325,7 @@ UAudioComponent* UAudioManager::PlaySound(
             UE_LOG(LogTemp, Warning, TEXT("Failed to load AttenuationSettings for SoundID: %s"), *SoundID.ToString());
         }
     }
-    // ====== 衰减设置结束 ======
 
-    // 统一由管理器管理生命周期，避免自动销毁
     AudioComponent->bAutoDestroy = false;
 
     if (AttachActor && AttachActor->GetRootComponent())
@@ -380,6 +460,11 @@ void UAudioManager::StopAllSoundsByCategory(EAudioCategory Category, float FadeO
 void UAudioManager::PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor, FVector Location, float PitchMultiplier)
 {
     PlaySound(WorldContextObject, SoundID, AttachActor, Location, 0.0f, 0.0f, PitchMultiplier);
+}
+
+void UAudioManager::PlaySFXWithProbability(UObject* WorldContextObject, FName SoundID, float Probability, AActor* AttachActor, FVector Location, float PitchMultiplier)
+{
+    PlaySoundWithProbability(WorldContextObject, SoundID, Probability, AttachActor, Location, 0.0f, 0.0f, PitchMultiplier);
 }
 
 void UAudioManager::StopSFX(FName SoundID, float FadeOutTime)
@@ -527,6 +612,25 @@ void UAudioManager::PlayVoice(
     PlaySound(WorldContextObject, SoundID, AttachActor, FVector::ZeroVector, ActualFadeIn, 0.0f, PitchMultiplier);
 }
 
+void UAudioManager::PlayVoiceWithProbability(
+    UObject* WorldContextObject,
+    FName SoundID,
+    float Probability,
+    AActor* AttachActor,
+    float FadeInTime,
+    float FadeOutTime,
+    float PitchMultiplier)
+{
+    if (ShouldPlayByProbability(Probability))
+    {
+        PlayVoice(WorldContextObject, SoundID, AttachActor, FadeInTime, FadeOutTime, PitchMultiplier);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Verbose, TEXT("PlayVoiceWithProbability: SoundID %s skipped (Probability=%.2f)"), *SoundID.ToString(), Probability);
+    }
+}
+
 void UAudioManager::StopVoice(FName SoundID, float FadeOutTime)
 {
     TArray<UAudioComponent*> ComponentsToStop;
@@ -581,6 +685,24 @@ void UAudioManager::StopAllVoice(float FadeOutTime)
     CurrentVoiceComponent = nullptr;
 }
 
+void UAudioManager::PauseVoice()
+{
+    if (CurrentVoiceComponent && IsValid(CurrentVoiceComponent))
+    {
+        CurrentVoiceComponent->SetPaused(true);
+        UE_LOG(LogTemp, Log, TEXT("Voice paused"));
+    }
+}
+
+void UAudioManager::ResumeVoice()
+{
+    if (CurrentVoiceComponent && IsValid(CurrentVoiceComponent))
+    {
+        CurrentVoiceComponent->SetPaused(false);
+        UE_LOG(LogTemp, Log, TEXT("Voice resumed"));
+    }
+}
+
 // ========== UI ==========
 void UAudioManager::PlayUISound(UObject* WorldContextObject, FName SoundID)
 {
@@ -615,6 +737,81 @@ void UAudioManager::StopUISound(FName SoundID, float FadeOutTime)
             if (IsValid(Component)) Component->DestroyComponent();
         }
     }
+}
+
+// ========== 通用暂停/恢复 ==========
+void UAudioManager::PauseSound(FName SoundID)
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        if (Pair.Value == SoundID && Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(true);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Paused all instances of sound: %s"), *SoundID.ToString());
+}
+
+void UAudioManager::ResumeSound(FName SoundID)
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        if (Pair.Value == SoundID && Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(false);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Resumed all instances of sound: %s"), *SoundID.ToString());
+}
+
+void UAudioManager::PauseAllSoundsByCategory(EAudioCategory Category)
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
+        if (Config && Config->Category == Category && Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(true);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Paused all sounds of category: %s"), *UEnum::GetValueAsString(Category));
+}
+
+void UAudioManager::ResumeAllSoundsByCategory(EAudioCategory Category)
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
+        if (Config && Config->Category == Category && Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(false);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Resumed all sounds of category: %s"), *UEnum::GetValueAsString(Category));
+}
+
+void UAudioManager::PauseAllSounds()
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        if (Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(true);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Paused all sounds"));
+}
+
+void UAudioManager::ResumeAllSounds()
+{
+    for (auto& Pair : ActiveComponents)
+    {
+        if (Pair.Key && IsValid(Pair.Key))
+        {
+            Pair.Key->SetPaused(false);
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Resumed all sounds"));
 }
 
 // ========== Volume ==========

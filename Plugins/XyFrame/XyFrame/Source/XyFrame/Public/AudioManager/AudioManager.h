@@ -38,7 +38,7 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TSoftObjectPtr<USoundBase> SoundAsset;
 
-    // 新增：随机池（多个资源）
+    // 随机池（多个资源）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TArray<TSoftObjectPtr<USoundBase>> SoundAssets;
 
@@ -63,7 +63,7 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
     float FadeOutTime = 0.0f;
 
-    // [NEW] 是否允许重新播放：当该音频正在播放时，再次触发播放会停止旧的并重新开始
+    // 是否允许重新播放（复用组件，默认 false）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Behavior")
     bool bAllowRestart = false;
 };
@@ -122,9 +122,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Initialize(UDataTable* InAudioDataTable);
 
-    // ------------------------------------------------------------
-    // 基础播放 (新增概率播放重载)
-    // ------------------------------------------------------------
+    // 基础播放
     UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
     UAudioComponent* PlaySound(
         UObject* WorldContextObject,
@@ -136,7 +134,7 @@ public:
         float PitchMultiplier = 1.0f
     );
 
-    // 带概率的播放 (Probability: 0~1)
+    // 概率播放
     UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
     UAudioComponent* PlaySoundWithProbability(
         UObject* WorldContextObject,
@@ -158,54 +156,37 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void StopAllSoundsByCategory(EAudioCategory Category, float FadeOutTime = 0.0f);
 
-    // ------------------------------------------------------------
     // SFX
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void PlaySFXWithProbability(UObject* WorldContextObject, FName SoundID, float Probability, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void StopSFX(FName SoundID, float FadeOutTime = 0.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void StopAllSFX(float FadeOutTime = 0.0f);
 
-    // ------------------------------------------------------------
     // BGM
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void StopBGM(float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void PauseBGM();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void ResumeBGM();
-
     UFUNCTION(BlueprintCallable, Category = "Audio")
     UAudioComponent* GetCurBGMAudioComponent() { return CurrentBGMComponent; }
 
-    // ------------------------------------------------------------
     // Ambient
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void StopAmbient(FName SoundID, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void StopAllAmbient(float FadeTime = -1.0f);
 
-    // ------------------------------------------------------------
     // Voice
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void PlayVoice(
         UObject* WorldContextObject,
@@ -215,7 +196,6 @@ public:
         float FadeOutTime = -1.0f,
         float PitchMultiplier = 1.0f
     );
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void PlayVoiceWithProbability(
         UObject* WorldContextObject,
@@ -226,131 +206,89 @@ public:
         float FadeOutTime = -1.0f,
         float PitchMultiplier = 1.0f
     );
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void StopVoice(FName SoundID, float FadeOutTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void StopAllVoice(float FadeOutTime = -1.0f);
-
-    // 暂停/恢复 Voice
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void PauseVoice();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void ResumeVoice();
 
-    // ------------------------------------------------------------
     // UI
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void PlayUISound(UObject* WorldContextObject, FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void StopUISound(FName SoundID, float FadeOutTime = 0.0f);
 
-    // ------------------------------------------------------------
     // 通用暂停/恢复
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void PauseSound(FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void ResumeSound(FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void PauseAllSoundsByCategory(EAudioCategory Category);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void ResumeAllSoundsByCategory(EAudioCategory Category);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void PauseAllSounds();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Control")
     void ResumeAllSounds();
 
-    // ------------------------------------------------------------
     // Volume
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetCategoryVolume(EAudioCategory Category, float NewVolume);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     float GetCategoryVolume(EAudioCategory Category) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetAllVolumes(float BGMVolume, float SFXVolume, float AmbientVolume, float VoiceVolume, float UIVolume);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void ResetAllVolumes();
 
-    // ------------------------------------------------------------
     // Query
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsSoundPlaying(FName SoundID) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCount() const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCountByCategory(EAudioCategory Category) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsVoicePlaying() const;
 
-    // ------------------------------------------------------------
     // Debug
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintAudioSystemStatus();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintCategoryStatus(EAudioCategory Category);
 
-    // ------------------------------------------------------------
     // Shutdown
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Shutdown();
 
-    // ------------------------------------------------------------
     // Delegates
-    // ------------------------------------------------------------
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundStarted OnSoundStarted;
-
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundFinished OnSoundFinished;
-
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnCategoryVolumeChanged OnCategoryVolumeChanged;
 
     UFUNCTION(BlueprintCallable, Category = "Audio")
     bool IsInitialized() const { return AudioDataTable != nullptr; }
 
-    // ------------------------------------------------------------
     // Effect system
-    // ------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void InitializeEffectSystem(UDataTable* InEffectPresetTable);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     UAudioEffectController* GetOrCreateEffectController(UAudioComponent* AudioComponent);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ApplyEffectPresetBySoundID(FName SoundID, FName EffectPresetRowName);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void SetSoundLowPassCutoff(FName SoundID, float Cutoff, float Resonance = 1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void StartSoundLowPassLerp(FName SoundID, float TargetCutoff, float Duration);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ClearSoundEffect(FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ShutdownEffectSystem();
 
@@ -383,18 +321,17 @@ private:
 
     FTimerHandle EffectTickTimerHandle;
 
-    // 资源缓存
+    // 资源缓存 - 必须加 UPROPERTY 防止 GC
+    UPROPERTY(Transient)
     TMap<FSoftObjectPath, TObjectPtr<USoundBase>> LoadedSoundCache;
 
     const FAudioConfig* GetAudioConfig(FName SoundID) const;
     USoundBase* LoadSoundAsset(const TSoftObjectPtr<USoundBase>& SoftPtr);
     USoundBase* GetRandomSoundFromConfig(const FAudioConfig* Config);
-
-    // 概率辅助函数
     bool ShouldPlayByProbability(float Probability) const;
 
-    // [NEW] 立即停止相同 SoundID 的所有实例（用于重新播放）
-    void StopAllInstancesOfSoundID(FName SoundID);
+    // 复用现有组件（用于 bAllowRestart）
+    UAudioComponent* FindAndReuseExistingComponent(const FAudioConfig* Config, AActor* AttachActor, const FVector& Location);
 
     UFUNCTION()
     void HandleAudioFinished();

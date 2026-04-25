@@ -75,7 +75,7 @@ USoundBase* UAudioManager::LoadSoundAsset(const TSoftObjectPtr<USoundBase>& Soft
     }
 
     USoundBase* Loaded = SoftPtr.LoadSynchronous();
-    if (Loaded)
+    if (IsValid(Loaded))
     {
         LoadedSoundCache.Add(AssetPath, Loaded);
     }
@@ -87,7 +87,6 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
     if (!Config)
         return nullptr;
 
-    // 优先使用随机池
     if (Config->SoundAssets.Num() > 0)
     {
         TArray<TSoftObjectPtr<USoundBase>> ValidAssets;
@@ -103,11 +102,8 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
         }
     }
 
-    // 回退到单个资源
     if (!Config->SoundAsset.IsNull())
-    {
         return LoadSoundAsset(Config->SoundAsset);
-    }
 
     return nullptr;
 }
@@ -115,43 +111,67 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
 bool UAudioManager::ShouldPlayByProbability(float Probability) const
 {
     Probability = FMath::Clamp(Probability, 0.0f, 1.0f);
-    float RandomValue = FMath::FRand();
-    return RandomValue <= Probability;
+    return FMath::FRand() <= Probability;
 }
 
-// [NEW] 立即停止所有相同 SoundID 的实例（用于重新播放）
-void UAudioManager::StopAllInstancesOfSoundID(FName SoundID)
+UAudioComponent* UAudioManager::FindAndReuseExistingComponent(const FAudioConfig* Config, AActor* AttachActor, const FVector& Location)
 {
-    TArray<UAudioComponent*> ComponentsToStop;
+    if (!Config) return nullptr;
+
+    UAudioComponent* ExistingComp = nullptr;
     for (auto& Pair : ActiveComponents)
     {
-        if (Pair.Value == SoundID)
+        if (Pair.Value == Config->SoundID)
         {
-            ComponentsToStop.Add(Pair.Key);
+            ExistingComp = Pair.Key;
+            break;
         }
     }
 
-    for (UAudioComponent* Comp : ComponentsToStop)
+    if (!IsValid(ExistingComp))
+        return nullptr;
+
+    ExistingComp->Stop();
+    ExistingComp->SetPaused(false);
+
+    if (TObjectPtr<UAudioEffectController>* Ctrl = ComponentEffectControllers.Find(ExistingComp))
     {
-        // 立即停止，不淡出
-        if (IsValid(Comp))
-        {
-            Comp->Stop();
-        }
-        // 清理效果控制器
-        if (TObjectPtr<UAudioEffectController>* Ctrl = ComponentEffectControllers.Find(Comp))
-        {
-            (*Ctrl)->ClearEffect();
-            ComponentEffectControllers.Remove(Comp);
-        }
-        ActiveComponents.Remove(Comp);
-        if (Comp == CurrentVoiceComponent) CurrentVoiceComponent = nullptr;
-        if (Comp == CurrentBGMComponent) CurrentBGMComponent = nullptr;
-        if (IsValid(Comp))
-        {
-            Comp->DestroyComponent();
-        }
+        (*Ctrl)->ClearEffect();
+        ComponentEffectControllers.Remove(ExistingComp);
     }
+
+    USoundBase* NewSound = GetRandomSoundFromConfig(Config);
+    if (!IsValid(NewSound))
+        return nullptr;
+    ExistingComp->SetSound(NewSound);
+
+    bool bAllowSpatial = (Config->Category != EAudioCategory::BGM && Config->Category != EAudioCategory::UI);
+    ExistingComp->bAllowSpatialization = bAllowSpatial;
+
+    if (!Config->AttenuationSettings.IsNull())
+    {
+        USoundAttenuation* Attenuation = Cast<USoundAttenuation>(Config->AttenuationSettings.LoadSynchronous());
+        if (IsValid(Attenuation))
+            ExistingComp->AttenuationSettings = Attenuation;
+        else
+            ExistingComp->AttenuationSettings = nullptr;
+    }
+    else
+    {
+        ExistingComp->AttenuationSettings = nullptr;
+    }
+
+    if (IsValid(AttachActor) && AttachActor->GetRootComponent())
+    {
+        ExistingComp->AttachToComponent(AttachActor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    }
+    else
+    {
+        ExistingComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+        ExistingComp->SetWorldLocation(Location);
+    }
+
+    return ExistingComp;
 }
 
 UAudioComponent* UAudioManager::PlaySoundWithProbability(
@@ -184,7 +204,6 @@ UAudioComponent* UAudioManager::PlaySound(
     float Delay,
     float PitchMultiplier)
 {
-    // [NEW] 先检查配置，确定是否需要重新播放
     const FAudioConfig* Config = GetAudioConfig(SoundID);
     if (!Config)
     {
@@ -192,26 +211,36 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
-    // [NEW] 如果允许重新播放，则停止当前所有相同 SoundID 的实例
+    // 重新播放复用组件
     if (Config->bAllowRestart)
     {
-        // 检查当前是否已有实例正在播放
-        bool bHasExisting = false;
-        for (auto& Pair : ActiveComponents)
+        UAudioComponent* ReusedComp = FindAndReuseExistingComponent(Config, AttachActor, Location);
+        if (ReusedComp)
         {
-            if (Pair.Value == SoundID)
-            {
-                bHasExisting = true;
-                break;
-            }
-        }
-        if (bHasExisting)
-        {
-            UE_LOG(LogTemp, Log, TEXT("PlaySound: SoundID %s already playing, restarting (bAllowRestart=true)"), *SoundID.ToString());
-            StopAllInstancesOfSoundID(SoundID);
+            UE_LOG(LogTemp, Log, TEXT("PlaySound: Reusing existing component for SoundID %s (bAllowRestart=true)"), *SoundID.ToString());
+
+            ReusedComp->SetPitchMultiplier(PitchMultiplier * Config->PitchMultiplier);
+            float VolumeMultiplier = Config->DefaultVolume * CategoryVolumes[Config->Category];
+            ReusedComp->SetVolumeMultiplier(VolumeMultiplier);
+
+            float ActualFadeIn = FadeInTime;
+            if (ActualFadeIn <= 0.0f && Config->FadeInTime > 0.0f)
+                ActualFadeIn = Config->FadeInTime;
+
+            ReusedComp->OnAudioFinished.RemoveDynamic(this, &UAudioManager::HandleAudioFinished);
+            ReusedComp->OnAudioFinished.AddDynamic(this, &UAudioManager::HandleAudioFinished);
+
+            if (ActualFadeIn > 0.0f)
+                ReusedComp->FadeIn(ActualFadeIn, VolumeMultiplier);
+            else
+                ReusedComp->Play();
+
+            OnSoundStarted.Broadcast(SoundID);
+            return ReusedComp;
         }
     }
 
+    // 延迟播放
     if (Delay > 0.0f)
     {
         FTimerDelegate TimerDel;
@@ -223,9 +252,7 @@ UAudioComponent* UAudioManager::PlaySound(
             TimerDel.BindLambda([WeakThis, WorldContextObject, SoundID, AttachActor, Location, FadeInTime, PitchMultiplier]()
                 {
                     if (WeakThis.IsValid())
-                    {
                         WeakThis->PlaySound(WorldContextObject, SoundID, AttachActor, Location, FadeInTime, 0.0f, PitchMultiplier);
-                    }
                 });
             World->GetTimerManager().SetTimer(TimerHandle, TimerDel, Delay, false);
             PendingDestroyTimers.Add(TimerHandle);
@@ -233,32 +260,27 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
+    // 加载资源
     USoundBase* SoundAsset = GetRandomSoundFromConfig(Config);
-    if (!SoundAsset)
+    if (!IsValid(SoundAsset))
     {
-        UE_LOG(LogTemp, Error, TEXT("No valid sound asset for SoundID %s (random pool empty and single asset missing)"), *SoundID.ToString());
+        UE_LOG(LogTemp, Error, TEXT("No valid sound asset for SoundID %s"), *SoundID.ToString());
         return nullptr;
     }
 
-    // 根据配置表设置循环播放
     if (Config->bLooping)
     {
         if (USoundWave* SoundWave = Cast<USoundWave>(SoundAsset))
         {
             SoundWave->bLooping = true;
-            UE_LOG(LogTemp, Log, TEXT("Set looping on SoundWave for SoundID: %s"), *SoundID.ToString());
         }
         else if (USoundCue* SoundCue = Cast<USoundCue>(SoundAsset))
         {
-            UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset is a SoundCue. Please ensure the Cue itself is set up to loop."), *SoundID.ToString());
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset type '%s' may not support dynamic looping."), *SoundID.ToString(), *SoundAsset->GetClass()->GetName());
+            UE_LOG(LogTemp, Warning, TEXT("Looping requested for SoundID '%s' but asset is a SoundCue."), *SoundID.ToString());
         }
     }
 
-    // 自动停止同类声音（Voice 和 BGM）
+    // 自动停止同类声音（Voice/BGM）
     if (Config->Category == EAudioCategory::Voice || Config->Category == EAudioCategory::BGM)
     {
         TArray<UAudioComponent*> ComponentsToStop;
@@ -266,12 +288,11 @@ UAudioComponent* UAudioManager::PlaySound(
         {
             const FAudioConfig* OtherConfig = GetAudioConfig(Pair.Value);
             if (OtherConfig && OtherConfig->Category == Config->Category)
-            {
                 ComponentsToStop.Add(Pair.Key);
-            }
         }
         for (UAudioComponent* Comp : ComponentsToStop)
         {
+            if (!IsValid(Comp)) continue;
             FName OldSoundID = ActiveComponents.FindRef(Comp);
             const FAudioConfig* OldConfig = GetAudioConfig(OldSoundID);
             float FadeOut = OldConfig ? OldConfig->FadeOutTime : 0.0f;
@@ -289,46 +310,36 @@ UAudioComponent* UAudioManager::PlaySound(
     UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
     if (!World) return nullptr;
 
-    UAudioComponent* AudioComponent = NewObject<UAudioComponent>(AttachActor ? AttachActor : World->GetWorldSettings());
+    UObject* Outer = IsValid(AttachActor) ? AttachActor : World->GetWorldSettings();
+    if (!IsValid(Outer)) Outer = World->GetWorldSettings();
+
+    UAudioComponent* AudioComponent = NewObject<UAudioComponent>(Outer);
     if (!AudioComponent) return nullptr;
 
     AudioComponent->SetSound(SoundAsset);
-    float FinalPitchMultiplier = PitchMultiplier * Config->PitchMultiplier;
-    AudioComponent->SetPitchMultiplier(FinalPitchMultiplier);
+    AudioComponent->SetPitchMultiplier(PitchMultiplier * Config->PitchMultiplier);
     float VolumeMultiplier = Config->DefaultVolume * CategoryVolumes[Config->Category];
     AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 
-    bool bAllowSpatialization = true;
-    switch (Config->Category)
-    {
-    case EAudioCategory::BGM:
-    case EAudioCategory::UI:
-        bAllowSpatialization = false;
-        break;
-    default:
-        bAllowSpatialization = true;
-        break;
-    }
+    bool bAllowSpatialization = (Config->Category != EAudioCategory::BGM && Config->Category != EAudioCategory::UI);
     AudioComponent->bAllowSpatialization = bAllowSpatialization;
 
-    // 修复音频衰减未生效：正确加载并应用 AttenuationSettings
     if (!Config->AttenuationSettings.IsNull())
     {
         USoundAttenuation* Attenuation = Cast<USoundAttenuation>(Config->AttenuationSettings.LoadSynchronous());
-        if (Attenuation)
-        {
+        if (IsValid(Attenuation))
             AudioComponent->AttenuationSettings = Attenuation;
-            UE_LOG(LogTemp, Verbose, TEXT("Applied AttenuationSettings for SoundID: %s"), *SoundID.ToString());
-        }
         else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Failed to load AttenuationSettings for SoundID: %s"), *SoundID.ToString());
-        }
+            AudioComponent->AttenuationSettings = nullptr;
+    }
+    else
+    {
+        AudioComponent->AttenuationSettings = nullptr;
     }
 
     AudioComponent->bAutoDestroy = false;
 
-    if (AttachActor && AttachActor->GetRootComponent())
+    if (IsValid(AttachActor) && AttachActor->GetRootComponent())
     {
         AudioComponent->AttachToComponent(AttachActor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     }
@@ -382,30 +393,20 @@ void UAudioManager::StopSound(FName SoundID, float FadeOutTime)
 {
     TArray<UAudioComponent*> ComponentsToStop;
     for (auto& Pair : ActiveComponents)
-    {
         if (Pair.Value == SoundID) ComponentsToStop.Add(Pair.Key);
-    }
 
     for (UAudioComponent* Component : ComponentsToStop)
     {
+        if (!IsValid(Component)) continue;
         float ActualFadeOut = FadeOutTime;
         if (ActualFadeOut <= 0.0f)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f)
+            if (const FAudioConfig* Config = GetAudioConfig(SoundID))
                 ActualFadeOut = Config->FadeOutTime;
-        }
 
         if (ActualFadeOut > 0.0f)
             FadeOutAndDestroyAudioComponent(Component, ActualFadeOut);
         else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (Component == CurrentVoiceComponent) CurrentVoiceComponent = nullptr;
-            if (Component == CurrentBGMComponent) CurrentBGMComponent = nullptr;
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
+            SafelyDestroyAudioComponent(Component);
     }
 }
 
@@ -413,19 +414,13 @@ void UAudioManager::StopAllSounds(float FadeOutTime)
 {
     TArray<UAudioComponent*> ComponentsToStop;
     ActiveComponents.GenerateKeyArray(ComponentsToStop);
-
     for (UAudioComponent* Component : ComponentsToStop)
     {
+        if (!IsValid(Component)) continue;
         if (FadeOutTime > 0.0f)
             FadeOutAndDestroyAudioComponent(Component, FadeOutTime);
         else
-        {
-            if (IsValid(Component))
-            {
-                Component->Stop();
-                Component->DestroyComponent();
-            }
-        }
+            SafelyDestroyAudioComponent(Component);
     }
     ActiveComponents.Empty();
     CurrentBGMComponent = nullptr;
@@ -440,525 +435,220 @@ void UAudioManager::StopAllSoundsByCategory(EAudioCategory Category, float FadeO
         const FAudioConfig* Config = GetAudioConfig(Pair.Value);
         if (Config && Config->Category == Category) ComponentsToStop.Add(Pair.Key);
     }
-
     for (UAudioComponent* Component : ComponentsToStop)
     {
+        if (!IsValid(Component)) continue;
         if (FadeOutTime > 0.0f)
             FadeOutAndDestroyAudioComponent(Component, FadeOutTime);
         else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (Component == CurrentVoiceComponent && Category == EAudioCategory::Voice) CurrentVoiceComponent = nullptr;
-            if (Component == CurrentBGMComponent && Category == EAudioCategory::BGM) CurrentBGMComponent = nullptr;
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
+            SafelyDestroyAudioComponent(Component);
     }
 }
 
-// ========== SFX ==========
-void UAudioManager::PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor, FVector Location, float PitchMultiplier)
+// ========== 分类快捷函数 ==========
+void UAudioManager::PlaySFX(UObject* WC, FName ID, AActor* Attach, FVector Loc, float Pitch)
 {
-    PlaySound(WorldContextObject, SoundID, AttachActor, Location, 0.0f, 0.0f, PitchMultiplier);
+    PlaySound(WC, ID, Attach, Loc, 0.0f, 0.0f, Pitch);
 }
-
-void UAudioManager::PlaySFXWithProbability(UObject* WorldContextObject, FName SoundID, float Probability, AActor* AttachActor, FVector Location, float PitchMultiplier)
+void UAudioManager::PlaySFXWithProbability(UObject* WC, FName ID, float Prob, AActor* Attach, FVector Loc, float Pitch)
 {
-    PlaySoundWithProbability(WorldContextObject, SoundID, Probability, AttachActor, Location, 0.0f, 0.0f, PitchMultiplier);
+    PlaySoundWithProbability(WC, ID, Prob, Attach, Loc, 0.0f, 0.0f, Pitch);
 }
+void UAudioManager::StopSFX(FName ID, float FadeOut) { StopSound(ID, FadeOut); }
+void UAudioManager::StopAllSFX(float FadeOut) { StopAllSoundsByCategory(EAudioCategory::SFX, FadeOut); }
 
-void UAudioManager::StopSFX(FName SoundID, float FadeOutTime)
+void UAudioManager::PlayBGM(UObject* WC, FName ID, float FadeTime)
 {
-    TArray<UAudioComponent*> ComponentsToStop;
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->Category == EAudioCategory::SFX) ComponentsToStop.Add(Pair.Key);
-        }
-    }
-    for (UAudioComponent* Component : ComponentsToStop)
-    {
-        float ActualFadeOut = FadeOutTime;
-        if (ActualFadeOut <= 0.0f)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f) ActualFadeOut = Config->FadeOutTime;
-        }
-        if (ActualFadeOut > 0.0f)
-            FadeOutAndDestroyAudioComponent(Component, ActualFadeOut);
-        else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
-    }
+    float Fade = (FadeTime >= 0.0f) ? FadeTime : (GetAudioConfig(ID) ? GetAudioConfig(ID)->FadeInTime : 0.0f);
+    PlaySound(WC, ID, nullptr, FVector::ZeroVector, Fade);
 }
-
-void UAudioManager::StopAllSFX(float FadeOutTime) { StopAllSoundsByCategory(EAudioCategory::SFX, FadeOutTime); }
-
-// ========== BGM ==========
-void UAudioManager::PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime)
-{
-    float ActualFadeIn = FadeTime;
-    if (ActualFadeIn < 0.0f)
-    {
-        const FAudioConfig* Config = GetAudioConfig(SoundID);
-        if (Config && Config->FadeInTime > 0.0f)
-            ActualFadeIn = Config->FadeInTime;
-        else
-            ActualFadeIn = 0.0f;
-    }
-    PlaySound(WorldContextObject, SoundID, nullptr, FVector::ZeroVector, ActualFadeIn);
-}
-
 void UAudioManager::StopBGM(float FadeTime)
 {
-    if (CurrentBGMComponent)
+    if (IsValid(CurrentBGMComponent))
     {
-        float ActualFadeOut = FadeTime;
-        if (ActualFadeOut < 0.0f)
-        {
-            FName SoundID = ActiveComponents.FindRef(CurrentBGMComponent);
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f)
-                ActualFadeOut = Config->FadeOutTime;
-            else
-                ActualFadeOut = 0.0f;
-        }
-
-        if (ActualFadeOut > 0.0f)
-            FadeOutAndDestroyAudioComponent(CurrentBGMComponent, ActualFadeOut);
+        float Fade = (FadeTime >= 0.0f) ? FadeTime : 0.0f;
+        if (Fade <= 0.0f)
+            if (const FAudioConfig* Cfg = GetAudioConfig(ActiveComponents[CurrentBGMComponent]))
+                Fade = Cfg->FadeOutTime;
+        if (Fade > 0.0f)
+            FadeOutAndDestroyAudioComponent(CurrentBGMComponent, Fade);
         else
-        {
-            if (IsValid(CurrentBGMComponent)) CurrentBGMComponent->Stop();
-            ActiveComponents.Remove(CurrentBGMComponent);
-            if (IsValid(CurrentBGMComponent)) CurrentBGMComponent->DestroyComponent();
-        }
+            SafelyDestroyAudioComponent(CurrentBGMComponent);
         CurrentBGMComponent = nullptr;
     }
 }
+void UAudioManager::PauseBGM() { if (IsValid(CurrentBGMComponent)) CurrentBGMComponent->SetPaused(true); }
+void UAudioManager::ResumeBGM() { if (IsValid(CurrentBGMComponent)) CurrentBGMComponent->SetPaused(false); }
 
-void UAudioManager::PauseBGM() { if (CurrentBGMComponent) CurrentBGMComponent->SetPaused(true); }
-void UAudioManager::ResumeBGM() { if (CurrentBGMComponent) CurrentBGMComponent->SetPaused(false); }
-
-// ========== Ambient ==========
-void UAudioManager::PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor, float FadeTime)
+void UAudioManager::PlayAmbient(UObject* WC, FName ID, AActor* Attach, float FadeTime)
 {
-    float ActualFadeIn = FadeTime;
-    if (ActualFadeIn < 0.0f)
-    {
-        const FAudioConfig* Config = GetAudioConfig(SoundID);
-        if (Config && Config->FadeInTime > 0.0f) ActualFadeIn = Config->FadeInTime;
-        else ActualFadeIn = 0.0f;
-    }
-    PlaySound(WorldContextObject, SoundID, AttachActor, FVector::ZeroVector, ActualFadeIn);
+    float Fade = (FadeTime >= 0.0f) ? FadeTime : (GetAudioConfig(ID) ? GetAudioConfig(ID)->FadeInTime : 0.0f);
+    PlaySound(WC, ID, Attach, FVector::ZeroVector, Fade);
 }
-
-void UAudioManager::StopAmbient(FName SoundID, float FadeTime)
+void UAudioManager::StopAmbient(FName ID, float FadeTime)
 {
-    TArray<UAudioComponent*> ComponentsToStop;
+    TArray<UAudioComponent*> Comps;
     for (auto& Pair : ActiveComponents)
+        if (Pair.Value == ID && GetAudioConfig(ID)->Category == EAudioCategory::Ambient)
+            Comps.Add(Pair.Key);
+    for (UAudioComponent* C : Comps)
     {
-        if (Pair.Value == SoundID)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->Category == EAudioCategory::Ambient) ComponentsToStop.Add(Pair.Key);
-        }
-    }
-    for (UAudioComponent* Component : ComponentsToStop)
-    {
-        float ActualFadeOut = FadeTime;
-        if (ActualFadeOut < 0.0f)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f) ActualFadeOut = Config->FadeOutTime;
-            else ActualFadeOut = 0.0f;
-        }
-        if (ActualFadeOut > 0.0f)
-            FadeOutAndDestroyAudioComponent(Component, ActualFadeOut);
-        else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
+        if (!IsValid(C)) continue;
+        float Fade = (FadeTime >= 0.0f) ? FadeTime : (GetAudioConfig(ID) ? GetAudioConfig(ID)->FadeOutTime : 0.0f);
+        if (Fade > 0.0f) FadeOutAndDestroyAudioComponent(C, Fade);
+        else SafelyDestroyAudioComponent(C);
     }
 }
-
 void UAudioManager::StopAllAmbient(float FadeTime) { StopAllSoundsByCategory(EAudioCategory::Ambient, FadeTime); }
 
-// ========== Voice ==========
-void UAudioManager::PlayVoice(
-    UObject* WorldContextObject,
-    FName SoundID,
-    AActor* AttachActor,
-    float FadeInTime,
-    float FadeOutTime,
-    float PitchMultiplier)
+void UAudioManager::PlayVoice(UObject* WC, FName ID, AActor* Attach, float FadeIn, float FadeOut, float Pitch)
 {
-    (void)FadeOutTime;
-    float ActualFadeIn = FadeInTime;
-    if (ActualFadeIn < 0.0f)
-    {
-        const FAudioConfig* NewConfig = GetAudioConfig(SoundID);
-        if (NewConfig && NewConfig->FadeInTime > 0.0f)
-            ActualFadeIn = NewConfig->FadeInTime;
-        else
-            ActualFadeIn = 0.0f;
-    }
-    PlaySound(WorldContextObject, SoundID, AttachActor, FVector::ZeroVector, ActualFadeIn, 0.0f, PitchMultiplier);
+    float Fade = (FadeIn >= 0.0f) ? FadeIn : (GetAudioConfig(ID) ? GetAudioConfig(ID)->FadeInTime : 0.0f);
+    PlaySound(WC, ID, Attach, FVector::ZeroVector, Fade, 0.0f, Pitch);
 }
-
-void UAudioManager::PlayVoiceWithProbability(
-    UObject* WorldContextObject,
-    FName SoundID,
-    float Probability,
-    AActor* AttachActor,
-    float FadeInTime,
-    float FadeOutTime,
-    float PitchMultiplier)
+void UAudioManager::PlayVoiceWithProbability(UObject* WC, FName ID, float Prob, AActor* Attach, float FadeIn, float FadeOut, float Pitch)
 {
-    if (ShouldPlayByProbability(Probability))
-    {
-        PlayVoice(WorldContextObject, SoundID, AttachActor, FadeInTime, FadeOutTime, PitchMultiplier);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Verbose, TEXT("PlayVoiceWithProbability: SoundID %s skipped (Probability=%.2f)"), *SoundID.ToString(), Probability);
-    }
+    if (ShouldPlayByProbability(Prob)) PlayVoice(WC, ID, Attach, FadeIn, FadeOut, Pitch);
 }
-
-void UAudioManager::StopVoice(FName SoundID, float FadeOutTime)
+void UAudioManager::StopVoice(FName ID, float FadeOut)
 {
-    TArray<UAudioComponent*> ComponentsToStop;
+    TArray<UAudioComponent*> Comps;
     for (auto& Pair : ActiveComponents)
+        if (Pair.Value == ID && GetAudioConfig(ID)->Category == EAudioCategory::Voice)
+            Comps.Add(Pair.Key);
+    for (UAudioComponent* C : Comps)
     {
-        if (Pair.Value == SoundID)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->Category == EAudioCategory::Voice) ComponentsToStop.Add(Pair.Key);
-        }
-    }
-    for (UAudioComponent* Component : ComponentsToStop)
-    {
-        float ActualFadeOut = FadeOutTime;
-        if (ActualFadeOut < 0.0f)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f) ActualFadeOut = Config->FadeOutTime;
-            else ActualFadeOut = 0.0f;
-        }
-        if (ActualFadeOut > 0.0f)
-            FadeOutAndDestroyAudioComponent(Component, ActualFadeOut);
-        else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
-        if (Component == CurrentVoiceComponent) CurrentVoiceComponent = nullptr;
+        if (!IsValid(C)) continue;
+        float Fade = (FadeOut >= 0.0f) ? FadeOut : (GetAudioConfig(ID) ? GetAudioConfig(ID)->FadeOutTime : 0.0f);
+        if (Fade > 0.0f) FadeOutAndDestroyAudioComponent(C, Fade);
+        else SafelyDestroyAudioComponent(C);
+        if (C == CurrentVoiceComponent) CurrentVoiceComponent = nullptr;
     }
 }
+void UAudioManager::StopAllVoice(float FadeOut) { StopAllSoundsByCategory(EAudioCategory::Voice, FadeOut); }
+void UAudioManager::PauseVoice() { if (IsValid(CurrentVoiceComponent)) CurrentVoiceComponent->SetPaused(true); }
+void UAudioManager::ResumeVoice() { if (IsValid(CurrentVoiceComponent)) CurrentVoiceComponent->SetPaused(false); }
 
-void UAudioManager::StopAllVoice(float FadeOutTime)
-{
-    TArray<UAudioComponent*> ComponentsToStop;
-    for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config && Config->Category == EAudioCategory::Voice) ComponentsToStop.Add(Pair.Key);
-    }
-    for (UAudioComponent* Component : ComponentsToStop)
-    {
-        if (FadeOutTime > 0.0f)
-            FadeOutAndDestroyAudioComponent(Component, FadeOutTime);
-        else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
-    }
-    CurrentVoiceComponent = nullptr;
-}
-
-void UAudioManager::PauseVoice()
-{
-    if (CurrentVoiceComponent && IsValid(CurrentVoiceComponent))
-    {
-        CurrentVoiceComponent->SetPaused(true);
-        UE_LOG(LogTemp, Log, TEXT("Voice paused"));
-    }
-}
-
-void UAudioManager::ResumeVoice()
-{
-    if (CurrentVoiceComponent && IsValid(CurrentVoiceComponent))
-    {
-        CurrentVoiceComponent->SetPaused(false);
-        UE_LOG(LogTemp, Log, TEXT("Voice resumed"));
-    }
-}
-
-// ========== UI ==========
-void UAudioManager::PlayUISound(UObject* WorldContextObject, FName SoundID)
-{
-    PlaySound(WorldContextObject, SoundID, nullptr, FVector::ZeroVector, 0.0f, 0.0f, 1.0f);
-}
-
-void UAudioManager::StopUISound(FName SoundID, float FadeOutTime)
-{
-    TArray<UAudioComponent*> ComponentsToStop;
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->Category == EAudioCategory::UI) ComponentsToStop.Add(Pair.Key);
-        }
-    }
-    for (UAudioComponent* Component : ComponentsToStop)
-    {
-        float ActualFadeOut = FadeOutTime;
-        if (ActualFadeOut <= 0.0f)
-        {
-            const FAudioConfig* Config = GetAudioConfig(SoundID);
-            if (Config && Config->FadeOutTime > 0.0f) ActualFadeOut = Config->FadeOutTime;
-        }
-        if (ActualFadeOut > 0.0f)
-            FadeOutAndDestroyAudioComponent(Component, ActualFadeOut);
-        else
-        {
-            if (IsValid(Component)) Component->Stop();
-            ActiveComponents.Remove(Component);
-            if (IsValid(Component)) Component->DestroyComponent();
-        }
-    }
-}
+void UAudioManager::PlayUISound(UObject* WC, FName ID) { PlaySound(WC, ID, nullptr, FVector::ZeroVector, 0.0f); }
+void UAudioManager::StopUISound(FName ID, float FadeOut) { StopSound(ID, FadeOut); }
 
 // ========== 通用暂停/恢复 ==========
-void UAudioManager::PauseSound(FName SoundID)
+void UAudioManager::PauseSound(FName ID)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID && Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(true);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Paused all instances of sound: %s"), *SoundID.ToString());
+    for (auto& Pair : ActiveComponents) if (Pair.Value == ID && IsValid(Pair.Key)) Pair.Key->SetPaused(true);
 }
-
-void UAudioManager::ResumeSound(FName SoundID)
+void UAudioManager::ResumeSound(FName ID)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID && Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(false);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Resumed all instances of sound: %s"), *SoundID.ToString());
+    for (auto& Pair : ActiveComponents) if (Pair.Value == ID && IsValid(Pair.Key)) Pair.Key->SetPaused(false);
 }
-
-void UAudioManager::PauseAllSoundsByCategory(EAudioCategory Category)
+void UAudioManager::PauseAllSoundsByCategory(EAudioCategory Cat)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config && Config->Category == Category && Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(true);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Paused all sounds of category: %s"), *UEnum::GetValueAsString(Category));
+    for (auto& Pair : ActiveComponents) if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value)) if (Cfg->Category == Cat && IsValid(Pair.Key)) Pair.Key->SetPaused(true);
 }
-
-void UAudioManager::ResumeAllSoundsByCategory(EAudioCategory Category)
+void UAudioManager::ResumeAllSoundsByCategory(EAudioCategory Cat)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config && Config->Category == Category && Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(false);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Resumed all sounds of category: %s"), *UEnum::GetValueAsString(Category));
+    for (auto& Pair : ActiveComponents) if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value)) if (Cfg->Category == Cat && IsValid(Pair.Key)) Pair.Key->SetPaused(false);
 }
-
 void UAudioManager::PauseAllSounds()
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(true);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Paused all sounds"));
+    for (auto& Pair : ActiveComponents) if (IsValid(Pair.Key)) Pair.Key->SetPaused(true);
 }
-
 void UAudioManager::ResumeAllSounds()
 {
+    for (auto& Pair : ActiveComponents) if (IsValid(Pair.Key)) Pair.Key->SetPaused(false);
+}
+
+// ========== 音量 ==========
+void UAudioManager::SetCategoryVolume(EAudioCategory Cat, float Vol)
+{
+    float Clamped = FMath::Clamp(Vol, 0.0f, 1.0f);
+    CategoryVolumes.Add(Cat, Clamped);
     for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Key && IsValid(Pair.Key))
-        {
-            Pair.Key->SetPaused(false);
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Resumed all sounds"));
+        if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value))
+            if (Cfg->Category == Cat && IsValid(Pair.Key))
+                Pair.Key->SetVolumeMultiplier(Cfg->DefaultVolume * Clamped);
+    OnCategoryVolumeChanged.Broadcast(Cat, Clamped);
 }
-
-// ========== Volume ==========
-void UAudioManager::SetCategoryVolume(EAudioCategory Category, float NewVolume)
+float UAudioManager::GetCategoryVolume(EAudioCategory Cat) const { return CategoryVolumes.FindRef(Cat); }
+void UAudioManager::SetAllVolumes(float BGM, float SFX, float Amb, float Voice, float UI)
 {
-    float ClampedVolume = FMath::Clamp(NewVolume, 0.0f, 1.0f);
-    CategoryVolumes.Add(Category, ClampedVolume);
-    for (auto& Pair : ActiveComponents)
-    {
-        UAudioComponent* Component = Pair.Key;
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Component && Config && Config->Category == Category)
-        {
-            Component->SetVolumeMultiplier(Config->DefaultVolume * ClampedVolume);
-        }
-    }
-    OnCategoryVolumeChanged.Broadcast(Category, ClampedVolume);
+    SetCategoryVolume(EAudioCategory::BGM, BGM); SetCategoryVolume(EAudioCategory::SFX, SFX); SetCategoryVolume(EAudioCategory::Ambient, Amb); SetCategoryVolume(EAudioCategory::Voice, Voice); SetCategoryVolume(EAudioCategory::UI, UI);
 }
-
-float UAudioManager::GetCategoryVolume(EAudioCategory Category) const
-{
-    const float* Volume = CategoryVolumes.Find(Category);
-    return Volume ? *Volume : 0.8f;
-}
-
-void UAudioManager::SetAllVolumes(float BGMVolume, float SFXVolume, float AmbientVolume, float VoiceVolume, float UIVolume)
-{
-    SetCategoryVolume(EAudioCategory::BGM, BGMVolume);
-    SetCategoryVolume(EAudioCategory::SFX, SFXVolume);
-    SetCategoryVolume(EAudioCategory::Ambient, AmbientVolume);
-    SetCategoryVolume(EAudioCategory::Voice, VoiceVolume);
-    SetCategoryVolume(EAudioCategory::UI, UIVolume);
-}
-
 void UAudioManager::ResetAllVolumes() { SetAllVolumes(0.8f, 0.8f, 0.8f, 0.8f, 0.8f); }
 
-// ========== Query ==========
-bool UAudioManager::IsSoundPlaying(FName SoundID) const
+// ========== 查询 ==========
+bool UAudioManager::IsSoundPlaying(FName ID) const
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID && Pair.Key && Pair.Key->IsPlaying()) return true;
-    }
-    return false;
+    for (auto& Pair : ActiveComponents) if (Pair.Value == ID && IsValid(Pair.Key) && Pair.Key->IsPlaying()) return true; return false;
 }
-
 int32 UAudioManager::GetActiveSoundCount() const { return ActiveComponents.Num(); }
-
-int32 UAudioManager::GetActiveSoundCountByCategory(EAudioCategory Category) const
+int32 UAudioManager::GetActiveSoundCountByCategory(EAudioCategory Cat) const
 {
-    int32 Count = 0;
-    for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config && Config->Category == Category) Count++;
-    }
-    return Count;
+    int32 Cnt = 0; for (auto& Pair : ActiveComponents) if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value)) if (Cfg->Category == Cat) ++Cnt; return Cnt;
 }
+bool UAudioManager::IsVoicePlaying() const { return IsValid(CurrentVoiceComponent) && CurrentVoiceComponent->IsPlaying(); }
 
-bool UAudioManager::IsVoicePlaying() const
-{
-    return CurrentVoiceComponent != nullptr && CurrentVoiceComponent->IsPlaying();
-}
-
-// ========== Debug ==========
+// ========== 调试 ==========
 void UAudioManager::PrintAudioSystemStatus()
 {
     UE_LOG(LogTemp, Log, TEXT("=== Audio System Status ==="));
     UE_LOG(LogTemp, Log, TEXT("Total Active Sounds: %d"), ActiveComponents.Num());
-    TArray<EAudioCategory> AllCategories = { EAudioCategory::BGM, EAudioCategory::SFX, EAudioCategory::Ambient, EAudioCategory::Voice, EAudioCategory::UI };
-    TMap<EAudioCategory, int32> CategoryCounts;
-    for (EAudioCategory Category : AllCategories) CategoryCounts.Add(Category, 0);
-    for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config) CategoryCounts[Config->Category]++;
-    }
-    for (EAudioCategory Category : AllCategories)
-    {
-        UE_LOG(LogTemp, Log, TEXT("  %s: %d"), *UEnum::GetValueAsString(Category), CategoryCounts[Category]);
-    }
-    UE_LOG(LogTemp, Log, TEXT("Current BGM: %s"), CurrentBGMComponent ? TEXT("Playing") : TEXT("None"));
-    UE_LOG(LogTemp, Log, TEXT("Current Voice: %s"), CurrentVoiceComponent ? TEXT("Playing") : TEXT("None"));
-    UE_LOG(LogTemp, Log, TEXT("=== End Status ==="));
+    TArray<EAudioCategory> Cats = { EAudioCategory::BGM, EAudioCategory::SFX, EAudioCategory::Ambient, EAudioCategory::Voice, EAudioCategory::UI };
+    TMap<EAudioCategory, int32> Counts;
+    for (EAudioCategory C : Cats) Counts.Add(C, 0);
+    for (auto& Pair : ActiveComponents) if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value)) Counts[Cfg->Category]++;
+    for (EAudioCategory C : Cats) UE_LOG(LogTemp, Log, TEXT("  %s: %d"), *UEnum::GetValueAsString(C), Counts[C]);
+    UE_LOG(LogTemp, Log, TEXT("Current BGM: %s"), IsValid(CurrentBGMComponent) ? TEXT("Playing") : TEXT("None"));
+    UE_LOG(LogTemp, Log, TEXT("Current Voice: %s"), IsValid(CurrentVoiceComponent) ? TEXT("Playing") : TEXT("None"));
 }
-
-void UAudioManager::PrintCategoryStatus(EAudioCategory Category)
+void UAudioManager::PrintCategoryStatus(EAudioCategory Cat)
 {
-    UE_LOG(LogTemp, Log, TEXT("=== %s Audio Status ==="), *UEnum::GetValueAsString(Category));
-    int32 Count = 0;
+    UE_LOG(LogTemp, Log, TEXT("=== %s Audio Status ==="), *UEnum::GetValueAsString(Cat));
+    int32 Cnt = 0;
     for (auto& Pair : ActiveComponents)
-    {
-        const FAudioConfig* Config = GetAudioConfig(Pair.Value);
-        if (Config && Config->Category == Category)
-        {
-            UE_LOG(LogTemp, Log, TEXT("  - %s"), *Pair.Value.ToString());
-            Count++;
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("Total: %d sounds"), Count);
-    UE_LOG(LogTemp, Log, TEXT("=== End %s Status ==="), *UEnum::GetValueAsString(Category));
+        if (const FAudioConfig* Cfg = GetAudioConfig(Pair.Value))
+            if (Cfg->Category == Cat)
+            {
+                UE_LOG(LogTemp, Log, TEXT("  - %s"), *Pair.Value.ToString()); ++Cnt;
+            }
+    UE_LOG(LogTemp, Log, TEXT("Total: %d sounds"), Cnt);
 }
 
-// ========== Shutdown 安全清理 ==========
+// ========== Shutdown（最终安全版本） ==========
 void UAudioManager::Shutdown()
 {
-    for (FTimerHandle& Handle : PendingDestroyTimers)
-    {
-        if (UWorld* World = GetWorld())
-        {
-            World->GetTimerManager().ClearTimer(Handle);
-        }
-    }
+    // 清除所有延迟销毁计时器句柄（World 可能已无效，仅清空容器）
     PendingDestroyTimers.Empty();
 
-    TArray<UAudioComponent*> ComponentsToDestroy;
-    ActiveComponents.GenerateKeyArray(ComponentsToDestroy);
-    for (UAudioComponent* Comp : ComponentsToDestroy)
+    // 复制一份组件列表，避免遍历时修改 ActiveComponents
+    TArray<UAudioComponent*> ComponentsToStop;
+    ActiveComponents.GetKeys(ComponentsToStop);
+    for (UAudioComponent* Comp : ComponentsToStop)
     {
         if (IsValid(Comp))
         {
             Comp->Stop();
-            Comp->DestroyComponent();
         }
     }
     ActiveComponents.Empty();
+
     CurrentBGMComponent = nullptr;
     CurrentVoiceComponent = nullptr;
 
     ShutdownEffectSystem();
-
-    // 清理资源缓存
     LoadedSoundCache.Empty();
 
     UE_LOG(LogTemp, Log, TEXT("AudioManager Shutdown completed"));
 }
 
-// ========== Internal ==========
+// ========== 内部辅助 ==========
 UWorld* UAudioManager::GetWorld() const
 {
     if (GEngine)
     {
         for (const FWorldContext& Context : GEngine->GetWorldContexts())
-        {
             if (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE)
                 return Context.World();
-        }
     }
     return nullptr;
 }
@@ -1008,146 +698,58 @@ void UAudioManager::SafelyDestroyAudioComponent(UAudioComponent* AudioComponent)
 void UAudioManager::InitializeEffectSystem(UDataTable* InEffectPresetTable)
 {
     EffectPresetTable = InEffectPresetTable;
-
     if (UWorld* World = GetWorld())
-    {
         World->GetTimerManager().SetTimer(EffectTickTimerHandle, this, &UAudioManager::TickEffectControllers, 0.016f, true);
-    }
-
     UE_LOG(LogTemp, Log, TEXT("AudioManager effect system initialized"));
 }
-
 UAudioEffectController* UAudioManager::GetOrCreateEffectController(UAudioComponent* AudioComponent)
 {
     if (!AudioComponent) return nullptr;
-
-    if (TObjectPtr<UAudioEffectController>* Found = ComponentEffectControllers.Find(AudioComponent))
-    {
-        return *Found;
-    }
-
+    if (TObjectPtr<UAudioEffectController>* Found = ComponentEffectControllers.Find(AudioComponent)) return *Found;
     UAudioEffectController* NewController = NewObject<UAudioEffectController>(this);
     NewController->Initialize(AudioComponent);
     ComponentEffectControllers.Add(AudioComponent, NewController);
     return NewController;
 }
-
 void UAudioManager::ApplyEffectPresetBySoundID(FName SoundID, FName EffectPresetRowName)
 {
-    if (!EffectPresetTable)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("AudioManager: EffectPresetTable not set"));
-        return;
-    }
-
+    if (!EffectPresetTable) { UE_LOG(LogTemp, Warning, TEXT("EffectPresetTable not set")); return; }
     const FAudioEffectPreset* Preset = EffectPresetTable->FindRow<FAudioEffectPreset>(EffectPresetRowName, TEXT(""));
-    if (!Preset)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("AudioManager: Effect preset row '%s' not found"), *EffectPresetRowName.ToString());
-        return;
-    }
-
-    TArray<UAudioComponent*> TargetComponents;
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID)
-        {
-            TargetComponents.Add(Pair.Key);
-        }
-    }
-
-    for (UAudioComponent* Comp : TargetComponents)
-    {
-        UAudioEffectController* Controller = GetOrCreateEffectController(Comp);
-        Controller->ApplyEffectPreset(*Preset);
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("Applied effect preset '%s' to %d instances of sound '%s'"),
-        *EffectPresetRowName.ToString(), TargetComponents.Num(), *SoundID.ToString());
+    if (!Preset) { UE_LOG(LogTemp, Warning, TEXT("Preset '%s' not found"), *EffectPresetRowName.ToString()); return; }
+    TArray<UAudioComponent*> Targets;
+    for (auto& Pair : ActiveComponents) if (Pair.Value == SoundID) Targets.Add(Pair.Key);
+    for (UAudioComponent* C : Targets) GetOrCreateEffectController(C)->ApplyEffectPreset(*Preset);
 }
-
 void UAudioManager::SetSoundLowPassCutoff(FName SoundID, float Cutoff, float Resonance)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID)
-        {
-            UAudioEffectController* Controller = GetOrCreateEffectController(Pair.Key);
-            Controller->SetLowPassCutoff(Cutoff, Resonance);
-        }
-    }
+    for (auto& Pair : ActiveComponents) if (Pair.Value == SoundID) GetOrCreateEffectController(Pair.Key)->SetLowPassCutoff(Cutoff, Resonance);
 }
-
 void UAudioManager::StartSoundLowPassLerp(FName SoundID, float TargetCutoff, float Duration)
 {
-    for (auto& Pair : ActiveComponents)
-    {
-        if (Pair.Value == SoundID)
-        {
-            UAudioEffectController* Controller = GetOrCreateEffectController(Pair.Key);
-            Controller->StartLowPassCutoffLerp(TargetCutoff, Duration);
-        }
-    }
+    for (auto& Pair : ActiveComponents) if (Pair.Value == SoundID) GetOrCreateEffectController(Pair.Key)->StartLowPassCutoffLerp(TargetCutoff, Duration);
 }
-
 void UAudioManager::ClearSoundEffect(FName SoundID)
 {
     for (auto& Pair : ActiveComponents)
-    {
         if (Pair.Value == SoundID)
-        {
             if (TObjectPtr<UAudioEffectController>* Ctrl = ComponentEffectControllers.Find(Pair.Key))
             {
-                (*Ctrl)->ClearEffect();
-                ComponentEffectControllers.Remove(Pair.Key);
+                (*Ctrl)->ClearEffect(); ComponentEffectControllers.Remove(Pair.Key);
             }
-        }
-    }
 }
-
 void UAudioManager::TickEffectControllers()
 {
-    UWorld* World = GetWorld();
-    float DeltaTime = World ? World->GetDeltaSeconds() : 0.016f;
-
-    for (auto& Pair : ComponentEffectControllers)
-    {
-        if (Pair.Value && IsValid(Pair.Key))
-        {
-            Pair.Value->Tick(DeltaTime);
-        }
-    }
-
+    float DeltaTime = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.016f;
+    for (auto& Pair : ComponentEffectControllers) if (Pair.Value && IsValid(Pair.Key)) Pair.Value->Tick(DeltaTime);
     TArray<UAudioComponent*> ToRemove;
-    for (auto& Pair : ComponentEffectControllers)
-    {
-        if (!IsValid(Pair.Key))
-        {
-            ToRemove.Add(Pair.Key);
-        }
-    }
-    for (UAudioComponent* Comp : ToRemove)
-    {
-        ComponentEffectControllers.Remove(Comp);
-    }
+    for (auto& Pair : ComponentEffectControllers) if (!IsValid(Pair.Key)) ToRemove.Add(Pair.Key);
+    for (UAudioComponent* C : ToRemove) ComponentEffectControllers.Remove(C);
 }
-
 void UAudioManager::ShutdownEffectSystem()
 {
-    if (UWorld* World = GetWorld())
-    {
-        World->GetTimerManager().ClearTimer(EffectTickTimerHandle);
-    }
-
-    for (auto& Pair : ComponentEffectControllers)
-    {
-        if (Pair.Value)
-        {
-            Pair.Value->ClearEffect();
-        }
-    }
+    if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(EffectTickTimerHandle);
+    for (auto& Pair : ComponentEffectControllers) if (Pair.Value) Pair.Value->ClearEffect();
     ComponentEffectControllers.Empty();
     EffectPresetTable = nullptr;
-
     UE_LOG(LogTemp, Log, TEXT("AudioManager effect system shutdown"));
 }

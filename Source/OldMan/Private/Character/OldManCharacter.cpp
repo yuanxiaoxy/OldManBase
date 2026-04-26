@@ -864,8 +864,8 @@ void AOldManCharacter::InitializeEvent()
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool, FVector, FRotator, bool>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_LockMouseKey, this, &AOldManCharacter::OnLockMouseKey);
-    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockAttack, this, &AOldManCharacter::OnUnLockCharacterPull);
-    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockPull, this, &AOldManCharacter::OnUnLockCharacterAttack);
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockAttack, this, &AOldManCharacter::OnUnLockCharacterAttack);
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockPull, this, &AOldManCharacter::OnUnLockCharacterPull);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, EHardwareDevicePrimaryType>(UGlobalEventName::Key_Input_InputDeviceChanged, this, &AOldManCharacter::OnInputDeviceChanged);
     if (AOldManPersonPlayerController* PC = GetOldManController())

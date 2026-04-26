@@ -373,7 +373,7 @@ public:
     UPROPERTY()
     bool InFireCoolDown = false;
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
     bool UnLockAttack = true;
 
     UPROPERTY()
@@ -403,7 +403,7 @@ public:
     UPROPERTY()
     bool bCouldPullItem = true;
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     bool UnLockPull = true;
 
 public:

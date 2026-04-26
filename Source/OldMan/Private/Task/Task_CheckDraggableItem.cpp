@@ -70,29 +70,30 @@ void UTask_CheckDraggableItem::OnAnyDraggingStopped(ADraggableSplineActor* Dragg
     // 查找该 Actor 的起始位置记录
     TWeakObjectPtr<ADraggableSplineActor> WeakActor(DraggedActor);
     float* StartPosPtr = DragStartPositions.Find(WeakActor);
-    if (!StartPosPtr)
-    {
-        // 如果没有记录（可能未正确触发开始事件），则忽略本次停止
-        return;
-    }
 
-    float StartPosition = *StartPosPtr;
-    float CurrentPosition = DraggedActor->GetCurrentSplinePosition();
-
-    // 判断是否满足完成条件
     bool bShouldComplete = false;
-    if (!bRequireMinDistance)
+    if (bRequireMinDistance)
     {
-        // 不需要最小距离：只要被拖动过就完成
-        bShouldComplete = true;
+        if (StartPosPtr)
+        {
+            float StartPosition = *StartPosPtr;
+            float CurrentPosition = DraggedActor->GetCurrentSplinePosition();
+
+            float DeltaPos = FMath::Abs(CurrentPosition - StartPosition);
+            if (DeltaPos >= MinDeltaPosition)
+            {
+                bShouldComplete = true;
+            }
+        }
+        else
+        {
+            return;
+        }
     }
     else
     {
-        float DeltaPos = FMath::Abs(CurrentPosition - StartPosition);
-        if (DeltaPos >= MinDeltaPosition)
-        {
-            bShouldComplete = true;
-        }
+        // 不需要最小距离：只要被拖动过就完成
+        bShouldComplete = true;
     }
 
     if (bShouldComplete)

@@ -617,27 +617,11 @@ void UAudioManager::PrintCategoryStatus(EAudioCategory Cat)
 // ========== Shutdown（最终安全版本） ==========
 void UAudioManager::Shutdown()
 {
-    // 清除所有延迟销毁计时器句柄（World 可能已无效，仅清空容器）
-    PendingDestroyTimers.Empty();
-
-    // 复制一份组件列表，避免遍历时修改 ActiveComponents
-    TArray<UAudioComponent*> ComponentsToStop;
-    ActiveComponents.GetKeys(ComponentsToStop);
-    for (UAudioComponent* Comp : ComponentsToStop)
-    {
-        if (IsValid(Comp))
-        {
-            Comp->Stop();
-        }
-    }
-    ActiveComponents.Empty();
-
     CurrentBGMComponent = nullptr;
     CurrentVoiceComponent = nullptr;
-
-    ShutdownEffectSystem();
+    ActiveComponents.Empty();
     LoadedSoundCache.Empty();
-
+    ShutdownEffectSystem();
     UE_LOG(LogTemp, Log, TEXT("AudioManager Shutdown completed"));
 }
 

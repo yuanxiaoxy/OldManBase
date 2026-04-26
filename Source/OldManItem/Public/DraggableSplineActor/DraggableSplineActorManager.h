@@ -34,6 +34,9 @@ class OLDMANITEM_API ADraggableSplineActorManager : public AActorSingletonBase
 public:
     ADraggableSplineActorManager();
 
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "DraggableSplineActorManager", meta = (DisplayName = "Get DraggableSplineActorManager"))
+    static ADraggableSplineActorManager* GetDraggableSplineActorManager() { return GetInstance(); }
+
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

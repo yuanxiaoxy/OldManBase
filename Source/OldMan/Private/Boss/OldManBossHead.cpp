@@ -64,6 +64,28 @@ void AOldManBossHead::UpdateData()
 	}
 }
 
+void AOldManBossHead::UpdateInitPodRot()
+{
+	if (CanRunning)
+	{
+		LeftEyebrowInitialPos = LeftEyebrow->GetActorLocation();
+		LeftEyebrowInitialRot = LeftEyebrow->GetActorRotation();
+		RightEyebrowInitialPos = RightEyebrow->GetActorLocation();
+		RightEyebrowInitialRot = RightEyebrow->GetActorRotation();
+		ChinInitialPos = Chin->GetActorLocation();
+		ChinInitialRot = Chin->GetActorRotation();
+		ShangBaLInitialPos = ShangBaL->GetActorLocation();
+		ShangBaLInitialRot = ShangBaL->GetActorRotation();
+		ShangBaMidInitialPos = ShangBaMid->GetActorLocation();
+		ShangBaMidInitialRot = ShangBaMid->GetActorRotation();
+		ShangBaRInitialPos = ShangBaR->GetActorLocation();
+		ShangBaRInitialRot = ShangBaR->GetActorRotation();
+		LeftEarInitialRot = LeftEar->GetActorRotation();
+		RightEarInitialRot = RightEar->GetActorRotation();
+	}
+
+}
+
 //设置指定部位激活part
 void AOldManBossHead::SetPartActive(ECurOperationType target, bool Active)
 {
@@ -329,8 +351,6 @@ void AOldManBossHead::BeginPlay()
 	CanRunning = true;
 	if (LeftEyebrow)
 	{
-		LeftEyebrowInitialPos = LeftEyebrow->GetActorLocation();
-		LeftEyebrowInitialRot = LeftEyebrow->GetActorRotation();
 	}
 	else
 	{
@@ -339,8 +359,6 @@ void AOldManBossHead::BeginPlay()
 	}
 	if (RightEyebrow)
 	{
-		RightEyebrowInitialPos = RightEyebrow->GetActorLocation();
-		RightEyebrowInitialRot = RightEyebrow->GetActorRotation();
 	}
 	else
 	{
@@ -349,8 +367,6 @@ void AOldManBossHead::BeginPlay()
 	}
 	if (Chin)
 	{
-		ChinInitialPos = Chin->GetActorLocation();
-		ChinInitialRot = Chin->GetActorRotation();
 	}
 	else
 	{
@@ -359,8 +375,6 @@ void AOldManBossHead::BeginPlay()
 	}
 	if (ShangBaL)
 	{
-		ShangBaLInitialPos = ShangBaL->GetActorLocation();
-		ShangBaLInitialRot = ShangBaL->GetActorRotation();
 	}
 	else
 	{
@@ -369,8 +383,6 @@ void AOldManBossHead::BeginPlay()
 	}
 	if (ShangBaMid)
 	{
-		ShangBaMidInitialPos = ShangBaMid->GetActorLocation();
-		ShangBaMidInitialRot = ShangBaMid->GetActorRotation();
 	}
 	else
 	{
@@ -379,22 +391,18 @@ void AOldManBossHead::BeginPlay()
 	}
 	if (ShangBaR)
 	{
-		ShangBaRInitialPos = ShangBaR->GetActorLocation();
-		ShangBaRInitialRot = ShangBaR->GetActorRotation();
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossHead_上巴右不存在"));
 		CanRunning = false;
 	}
-	if (LeftEar)LeftEarInitialRot = LeftEar->GetActorRotation();
-	else
+	if (!LeftEar)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossHead_左耳朵不存在"));
 		CanRunning = false;
 	}
-	if (RightEar)RightEarInitialRot = RightEar->GetActorRotation();
-	else
+	if (!RightEar)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossHead_右耳朵不存在"));
 		CanRunning = false;
@@ -409,6 +417,7 @@ void AOldManBossHead::BeginPlay()
 	JudgeRightEarRight();
 
 	SetAllPartActive(false);
+	UpdateInitPodRot();
 	UpdateData();
 }
 

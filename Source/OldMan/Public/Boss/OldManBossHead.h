@@ -19,6 +19,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdateData();		//根据记录数据更新老人头位置
 	UFUNCTION(BlueprintCallable)
+	void UpdateInitPodRot();		//根据记录数据更新老人头位置
+
+	UFUNCTION(BlueprintCallable)
 	void SetPartActive(ECurOperationType target, bool Active);		//设置指定部位激活part
 	UFUNCTION(BlueprintCallable)
 	void SetAllPartActive(bool Active);		//设置所有部位激活part

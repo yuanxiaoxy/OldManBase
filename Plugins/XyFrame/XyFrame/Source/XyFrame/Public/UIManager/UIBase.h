@@ -41,7 +41,6 @@ struct FUIControlInfo
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, const FString&, ControlPath);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCheckBoxChanged, const FString&, ControlPath, bool, IsChecked);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSliderValueChanged, const FString&, ControlPath, float, Value);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIInputAction, UInputAction*, InputAction, EUIInputEvent, InputEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInputModeChanged);
@@ -150,8 +149,6 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "UI|Events")
     FOnCheckBoxChanged OnCheckBoxChanged;
 
-    UPROPERTY(BlueprintAssignable, Category = "UI|Events")
-    FOnSliderValueChanged OnSliderValueChanged;
 
     UPROPERTY(BlueprintAssignable, Category = "UI|Input")
     FOnUIInputAction OnInputActionEvent;

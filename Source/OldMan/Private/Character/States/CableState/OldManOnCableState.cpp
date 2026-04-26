@@ -231,7 +231,7 @@ void UOldManOnCableState::HandleMovementOnCableInAir(float DeltaTime)
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                ApplyMovement(MovementDirection, targetSpeed);
+                //ApplyMovement(MovementDirection, targetSpeed);
             }
             else
             {
@@ -239,7 +239,7 @@ void UOldManOnCableState::HandleMovementOnCableInAir(float DeltaTime)
             }
 
             // Handle rotation
-            HandleRotation(DeltaTime);
+            //HandleRotation(DeltaTime);
         }
     }
 }

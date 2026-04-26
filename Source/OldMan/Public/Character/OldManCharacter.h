@@ -269,6 +269,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bHasCable;
 
+    UPROPERTY(BlueprintReadWrite, Category = "State")
+    bool bInWater;
+
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
 
@@ -375,6 +378,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
     bool UnLockAttack = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+    bool bUseCursorPos = true;
 
     UPROPERTY()
     FTimerHandle FireTimerHandle;

@@ -732,22 +732,7 @@ void AOldManCharacter::DectedActors()
     // Get effective cursor screen position (gamepad virtual cursor or real mouse)
     FVector2D CursorScreenPos = PC->GetEffectiveCursorScreenPosition();
 
-    // Check if camera animation is playing and exposes mouse position
-    bool bUseCursorPos = false;
-    if (CameraAnimationComponent && CameraAnimationComponent->IsCameraAnimationPlaying())
-    {
-        FOldManCameraAnimationData CurrentData = CameraAnimationComponent->GetCurrentAnimationData();
-        if (CurrentData.AnimationType == ECameraAnimationType::FollowPlayer && CurrentData.bExposeMousePosition)
-        {
-            bUseCursorPos = true;
-        }
-    }
-    else if (CameraComponent && CameraComponent->GetCurrentCameraMode() == ECameraMode::MouseCursorMode)
-    {
-        bUseCursorPos = true;
-    }
-
-    if (bUseCursorPos || PC->ShouldUseCursorPosition())
+    if (bUseCursorPos)
     {
         // Use cursor position for detection (unified position)
         CameraComponent->GetActorsInConeByMousePosition(

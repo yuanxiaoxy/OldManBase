@@ -494,7 +494,7 @@ void UUIBase::HandleCheckBoxChanged(const FString& ControlPath, bool IsChecked)
 
 void UUIBase::HandleSliderValueChanged(const FString& ControlPath, float Value)
 {
-    OnSliderValueChanged.Broadcast(ControlPath, Value);
+
 }
 
 void UUIBase::HandleButtonClickInternal()

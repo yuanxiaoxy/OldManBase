@@ -9,7 +9,13 @@ AOldManTipLight::AOldManTipLight()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;	//关闭Tick
+	//// 1. 创建一个USceneComponent作为根组件
+	//RootSceneComponen = CreateDefaultSubobject<USceneComponent>(TEXT("RootSceneComp"));
+	//RootComponent = RootSceneComponen; // 必须将SceneComponent指定为根
 
+	// 2. 创建一个StaticMeshComponent并附加到根组件
+	MyMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
+	MyMeshComponent->SetupAttachment(RootComponent);
 	
 }
 
@@ -19,7 +25,7 @@ AOldManTipLight::AOldManTipLight()
 void AOldManTipLight::BeginPlay()
 {
 	Super::BeginPlay();
-	MyMeshComponent = FindComponentByClass<UStaticMeshComponent>();
+	//MyMeshComponent = FindComponentByClass<UStaticMeshComponent>();
 	CanRunning = true;
 
 	if (!OldManMove)

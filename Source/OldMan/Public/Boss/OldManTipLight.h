@@ -90,15 +90,18 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void SwitchOperationMat(ECurOperationType TargetOperation);		//切换操作材质
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* MyMeshComponent;		//自身组件
 private:
 	bool CanRunning = true;		//是否可以正常运行
-	UStaticMeshComponent* MyMeshComponent;		//自身组件
+	
 	ECurOperationType CurType = ECurOperationType::None;	//当前大灯阶段
 	bool OldManHeadCanMove = true;		//当前是否可以移动老人头
 	UPointLightComponent* SmallLightGreenPointLight;
 	UPointLightComponent* SmallLightRedPointLight;
 	UPointLightComponent* BiggerLightGreenPointLight;
 	UPointLightComponent* BiggerLightRedPointLight;
+	//USceneComponent* RootSceneComponen;
 
 protected:
 	// Called when the game starts or when spawned

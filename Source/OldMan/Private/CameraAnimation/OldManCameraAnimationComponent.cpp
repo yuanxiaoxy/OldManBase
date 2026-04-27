@@ -657,37 +657,31 @@ void UOldManCameraAnimationComponent::UpdateExitBlend(float DeltaTime)
 	ExitBlendElapsed += DeltaTime;
 	float ExitBlendAlpha = FMath::Clamp(ExitBlendElapsed / ExitBlendTime, 0.0f, 1.0f);
 
-	// 应用平滑曲线
 	float CurveAlpha = ExitBlendAlpha;
 	if (CurrentAnimationData.BlendCurve)
 	{
 		CurveAlpha = CurrentAnimationData.BlendCurve->GetFloatValue(ExitBlendAlpha);
 	}
 
-	// 在退出混合过程中，逐渐从动画相机状态过渡到目标相机状态
 	if (CameraAnimationActor && CameraComponent && Character)
 	{
-		// 计算当前动画相机的位置和旋转
-		FVector AnimatedLocation = CalculateAnimatedCameraLocation();
-		FRotator AnimatedRotation = CalculateAnimatedCameraRotation();
-
-		// 计算目标相机的位置和旋转
+		// 目标位置/旋转（回归到原始相机）
 		FVector TargetLocation = CalculateTargetCameraLocation();
 		FRotator TargetRotation = CalculateTargetCameraRotation();
 
-		// 插值位置和旋转
-		FVector CurrentLocation = FMath::Lerp(AnimatedLocation, TargetLocation, CurveAlpha);
-		FRotator CurrentRotation = FMath::Lerp(AnimatedRotation, TargetRotation, CurveAlpha);
+		// 从记录的固定起点插值到目标
+		FVector CurrentLocation = FMath::Lerp(ExitStartLocation, TargetLocation, CurveAlpha);
+		FRotator CurrentRotation = FMath::Lerp(ExitStartRotation, TargetRotation, CurveAlpha);
 
-		// 更新动画相机
 		CameraAnimationActor->SetActorLocation(CurrentLocation);
 		CameraAnimationActor->SetActorRotation(CurrentRotation);
 
-		// 插值FOV
-		if (CurrentAnimationData.bOverrideFOV && CameraAnimationActor->GetCameraComponent())
+		// 插值FOV：从记录的起始FOV到原始FOV
+		if (UCameraComponent* CamComp = CameraAnimationActor->GetCameraComponent())
 		{
-			float CurrentFOV = FMath::Lerp(CurrentAnimationData.FOV, OriginalFOV, CurveAlpha);
-			CameraAnimationActor->GetCameraComponent()->FieldOfView = CurrentFOV;
+			float TargetFOV = OriginalFOV;
+			float CurrentFOV = FMath::Lerp(ExitStartFOV, TargetFOV, CurveAlpha);
+			CamComp->FieldOfView = CurrentFOV;
 		}
 	}
 
@@ -1129,15 +1123,36 @@ bool UOldManCameraAnimationComponent::CheckStopConditions(float DeltaTime)
 
 void UOldManCameraAnimationComponent::StartExitBlend()
 {
-	// 设置退出混合参数
+	// 记录当前相机Actor的位置、旋转和FOV作为退出混合的固定起点
+	if (CameraAnimationActor)
+	{
+		ExitStartLocation = CameraAnimationActor->GetActorLocation();
+		ExitStartRotation = CameraAnimationActor->GetActorRotation();
+		if (UCameraComponent* CamComp = CameraAnimationActor->GetCameraComponent())
+		{
+			ExitStartFOV = CamComp->FieldOfView;
+		}
+		else
+		{
+			ExitStartFOV = CurrentAnimationData.bOverrideFOV ? CurrentAnimationData.FOV : OriginalFOV;
+		}
+	}
+	else
+	{
+		// 如果没有Actor（不应该发生），则使用计算出的当前位置
+		ExitStartLocation = CalculateAnimatedCameraLocation();
+		ExitStartRotation = CalculateAnimatedCameraRotation();
+		ExitStartFOV = CurrentAnimationData.bOverrideFOV ? CurrentAnimationData.FOV : OriginalFOV;
+	}
+
 	ExitBlendTime = CurrentAnimationData.BlendOutTime > 0.0f ? CurrentAnimationData.BlendOutTime : 0.5f;
 	ExitBlendElapsed = 0.0f;
 
-	// 标记正在退出混合
 	bIsBlendingOut = true;
 	AnimationBlendAlpha = 1.0f; // 从完全动画状态开始退出
 
-	UE_LOG(LogTemp, Log, TEXT("Starting exit blend with time: %.2f seconds"), ExitBlendTime);
+	UE_LOG(LogTemp, Log, TEXT("Starting exit blend from fixed start point (Loc=%s, Rot=%s) with time: %.2f seconds"),
+		*ExitStartLocation.ToString(), *ExitStartRotation.ToString(), ExitBlendTime);
 }
 
 void UOldManCameraAnimationComponent::HandleMouseExposure(bool bExpose)

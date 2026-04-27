@@ -184,13 +184,10 @@ void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
         return;
 
     //// Check if in gamepad cursor mode and current device is gamepad
-    //if (ShouldUseCursorPosition())
-    //{
-    //    // Move virtual cursor, multiply by speed and delta time
-    //    float DeltaTime = GetWorld()->GetDeltaSeconds();
-    //    MoveGamepadCursor(LookAxisVector * GamepadCursorSpeed * DeltaTime);
-    //    return;
-    //}
+    if (CachedOldManCharacter && GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad && CachedOldManCharacter->bUseCursorPos)
+    {
+        MoveGamepadCursor(LookAxisVector);
+    }
 
     UOldManCameraComponent* CameraComp = GetCameraComponent();
     if (!CameraComp)
@@ -427,7 +424,7 @@ void AOldManPersonPlayerController::SetInputEnabled(bool bEnabled)
 void AOldManPersonPlayerController::MoveGamepadCursor(const FVector2D& Delta)
 {
     // Update cursor position and clamp within viewport bounds
-    GamepadCursorPosition += Delta;
+    GamepadCursorPosition += Delta * GamepadCursorSpeed;
     int32 ViewportSizeX, ViewportSizeY;
     GetViewportSize(ViewportSizeX, ViewportSizeY);
     GamepadCursorPosition.X = FMath::Clamp(GamepadCursorPosition.X, 0.0f, (float)ViewportSizeX);

@@ -166,6 +166,7 @@ void AOldManBossHead::LeftEyebrowClose()
 void AOldManBossHead::LeftEyebrowBlink()
 {
 	//等待高亮事件
+	LeftEyebrowBlinkInBP();
 }
 
 void AOldManBossHead::RightEyebrowOpen()
@@ -194,6 +195,7 @@ void AOldManBossHead::RightEyebrowClose()
 void AOldManBossHead::RightEyebrowBlink()
 {
 	//等待高亮事件
+	RightEyebrowBlinkInBP();
 }
 
 void AOldManBossHead::ChinOpen()
@@ -231,6 +233,7 @@ void AOldManBossHead::ChinClose()
 void AOldManBossHead::ChinBlink()
 {
 	//等待高亮事件
+	ChinBlinkInBP();
 }
 
 void AOldManBossHead::LeftEarDragedAdd(float Progress)
@@ -238,7 +241,11 @@ void AOldManBossHead::LeftEarDragedAdd(float Progress)
 	if (CanRunning && IsLeftEarActive)
 	{
 		LeftEarProgress += Progress;
-		if (LeftEarProgress >= 1)LeftEarProgress = 1;
+		if (LeftEarProgress >= 1)
+		{
+			LeftEarProgress = 1;
+			LeftEarCompelete();
+		}
 		LeftEarDraged(LeftEarProgress);
 	}
 }
@@ -275,6 +282,7 @@ void AOldManBossHead::LeftEarBack()
 void AOldManBossHead::LeftEarBlink()
 {
 	//等待高亮事件
+	LeftEarBlinkInBP();
 }
 
 void AOldManBossHead::JudgeLeftEarRight()
@@ -293,7 +301,11 @@ void AOldManBossHead::RightEarDragedAdd(float Progress)
 	if (CanRunning && IsRightEarActive)
 	{
 		RightEarProgress += Progress;
-		if (RightEarProgress >= 1)RightEarProgress = 1;
+		if (RightEarProgress >= 1)
+		{
+			RightEarProgress = 1;
+			RightEarCompelete();
+		}
 		RightEarDraged(RightEarProgress);
 	}
 }
@@ -329,6 +341,7 @@ void AOldManBossHead::RightEarBack()
 void AOldManBossHead::RightEarBlink()
 {
 	//等待高亮事件
+	RightEarBlinkInBP();
 }
 
 void AOldManBossHead::JudgeRightEarRight()

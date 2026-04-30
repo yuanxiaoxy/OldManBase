@@ -34,6 +34,8 @@ public:
 	void LeftEyebrowClose();		//关闭左眉毛
 	UFUNCTION(BlueprintCallable)
 	void LeftEyebrowBlink();		//左眉毛闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void LeftEyebrowBlinkInBP();		//左眉毛闪烁
 	//右眉毛
 	UFUNCTION(BlueprintCallable)
 	void RightEyebrowOpen();		//张开右眉毛
@@ -41,6 +43,8 @@ public:
 	void RightEyebrowClose();		//关闭右眉毛
 	UFUNCTION(BlueprintCallable)
 	void RightEyebrowBlink();		//右眉毛闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void RightEyebrowBlinkInBP();		//右眉毛闪烁
 	//下巴
 	UFUNCTION(BlueprintCallable)
 	void ChinOpen();		//张开下巴
@@ -48,6 +52,8 @@ public:
 	void ChinClose();		//关闭下巴
 	UFUNCTION(BlueprintCallable)
 	void ChinBlink();		//下巴闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void ChinBlinkInBP();		//下巴闪烁
 	//左耳朵
 	UFUNCTION(BlueprintCallable)
 	void LeftEarDragedAdd(float Progress);		//左耳朵拉住add方法
@@ -57,6 +63,10 @@ public:
 	void LeftEarBack();		//左耳朵回正
 	UFUNCTION(BlueprintCallable)
 	void LeftEarBlink();		//下左耳朵闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void LeftEarBlinkInBP();		//下左耳朵闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void LeftEarCompelete();		//下左耳朵转到正确位置
 	UFUNCTION(BlueprintCallable)
 	void JudgeLeftEarRight();		//判断左耳朵是否在正确位置
 	//右耳朵
@@ -68,6 +78,10 @@ public:
 	void RightEarBack();		//右耳朵回正
 	UFUNCTION(BlueprintCallable)
 	void RightEarBlink();		//下右耳朵闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void RightEarBlinkInBP();		//下右耳朵闪烁
+	UFUNCTION(BlueprintImplementableEvent)
+	void RightEarCompelete();		//下右耳朵转到正确位置
 	UFUNCTION(BlueprintCallable)
 	void JudgeRightEarRight();		//判断右耳朵是否在正确位置
 protected:

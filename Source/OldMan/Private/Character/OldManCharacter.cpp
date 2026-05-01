@@ -808,6 +808,15 @@ void AOldManCharacter::InitializeParam()
     // Landing detection improvements
     LastLandingTime = 0.0f;
     bWasFalling = false;
+
+    if (GetOldManController() && GetOldManController()->GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad)
+    {
+        CharacterAttributes = GamePadCharacterAttributes;
+    }
+    else
+    {
+        CharacterAttributes = KeyBoardCharacterAttributes;
+    }
 }
 
 void AOldManCharacter::InitializeStateMachine()

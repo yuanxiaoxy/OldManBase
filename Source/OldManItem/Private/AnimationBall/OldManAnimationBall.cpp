@@ -114,7 +114,10 @@ void AOldManAnimationBall::PlayAniInScene()
 void AOldManAnimationBall::PlayAniInUI()
 {
 	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
-	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", nullptr);
+	UAniMationBallDatas* datas = NewObject<UAniMationBallDatas>();
+	datas->IsOpenSkip = IsOpenSkip;
+	if (IsOpenSkip) datas->MediaPlayer = MediaPlayer;
+	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", datas);
 	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI("AnimationPlayPanel");
 	if (curWidget != nullptr) 
 	{

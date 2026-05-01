@@ -24,6 +24,19 @@ enum class E_AniBallType : uint8
 	playOnUI UMETA(DisplayName = "Play On UI"),
 	playAsText UMETA(DisplayName = "Play As Text")
 };
+UCLASS(BlueprintType)
+class OLDMANITEM_API UAniMationBallDatas : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool IsOpenSkip = false;
+	// 媒体播放器组件
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMediaPlayer* MediaPlayer;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	AOldManAnimationBall* AnimationBall;
+};
 /**
  * 
  */
@@ -57,6 +70,9 @@ public:
 	//是否只生成物体
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (EditCondition = "myType == E_AniBallType::playOnScene"))
 	bool IsCreateOnly = false;
+	//是否开启跳过按钮
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (EditCondition = "myType == E_AniBallType::playOnUI"))
+	bool IsOpenSkip = false;
 	//从几秒开始播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType", meta = (ClampMin = 0.0f))
 	float BeginTime= 0.0f;
@@ -87,6 +103,8 @@ public:
 public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void StartFadeIn();
+	UFUNCTION(BlueprintImplementableEvent)
+	void VideoPlayCompelete();		//关闭开启
 	UFUNCTION(BlueprintCallable)
 	void PlayVideoInUI();
 
@@ -103,7 +121,7 @@ private:
 	UFUNCTION()
 	void ChooseType();
 	void PlayText();
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void PlayOver();
 
 	void BeforePreparation();

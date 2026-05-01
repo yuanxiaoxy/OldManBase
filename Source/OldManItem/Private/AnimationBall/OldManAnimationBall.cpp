@@ -1,4 +1,4 @@
-#include "AnimationBall/OldManAnimationBall.h"
+﻿#include "AnimationBall/OldManAnimationBall.h"
 #include "GlobalEventName.h"
 #include "UIManager/UIManager.h"
 #include "Components/Image.h"
@@ -114,7 +114,14 @@ void AOldManAnimationBall::PlayAniInScene()
 void AOldManAnimationBall::PlayAniInUI()
 {
 	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
-	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", nullptr);
+	UAniMationBallDatas* datas = NewObject<UAniMationBallDatas>();
+	datas->IsOpenSkip = IsOpenSkip;
+	if (IsOpenSkip)
+	{
+		datas->MediaPlayer = MediaPlayer;
+		datas->AnimationBall = this;
+	}
+	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", datas);
 	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI("AnimationPlayPanel");
 	if (curWidget != nullptr) 
 	{
@@ -160,6 +167,7 @@ void AOldManAnimationBall::PlayOver()
 	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
 	//终止播放
 	MediaPlayer->Close();
+	VideoPlayCompelete();
 	//恢复玩家输入
 	if (PlayerInputCancel)
 	{

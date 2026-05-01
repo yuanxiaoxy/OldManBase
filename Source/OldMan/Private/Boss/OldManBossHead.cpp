@@ -318,8 +318,15 @@ void AOldManBossHead::RightEarDraged(float curProgress)
 		// 转换为四元数以获得更好的插值效果（自动处理最短路径）
 		FQuat InitialQuat = GetActorRotation().Quaternion();
 		FQuat TargetQuat = RightEarMax.Quaternion();
+		/*FRotator InitialQuat = GetActorRotation();
+		FRotator TargetQuat = RightEarMax;*/
 		// 球面线性插值 (Slerp) 产生平滑且最短路径的旋转
 		FQuat InterpolatedQuat = FQuat::Slerp(InitialQuat, TargetQuat, RightEarProgress);
+		UE_LOG(LogTemp, Display, TEXT("BossTest_%f"), RightEarProgress);
+		UE_LOG(LogTemp, Display, TEXT("BossTest_Pitch=%.2f, Yaw=%.2f, Roll=%.2f"),GetActorRotation().Pitch, GetActorRotation().Yaw, GetActorRotation().Roll);
+		//调试线
+		FVector Forward = InterpolatedQuat.GetForwardVector();
+		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Forward * 100.f, FColor::Green, false, 0.1f);
 		// 应用旋转
 		SetActorRotation(InterpolatedQuat);
 		JudgeRightEarRight();

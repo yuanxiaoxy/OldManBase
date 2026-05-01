@@ -49,6 +49,17 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"CoreUObject",
+				"XyFrame",
+				"CommonUI"
+			]
+		},
+		{
+			"Name": "OldManBossGrid",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
 				"XyFrame"
 			]
 		}

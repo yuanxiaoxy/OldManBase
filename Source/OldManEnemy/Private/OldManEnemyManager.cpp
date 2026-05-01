@@ -30,8 +30,10 @@ void UOldManEnemyManager::InitializeSingleton()
     PoolManager->InitializeSingleton();
     PoolManager->Preload(AdEnemyBPClass, 10);
     PoolManager->Preload(ApproachEnemyBPClass, MaxApproachEnemyCount);
+
+    RefreshApproachEnemyInkDelegate();
     
-    StartAdEnemyGenerator();
+    //StartAdEnemyGenerator();
     //StartApproachEnemyGenerator();
 }
 
@@ -248,37 +250,117 @@ void UOldManEnemyManager::UpdateApproachEnemySettings(float newSpawnInterval, fl
 
 void UOldManEnemyManager::ShootInk(FVector2D pos, APlayerController* PC)
 {
-    
-    
     if (!PC)
     {
-
         UE_LOG(LogTemp, Warning, TEXT("UOldManEnemyManager::ShootInk: Failed to get PlayerController via Input."));
         return;
     }
-        
+
     if (!OldManHUD)
     {
         OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
     }
-    
-    
+
     if (InkTextures.Num() <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("喷墨贴图未设置"))
+        UE_LOG(LogTemp, Warning, TEXT("喷墨贴图未设置"));
     }
     else
     {
         FActiveInk NewInk = InkSettings;
         NewInk.Age = 0.0f;
+        NewInk.SpawnDelay = 0.0f;
         NewInk.NormalizedPosition = pos;
+
         int32 randomIdx = FMath::RandRange(0, InkTextures.Num() - 1);
         NewInk.Texture = InkTextures[randomIdx];
         OldManHUD->AddInk(NewInk);
     }
-    
-   
-    
+}
+
+void UOldManEnemyManager::ShootMultiInk_Default(FVector2D pos, APlayerController* PC)
+{
+    ShootMultiInk(pos, PC, ApproachEnemyMultiInkCount, ApproachEnemyMultiInkSpawnInterval, ApproachEnemyMultiInkStepY);
+}
+
+void UOldManEnemyManager::RefreshApproachEnemyInkDelegate()
+{
+    ApproachEnemyInkDelegate.Unbind();
+
+    switch (ApproachEnemyInkMode)
+    {
+    case EApproachEnemyInkMode::Multi:
+        ApproachEnemyInkDelegate.BindUObject(this, &UOldManEnemyManager::ShootMultiInk_Default);
+        break;
+    case EApproachEnemyInkMode::Single:
+    default:
+        ApproachEnemyInkDelegate.BindUObject(this, &UOldManEnemyManager::ShootInk);
+        break;
+    }
+}
+
+void UOldManEnemyManager::SetApproachEnemyInkMode(EApproachEnemyInkMode NewMode)
+{
+    ApproachEnemyInkMode = NewMode;
+    RefreshApproachEnemyInkDelegate();
+}
+
+void UOldManEnemyManager::ShootApproachEnemyInk(FVector2D pos, APlayerController* PC)
+{
+    if (ApproachEnemyInkDelegate.IsBound())
+    {
+        ApproachEnemyInkDelegate.Execute(pos, PC);
+        return;
+    }
+
+    ShootInk(pos, PC);
+}
+
+void UOldManEnemyManager::ShootMultiInk(FVector2D topPos, APlayerController* PC, int32 Count, float SpawnInterval, float StepY)
+{
+    if (!PC)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("UOldManEnemyManager::ShootMultiInk: Failed to get PlayerController via Input."));
+        return;
+    }
+
+    if (!OldManHUD)
+    {
+        OldManHUD = Cast<AOldManHUD>(PC->GetHUD());
+    }
+
+    if (!OldManHUD)
+    {
+        return;
+    }
+
+    if (Count <= 0)
+    {
+        return;
+    }
+
+    if (MultiInkTextures.Num() <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Multi喷墨贴图未设置"))
+        return;
+    }
+
+    const float SafeSpawnInterval = FMath::Max(0.0f, SpawnInterval);
+
+    for (int32 i = 0; i < Count; ++i)
+    {
+        FActiveInk NewInk = MultiInkSettings;
+        NewInk.Age = 0.0f;
+        NewInk.SpawnDelay = SafeSpawnInterval * static_cast<float>(i);
+
+        const float Y = FMath::Clamp(topPos.Y + (StepY * static_cast<float>(i)), 0.0f, 1.0f);
+        NewInk.NormalizedPosition = FVector2D(topPos.X, Y);
+
+        const int32 randomIdx = FMath::RandRange(0, MultiInkTextures.Num() - 1);
+        NewInk.Texture = MultiInkTextures[randomIdx];
+
+        OldManHUD->AddInk(NewInk);
+    }
 }
 
 // 清理所有屏幕敌人

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -29,6 +29,7 @@ protected:
     virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
+    // Cable Components
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cable")
     class USceneComponent* RootSceneComponent;
 
@@ -38,12 +39,14 @@ public:
     UPROPERTY()
     TArray<class USplineMeshComponent*> SplineMeshComponents;
 
+    // Cable Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
     float CableRadius = 50.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
     float EndDetectionDistance = 100.0f;
 
+    // Visual Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Visual")
     class UStaticMesh* CableMesh;
 
@@ -68,101 +71,111 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Visual")
     float TangentScale = 1.0f;
 
-    // bReverseMovementDirection 已完全删除
+    // Movement Direction (单向滑索专用：true=反向移动，false=正向移动)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Movement")
+    bool bReverseMovementDirection = false;
 
+    // Collision Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Collision")
     FName CollisionProfileName = TEXT("BlockAll");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable|Collision")
     bool bGenerateOverlapEvents = false;
 
-    //玩家进入滑索事件
+public:
+    // Cable Navigation API (virtual)
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector GetStartLocation() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector GetEndLocation() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual float GetCableLength() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector FindNearestPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector ProjectPositionToCable(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector ClampPositionToCable(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual bool IsAtEndOfCable(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector GetDirectionAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector GetTangentAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual FVector MoveAlongCable(const FVector& CurrentPosition, float Distance) const;
+
+    // Cable Visualization
+    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
+    virtual void GenerateCableMesh();
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
+    virtual void ClearCableMesh();
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
+    virtual void UpdateCableVisualization();
+
+    // Cable Collision
+    UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
+    virtual void UpdateCableCollision();
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
+    virtual void SetCollisionEnabled(bool bEnable);
+
+    // Helper Functions
+    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
+    virtual FVector GetForwardAxisVector() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
+    virtual FVector GetTangentAtDistance(float Distance) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FVector GetUpVectorAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FVector GetRightVectorAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual float CalculateCableRadius() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FVector GetCharacterPositionOnCable(const FVector& WorldPosition, float CharacterRadius = 50.0f) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FTransform GetTransformAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FRotator GetRotationAtPosition(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual float FindNearestDistanceAlongSpline(const FVector& WorldPosition) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
+    virtual FVector GetPositionAtDistance(float Distance) const;
+
+    // 是否为双向滑索（子类可重写）
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    virtual bool IsBidirectional() const { return false; }
+
+    // 蓝图事件
     UFUNCTION(BlueprintImplementableEvent, Category = "Cable|Events")
     void CharacterEnterCable(bool CableMoveForward);
-    //玩家退出滑索事件
+
     UFUNCTION(BlueprintImplementableEvent, Category = "Cable|Events")
     void CharacterExitCable(bool CableMoveForward);
 
-
-public:
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector GetStartLocation() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector GetEndLocation() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    float GetCableLength() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector FindNearestPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector ProjectPositionToCable(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector ClampPositionToCable(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    bool IsAtEndOfCable(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector GetDirectionAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector GetTangentAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable")
-    FVector MoveAlongCable(const FVector& CurrentPosition, float Distance) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
-    void GenerateCableMesh();
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
-    void ClearCableMesh();
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
-    void UpdateCableVisualization();
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
-    void UpdateCableCollision();
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Collision")
-    void SetCollisionEnabled(bool bEnable);
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
-    FVector GetForwardAxisVector() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Visual")
-    FVector GetTangentAtDistance(float Distance) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FVector GetUpVectorAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FVector GetRightVectorAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    float CalculateCableRadius() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FVector GetCharacterPositionOnCable(const FVector& WorldPosition, float CharacterRadius = 50.0f) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FTransform GetTransformAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FRotator GetRotationAtPosition(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    float FindNearestDistanceAlongSpline(const FVector& WorldPosition) const;
-
-    UFUNCTION(BlueprintCallable, Category = "Cable|Navigation")
-    FVector GetPositionAtDistance(float Distance) const;
-
-private:
-    FVector GetUpVectorAtDistance(float Distance) const;
-    FVector GetRightVectorAtDistance(float Distance) const;
+protected:
+    virtual FVector GetUpVectorAtDistance(float Distance) const;
+    virtual FVector GetRightVectorAtDistance(float Distance) const;
 
 #if WITH_EDITOR
     virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

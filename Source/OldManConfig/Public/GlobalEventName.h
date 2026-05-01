@@ -44,6 +44,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
 	static FName GetKey_Input_InputPullEnd() { return Key_Input_InputPullEnd; }
 
+	static const FName Key_Input_InputDraging;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_InputDraging() { return Key_Input_InputDraging; }
+
 	static const FName Key_Input_InputAttack;
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
 	static FName GetKey_Input_InputAttack() { return Key_Input_InputAttack; }

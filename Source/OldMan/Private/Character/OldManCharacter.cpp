@@ -1,4 +1,4 @@
-﻿#include "Character/OldManCharacter.h"
+#include "Character/OldManCharacter.h"
 #include "Character/OldManPersonPlayerController.h"
 #include "StateMachine/StateMachineBase.h"
 #include "Character/States/OldManIdleState.h"
@@ -12,6 +12,7 @@
 #include "Character/OldManAnimInstance.h"
 #include "Kismet/GameplayStatics.h" 
 #include "EffectManager/EffectManager.h"
+#include "AudioManager/AudioManager.h"
 
 AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UOldManMovementComponent>(AOldManCharacter::CharacterMovementComponentName))
@@ -731,22 +732,7 @@ void AOldManCharacter::DectedActors()
     // Get effective cursor screen position (gamepad virtual cursor or real mouse)
     FVector2D CursorScreenPos = PC->GetEffectiveCursorScreenPosition();
 
-    // Check if camera animation is playing and exposes mouse position
-    bool bUseCursorPos = false;
-    if (CameraAnimationComponent && CameraAnimationComponent->IsCameraAnimationPlaying())
-    {
-        FOldManCameraAnimationData CurrentData = CameraAnimationComponent->GetCurrentAnimationData();
-        if (CurrentData.AnimationType == ECameraAnimationType::FollowPlayer && CurrentData.bExposeMousePosition)
-        {
-            bUseCursorPos = true;
-        }
-    }
-    else if (CameraComponent && CameraComponent->GetCurrentCameraMode() == ECameraMode::MouseCursorMode)
-    {
-        bUseCursorPos = true;
-    }
-
-    if (bUseCursorPos || PC->ShouldUseCursorPosition())
+    if (bUseCursorPos)
     {
         // Use cursor position for detection (unified position)
         CameraComponent->GetActorsInConeByMousePosition(
@@ -822,6 +808,15 @@ void AOldManCharacter::InitializeParam()
     // Landing detection improvements
     LastLandingTime = 0.0f;
     bWasFalling = false;
+
+    if (GetOldManController() && GetOldManController()->GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad)
+    {
+        CharacterAttributes = GamePadCharacterAttributes;
+    }
+    else
+    {
+        CharacterAttributes = KeyBoardCharacterAttributes;
+    }
 }
 
 void AOldManCharacter::InitializeStateMachine()
@@ -863,8 +858,8 @@ void AOldManCharacter::InitializeEvent()
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, bool, FVector, FRotator, bool>(UGlobalEventName::Key_Player_OnRespawn, this, &AOldManCharacter::OnPlayerRespawn);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_LockMouseKey, this, &AOldManCharacter::OnLockMouseKey);
-    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockAttack, this, &AOldManCharacter::OnUnLockCharacterPull);
-    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockPull, this, &AOldManCharacter::OnUnLockCharacterAttack);
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockAttack, this, &AOldManCharacter::OnUnLockCharacterAttack);
+    UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter>(UGlobalEventName::Key_Input_UnLockPull, this, &AOldManCharacter::OnUnLockCharacterPull);
 
     UMyEventManager::GetInstance()->RegisterCppEvent<AOldManCharacter, EHardwareDevicePrimaryType>(UGlobalEventName::Key_Input_InputDeviceChanged, this, &AOldManCharacter::OnInputDeviceChanged);
     if (AOldManPersonPlayerController* PC = GetOldManController())
@@ -902,6 +897,8 @@ void AOldManCharacter::FireBullet(AActor* actor)
 
     if (Bullet)
     {
+        UAudioManager::GetInstance()->PlaySound(this, "SFX_Shoot");
+
         UMonoManager::GetInstance()->SetTimeout(CharacterAttributes->OldManDetectionData.CoolDown, this, &AOldManCharacter::CancelFireCoolDown);
 
         FVector bulletDir = FollowCamera->GetForwardVector();;

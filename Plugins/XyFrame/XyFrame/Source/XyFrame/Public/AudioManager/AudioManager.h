@@ -9,9 +9,8 @@
 #include "Engine/DataTable.h"
 #include "AudioManager.generated.h"
 
-class UAudioEffectController; // 前置声明
+class UAudioEffectController;
 
-// 音频类别
 UENUM(BlueprintType)
 enum class EAudioCategory : uint8
 {
@@ -24,7 +23,6 @@ enum class EAudioCategory : uint8
 
 ENUM_RANGE_BY_COUNT(EAudioCategory, 5)
 
-// 音频配置结构
 USTRUCT(BlueprintType)
 struct FAudioConfig : public FTableRowBase
 {
@@ -36,8 +34,13 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     EAudioCategory Category = EAudioCategory::SFX;
 
+    // 原有单个资源（保留兼容）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TSoftObjectPtr<USoundBase> SoundAsset;
+
+    // 随机池（多个资源）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    TArray<TSoftObjectPtr<USoundBase>> SoundAssets;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     bool bLooping = false;
@@ -59,9 +62,12 @@ struct FAudioConfig : public FTableRowBase
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
     float FadeOutTime = 0.0f;
+
+    // 是否允许重新播放（复用组件，默认 false）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Behavior")
+    bool bAllowRestart = false;
 };
 
-// 音频效果类型
 UENUM(BlueprintType)
 enum class EAudioEffectType : uint8
 {
@@ -69,10 +75,8 @@ enum class EAudioEffectType : uint8
     LowPassFilter,
     HighPassFilter,
     BandPassFilter,
-    // 可扩展
 };
 
-// 音频效果预设（DataTable 行）
 USTRUCT(BlueprintType)
 struct FAudioEffectPreset : public FTableRowBase
 {
@@ -81,7 +85,6 @@ struct FAudioEffectPreset : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
     EAudioEffectType EffectType = EAudioEffectType::LowPassFilter;
 
-    // 低通滤波器参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect|LowPass", meta = (EditCondition = "EffectType == EAudioEffectType::LowPassFilter"))
     float InitialCutoffFrequency = 5000.0f;
 
@@ -116,14 +119,27 @@ public:
     UAudioManager();
     virtual ~UAudioManager() override;
 
-    // ========== 基础音频接口 ==========
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Initialize(UDataTable* InAudioDataTable);
 
+    // 基础播放
     UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
     UAudioComponent* PlaySound(
         UObject* WorldContextObject,
         FName SoundID,
+        AActor* AttachActor = nullptr,
+        FVector Location = FVector::ZeroVector,
+        float FadeInTime = 0.0f,
+        float Delay = 0.0f,
+        float PitchMultiplier = 1.0f
+    );
+
+    // 概率播放
+    UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
+    UAudioComponent* PlaySoundWithProbability(
+        UObject* WorldContextObject,
+        FName SoundID,
+        float Probability,
         AActor* AttachActor = nullptr,
         FVector Location = FVector::ZeroVector,
         float FadeInTime = 0.0f,
@@ -140,40 +156,33 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void StopAllSoundsByCategory(EAudioCategory Category, float FadeOutTime = 0.0f);
 
-    // ========== 分类音频接口 ==========
     // SFX
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void PlaySFX(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
-
+    UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
+    void PlaySFXWithProbability(UObject* WorldContextObject, FName SoundID, float Probability, AActor* AttachActor = nullptr, FVector Location = FVector::ZeroVector, float PitchMultiplier = 1.0f);
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void StopSFX(FName SoundID, float FadeOutTime = 0.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|SFX")
     void StopAllSFX(float FadeOutTime = 0.0f);
 
     // BGM
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void PlayBGM(UObject* WorldContextObject, FName SoundID, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void StopBGM(float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void PauseBGM();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|BGM")
     void ResumeBGM();
-
     UFUNCTION(BlueprintCallable, Category = "Audio")
     UAudioComponent* GetCurBGMAudioComponent() { return CurrentBGMComponent; }
 
     // Ambient
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void PlayAmbient(UObject* WorldContextObject, FName SoundID, AActor* AttachActor = nullptr, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void StopAmbient(FName SoundID, float FadeTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void StopAllAmbient(float FadeTime = -1.0f);
 
@@ -187,94 +196,103 @@ public:
         float FadeOutTime = -1.0f,
         float PitchMultiplier = 1.0f
     );
-
+    UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
+    void PlayVoiceWithProbability(
+        UObject* WorldContextObject,
+        FName SoundID,
+        float Probability,
+        AActor* AttachActor = nullptr,
+        float FadeInTime = -1.0f,
+        float FadeOutTime = -1.0f,
+        float PitchMultiplier = 1.0f
+    );
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void StopVoice(FName SoundID, float FadeOutTime = -1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
     void StopAllVoice(float FadeOutTime = -1.0f);
+    UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
+    void PauseVoice();
+    UFUNCTION(BlueprintCallable, Category = "Audio|Voice")
+    void ResumeVoice();
 
     // UI
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void PlayUISound(UObject* WorldContextObject, FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|UI")
     void StopUISound(FName SoundID, float FadeOutTime = 0.0f);
 
-    // ========== 音量控制 ==========
+    // 通用暂停/恢复
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void PauseSound(FName SoundID);
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void ResumeSound(FName SoundID);
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void PauseAllSoundsByCategory(EAudioCategory Category);
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void ResumeAllSoundsByCategory(EAudioCategory Category);
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void PauseAllSounds();
+    UFUNCTION(BlueprintCallable, Category = "Audio|Control")
+    void ResumeAllSounds();
+
+    // Volume
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetCategoryVolume(EAudioCategory Category, float NewVolume);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     float GetCategoryVolume(EAudioCategory Category) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void SetAllVolumes(float BGMVolume, float SFXVolume, float AmbientVolume, float VoiceVolume, float UIVolume);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Volume")
     void ResetAllVolumes();
 
-    // ========== 查询 ==========
+    // Query
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsSoundPlaying(FName SoundID) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCount() const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     int32 GetActiveSoundCountByCategory(EAudioCategory Category) const;
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Query")
     bool IsVoicePlaying() const;
 
-    // ========== 调试 ==========
+    // Debug
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintAudioSystemStatus();
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Debug")
     void PrintCategoryStatus(EAudioCategory Category);
 
-    // ========== 安全清理（关卡切换前调用） ==========
+    // Shutdown
     UFUNCTION(BlueprintCallable, Category = "Audio")
     void Shutdown();
 
-    // ========== 委托 ==========
+    // Delegates
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundStarted OnSoundStarted;
-
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnSoundFinished OnSoundFinished;
-
     UPROPERTY(BlueprintAssignable, Category = "Audio|Events")
     FOnCategoryVolumeChanged OnCategoryVolumeChanged;
 
     UFUNCTION(BlueprintCallable, Category = "Audio")
     bool IsInitialized() const { return AudioDataTable != nullptr; }
 
-    // ========== 新增：音频效果系统接口 ==========
+    // Effect system
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void InitializeEffectSystem(UDataTable* InEffectPresetTable);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     UAudioEffectController* GetOrCreateEffectController(UAudioComponent* AudioComponent);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ApplyEffectPresetBySoundID(FName SoundID, FName EffectPresetRowName);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void SetSoundLowPassCutoff(FName SoundID, float Cutoff, float Resonance = 1.0f);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void StartSoundLowPassLerp(FName SoundID, float TargetCutoff, float Duration);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ClearSoundEffect(FName SoundID);
-
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ShutdownEffectSystem();
 
 protected:
-    // 效果系统 Tick
     void TickEffectControllers();
 
 private:
@@ -294,7 +312,7 @@ private:
 
     TArray<FTimerHandle> PendingDestroyTimers;
 
-    // 效果系统成员
+    // Effect system
     UPROPERTY()
     TObjectPtr<UDataTable> EffectPresetTable;
 
@@ -303,7 +321,17 @@ private:
 
     FTimerHandle EffectTickTimerHandle;
 
+    // 资源缓存 - 必须加 UPROPERTY 防止 GC
+    UPROPERTY(Transient)
+    TMap<FSoftObjectPath, TObjectPtr<USoundBase>> LoadedSoundCache;
+
     const FAudioConfig* GetAudioConfig(FName SoundID) const;
+    USoundBase* LoadSoundAsset(const TSoftObjectPtr<USoundBase>& SoftPtr);
+    USoundBase* GetRandomSoundFromConfig(const FAudioConfig* Config);
+    bool ShouldPlayByProbability(float Probability) const;
+
+    // 复用现有组件（用于 bAllowRestart）
+    UAudioComponent* FindAndReuseExistingComponent(const FAudioConfig* Config, AActor* AttachActor, const FVector& Location);
 
     UFUNCTION()
     void HandleAudioFinished();
@@ -311,6 +339,5 @@ private:
     UWorld* GetWorld() const;
 
     void FadeOutAndDestroyAudioComponent(UAudioComponent* AudioComponent, float FadeOutTime);
-
     void SafelyDestroyAudioComponent(UAudioComponent* AudioComponent);
 };

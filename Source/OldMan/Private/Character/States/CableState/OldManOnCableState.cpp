@@ -1,4 +1,4 @@
-﻿#include "Character/States/CableState/OldManOnCableState.h"
+#include "Character/States/CableState/OldManOnCableState.h"
 #include "Character/OldManCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -51,19 +51,16 @@ void UOldManOnCableState::UpdateNearbyCableDetection(float HorizontalDir)
     AOldManCharacter* Character = GetOldManCharacter();
     if (!Character || !CurrentCable) return;
 
-    // Get parameters from character attributes
     FVector CharacterLocation = Character->GetActorLocation();
     FRotator CharacterRotation = Character->GetActorRotation();
-
-    // Use character's local axes
     FVector CharacterRight = Character->GetActorRightVector();
-    FVector CharacterForward = Character->GetActorForwardVector();
-    FVector CharacterUp = Character->GetActorUpVector();
 
     if (HorizontalDir > 0)
     {
         RightCable = FindCableInBox(CharacterRight, LateralJumpDistance, DetectionHeight, DetectionLength);
         Character->SetNextCable(RightCable.Cable, false);
+        Character->IsLeftCable = false;   // 标记向右跳
+        Character->NextCableJumpPosition = RightCable.Position;  // 保存目标位置
 
         UWorld* World = Character->GetWorld();
         if (World)
@@ -95,9 +92,10 @@ void UOldManOnCableState::UpdateNearbyCableDetection(float HorizontalDir)
     }
     else if (HorizontalDir < 0)
     {
-        // Simple left-right box detection
         LeftCable = FindCableInBox(-CharacterRight, LateralJumpDistance, DetectionHeight, DetectionLength);
         Character->SetNextCable(LeftCable.Cable, true);
+        Character->IsLeftCable = true;    // 标记向左跳
+        Character->NextCableJumpPosition = LeftCable.Position;   // 保存目标位置
 
         UWorld* World = Character->GetWorld();
         if (World)
@@ -135,23 +133,15 @@ FCableDetectionResult UOldManOnCableState::FindCableInBox(const FVector& Directi
     FVector CharacterLocation = Character->GetActorLocation();
     FRotator CharacterRotation = Character->GetActorRotation();
 
-    // Calculate box center in local space
     FVector BoxCenter = CharacterLocation + (Direction * Width * 0.5f);
+    FVector BoxExtent = FVector(Length * 0.5f, Width * 0.5f, Height);
 
-    // Create detection box with different dimensions:
-    // X: length (forward direction)
-    // Y: width (lateral detection distance)
-    // Z: height (vertical detection range)
-    FVector BoxExtent = FVector(Length * 0.5f, Width * 0.5f, Height * 0.5f);
-
-    // Box overlap detection - use character's rotation to align the box
     TArray<FOverlapResult> OverlapResults;
     FCollisionQueryParams QueryParams;
     QueryParams.AddIgnoredActor(Character);
     QueryParams.AddIgnoredActor(CurrentCable);
 
     UWorld* World = Character->GetWorld();
-
     if (World && World->OverlapMultiByChannel(
         OverlapResults,
         BoxCenter,
@@ -161,7 +151,6 @@ FCableDetectionResult UOldManOnCableState::FindCableInBox(const FVector& Directi
         QueryParams
     ))
     {
-        // Find the nearest cable
         float ClosestDistance = MAX_FLT;
         AOldManCableBase* ClosestCable = nullptr;
         FVector ClosestPosition = FVector::ZeroVector;
@@ -179,9 +168,10 @@ FCableDetectionResult UOldManOnCableState::FindCableInBox(const FVector& Directi
                 {
                     ClosestDistance = Distance;
                     ClosestCable = OverlapCable;
+                    // ✅ 修改：使用胶囊体半高，与移动状态保持一致
                     ClosestPosition = OverlapCable->GetCharacterPositionOnCable(
                         NearestPosition,
-                        Character->GetCapsuleComponent()->GetScaledCapsuleRadius()
+                        Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
                     );
                     ClosestCableDistance = OverlapCable->FindNearestDistanceAlongSpline(NearestPosition);
                 }
@@ -219,15 +209,14 @@ void UOldManOnCableState::AlignCharacterWithCable(const FVector& WorldPosition)
     FTransform CableTransform = CurrentCable->GetTransformAtPosition(WorldPosition);
     FRotator CableRotation = CableTransform.Rotator();
 
-    // 如果移动方向是反向，则翻转角色的前向方向（绕上轴旋转180度）
-    if (!Character->bCableMoveForward)
+    // 只有双向滑索才根据移动方向翻转角色朝向
+    if (CurrentCable->IsBidirectional() && !Character->bCableMoveForward)
     {
         // 翻转Yaw角180度，使得角色面向电缆切线反方向
         CableRotation.Yaw += 180.0f;
-        // 可选：同时翻转Pitch和Roll以保持正确姿态（根据你的需求决定是否启用）
-        // CableRotation.Pitch = -CableRotation.Pitch;
-        // CableRotation.Roll = -CableRotation.Roll;
+        // 如果需要，也可以翻转Pitch和Roll以保持正确姿态，视需求而定
     }
+    // 单向滑索直接使用样条旋转，不做额外翻转
 
     Character->SetActorRotation(CableRotation);
 }
@@ -242,7 +231,7 @@ void UOldManOnCableState::HandleMovementOnCableInAir(float DeltaTime)
             FVector MovementDirection = Character->GetMovementDirectionFromCamera();
             if (!MovementDirection.IsNearlyZero())
             {
-                ApplyMovement(MovementDirection, targetSpeed);
+                //ApplyMovement(MovementDirection, targetSpeed);
             }
             else
             {
@@ -250,7 +239,7 @@ void UOldManOnCableState::HandleMovementOnCableInAir(float DeltaTime)
             }
 
             // Handle rotation
-            HandleRotation(DeltaTime);
+            //HandleRotation(DeltaTime);
         }
     }
 }
@@ -310,17 +299,24 @@ void UOldManOnCableState::AutoDetermineCableDirection()
     AOldManCharacter* Character = GetOldManCharacter();
     if (!Character || !CurrentCable) return;
 
-    // 获取角色在电缆上的最近点
+    // 如果是单向滑索，直接根据滑索的 bReverseMovementDirection 确定移动方向
+    if (!CurrentCable->IsBidirectional())
+    {
+        // 单向滑索：固定方向，由滑索属性决定
+        // bReverseMovementDirection = true 表示反向移动（向起点），false 表示正向移动（向终点）
+        bool bMoveForward = !CurrentCable->bReverseMovementDirection;
+        Character->bCableMoveForward = bMoveForward;
+        return;
+    }
+
+    // 双向滑索：根据玩家朝向或输入方向自动确定
     FVector NearestPoint = CurrentCable->FindNearestPosition(Character->GetActorLocation());
-    // 电缆在该点的切线方向（从起点指向终点）
     FVector CableDir = CurrentCable->GetDirectionAtPosition(NearestPoint);
     CableDir.Normalize();
 
-    // 决定移动方向的参考向量：优先使用移动输入方向，如果没有输入则使用角色面朝方向
-    FVector ReferenceDir = Character->GetActorForwardVector(); // 默认面朝方向
+    FVector ReferenceDir = Character->GetActorForwardVector();
     if (Character->HasMovementInput())
     {
-        // 使用世界空间下的移动输入方向（已由相机旋转转换）
         FVector InputDir = Character->GetMovementDirectionFromCamera();
         if (!InputDir.IsNearlyZero())
         {
@@ -328,15 +324,6 @@ void UOldManOnCableState::AutoDetermineCableDirection()
         }
     }
 
-    // 计算参考方向与电缆切线的点积
     float Dot = FVector::DotProduct(ReferenceDir, CableDir);
-
-    // 如果点积为正，则向电缆终点方向移动（正向）；否则向起点方向移动（反向）
-    bool bMoveForward = (Dot >= 0.0f);
-
-    // 设置移动方向
-    Character->bCableMoveForward = bMoveForward;
-
-    UE_LOG(LogTemp, Log, TEXT("AutoDetermineCableDirection: ReferenceDir=%s, CableDir=%s, Dot=%.2f, MoveForward=%d"),
-        *ReferenceDir.ToString(), *CableDir.ToString(), Dot, bMoveForward);
+    Character->bCableMoveForward = (Dot >= 0.0f);
 }

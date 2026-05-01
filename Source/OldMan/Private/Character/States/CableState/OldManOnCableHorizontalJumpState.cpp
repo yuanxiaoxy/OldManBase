@@ -1,7 +1,8 @@
-﻿#include "Character/States/CableState/OldManOnCableHorizontalJumpState.h"
+#include "Character/States/CableState/OldManOnCableHorizontalJumpState.h"
 #include "Character/States/CableState/OldManOnCableMoveState.h"
 #include "Character/OldManCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "AudioManager/AudioManager.h"
 
 void UOldManOnCableHorizontalJumpState::Enter()
 {
@@ -15,31 +16,33 @@ void UOldManOnCableHorizontalJumpState::Enter()
         Movement->Velocity = FVector::ZeroVector;
     }
 
-    JumpProgress = 0.0f;
+    // 直接完成跳跃，不需要插值动画
+    JumpProgress = 1.0f;
 
     if (AOldManCharacter* Character = GetOldManCharacter())
     {
-        // 继承当前滑索的移动方向
+        // 继承当前滑索的移动方向（或根据目标电缆重新计算）
         bool bTargetMoveForward = Character->GetCableMoveDirectionSign() > 0;
         Character->SetCurrentCableWithDirection(Character->NextCable, bTargetMoveForward);
         CurrentCable = Character->NextCable;
 
         Character->PlayOnCableHoriaontalJumpAnimation(Character->IsLeftCable);
 
-        JumpStartPosition = Character->GetActorLocation();
+        // ✅ 直接使用检测时计算好的目标位置（已使用半高偏移，无需再次偏移）
+        JumpTargetPosition = Character->NextCableJumpPosition;
 
-        if (CurrentCable)
-        {
-            CurrentCableDistance = CurrentCable->FindNearestDistanceAlongSpline(
-                JumpStartPosition + Character->GetActorForwardVector() * Character->CharacterAttributes->HorizontalJumpForwardOffset);
-            JumpTargetPosition = CurrentCable->GetPositionAtDistance(CurrentCableDistance);
-            JumpTargetPosition = CalculateCharacterPositionOnCable(JumpTargetPosition);
-        }
+        // 瞬间设置到目标位置
+        Character->SetActorLocation(JumpTargetPosition);
+
+        // 保持原有的旋转对齐逻辑（不做任何修改）
+        AlignCharacterWithCable(JumpTargetPosition);
 
         if (Character->IsLeftCable)
             SetPlayerCurMoveState(EPlayerBaseMoveState::LeftHorizontalJump);
         else
             SetPlayerCurMoveState(EPlayerBaseMoveState::RightHorizontalJump);
+
+        UAudioManager::GetInstance()->PlaySound(Character, "SFX_ChangeCable");
     }
 }
 
@@ -51,72 +54,15 @@ void UOldManOnCableHorizontalJumpState::Exit()
 void UOldManOnCableHorizontalJumpState::Update(float DeltaTime)
 {
     Super::Update(DeltaTime);
-
-    HandleHorizontalJump(DeltaTime);
+    // 无需插值，空实现
 }
 
 void UOldManOnCableHorizontalJumpState::SetupTransitionRules()
 {
     Super::SetupTransitionRules();
 
+    // 立即转换到移动状态
     ADD_LAMBDA_TRANSITION(UOldManOnCableMoveState, [this]() {
         return JumpProgress >= 1.0f;
         }, "CableMove");
-}
-
-void UOldManOnCableHorizontalJumpState::HandleHorizontalJump(float DeltaTime)
-{
-    AOldManCharacter* Character = GetOldManCharacter();
-    if (!Character || !CurrentCable) return;
-
-    // Update jump progress
-    JumpProgress += DeltaTime * GetLateralJumpSpeed();
-    JumpProgress = FMath::Min(JumpProgress, 1.0f);
-
-    // Calculate new position - using linear interpolation
-    FVector NewPosition = FMath::Lerp(JumpStartPosition, JumpTargetPosition, JumpProgress);
-
-    // Update character location
-    Character->SetActorLocation(NewPosition);
-
-    // If jump completed, switch to move state
-    if (JumpProgress >= 1.0f)
-    {
-        // Ensure character is correctly positioned on the target cable
-        FVector FinalPosition = CurrentCable->GetCharacterPositionOnCable(
-            JumpTargetPosition,
-            Character->GetCapsuleComponent()->GetScaledCapsuleRadius()
-        );
-        Character->SetActorLocation(FinalPosition);
-        AlignCharacterWithCable(FinalPosition);
-    }
-}
-
-float UOldManOnCableHorizontalJumpState::GetLateralJumpSpeed()
-{
-    AOldManCharacter* Character = GetOldManCharacter();
-    return Character && Character->CharacterAttributes ?
-        Character->CharacterAttributes->HorizontalJumpSpeed : 600.0f; // Increased speed
-}
-
-bool UOldManOnCableHorizontalJumpState::InLeftOfTarget(const FVector& Forward, const FVector& StartPos, const FVector& TargetPos)
-{
-    // 1. 计算水平方向的目标向量（忽略高度）
-    FVector ToTarget = (TargetPos - StartPos).GetSafeNormal2D();
-    FVector Forward2D = Forward.GetSafeNormal2D(); // 确保水平归一化
-
-    // 2. 计算叉积 Z 分量（左手坐标系：X前 Y右 Z上）
-    float CrossZ = FVector::CrossProduct(Forward2D, ToTarget).Z;
-
-    // 3. 判断左右
-    if (CrossZ > KINDA_SMALL_NUMBER)
-    {
-        return false;
-    }
-    else if (CrossZ < -KINDA_SMALL_NUMBER)
-    {
-        return true;
-    }
-    
-    return true;
 }

@@ -269,6 +269,9 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "State")
     bool bHasCable;
 
+    UPROPERTY(BlueprintReadWrite, Category = "State")
+    bool bInWater;
+
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void UpdateCharacterRotation(float DeltaTime, const FVector& DesiredDirection);
 
@@ -373,8 +376,11 @@ public:
     UPROPERTY()
     bool InFireCoolDown = false;
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
     bool UnLockAttack = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+    bool bUseCursorPos = true;
 
     UPROPERTY()
     FTimerHandle FireTimerHandle;
@@ -403,7 +409,7 @@ public:
     UPROPERTY()
     bool bCouldPullItem = true;
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drag")
     bool UnLockPull = true;
 
 public:
@@ -446,6 +452,8 @@ public:
     AOldManCableBase* NextCable;
     UPROPERTY(BlueprintReadWrite, Category = "CableItem")
     bool IsLeftCable;
+    UPROPERTY()
+    FVector NextCableJumpPosition = FVector::ZeroVector;
 
 public:
     UFUNCTION(BlueprintCallable, Category = "InterectItem")

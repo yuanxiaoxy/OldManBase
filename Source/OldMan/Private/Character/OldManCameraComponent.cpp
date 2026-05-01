@@ -1,4 +1,4 @@
-#include "Character/OldManCameraComponent.h"
+﻿#include "Character/OldManCameraComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
@@ -49,6 +49,7 @@ void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InC
     InputSmoothingInterpSpeed = MyCameraData.InputSmoothingInterpSpeed;
     GravityRotationInterpSpeed = MyCameraData.GravityRotationInterpSpeed;
     CameraFrameRate = MyCameraData.CameraFrameRate;
+    FollowCamera->FieldOfView = CurCameraFOV;
 
     if (CameraBoom)
     {

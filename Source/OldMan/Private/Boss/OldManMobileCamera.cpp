@@ -12,12 +12,6 @@ AOldManMobileCamera::AOldManMobileCamera()
 void AOldManMobileCamera::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!SpotLight)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BossTP_聚光灯不存在"));
-
-	}
-	mySpotLight = SpotLight->FindComponentByClass<USpotLightComponent>();
 }
 
 void AOldManMobileCamera::Tick(float DeltaTime)
@@ -26,20 +20,17 @@ void AOldManMobileCamera::Tick(float DeltaTime)
 
 void AOldManMobileCamera::BeginScan(float time)
 {
-	//打开聚光灯
-	mySpotLight->SetVisibility(true);
 	UMonoManager* monoManager = UMonoManager::GetMonoManager();
+	Open();
 	monoManager->SetInterval(time, "ScanTimer", this, &AOldManMobileCamera::CloseLight);
 }
 
 void AOldManMobileCamera::BeginScanWithoutParm()
 {
-	//打开聚光灯
-	mySpotLight->SetVisibility(true);
-
+	Open();
 }
 
 void AOldManMobileCamera::CloseLight()
 {
-	mySpotLight->SetVisibility(false);
+	Close();
 }

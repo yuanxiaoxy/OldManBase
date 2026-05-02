@@ -3,6 +3,7 @@
 #include "UIManager/UIManager.h"
 #include "Components/Image.h"
 #include "IMediaEventSink.h"
+#include "LanguageManager/xyLanguageManager.h"
 
 //初始化
 void AOldManAnimationBall::BeginPlay()
@@ -71,7 +72,15 @@ void AOldManAnimationBall::PlayVideoInUI()
 		//绑定事件
 		MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AOldManAnimationBall::PlayAniInUI);
 		//打开媒体源
-		MediaPlayer->OpenSource(FileMediaSource);
+		switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+		{
+		case ELanguageType::English:
+			MediaPlayer->OpenSource(FileMediaSourceInEnglish);
+			break;
+		case ELanguageType::Chinese:
+			MediaPlayer->OpenSource(FileMediaSource);
+			break;
+		}
 		//如果是一次性的 销毁自己
 		if (!Disposable)
 		{
@@ -277,7 +286,17 @@ void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedCompone
 			//打开媒体源
 			if (!IsCreateOnly)
 			{
-				MediaPlayer->OpenSource(FileMediaSource);
+				//打开媒体源
+				switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+				{
+				case ELanguageType::English:
+					MediaPlayer->OpenSource(FileMediaSourceInEnglish);
+					break;
+				case ELanguageType::Chinese:
+					MediaPlayer->OpenSource(FileMediaSource);
+					break;
+				}
+
 			}
 			else
 			{

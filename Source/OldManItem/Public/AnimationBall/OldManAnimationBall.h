@@ -48,6 +48,9 @@ public:
 	// 文件媒体源，指定视频文件路径[citation:1]
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
 	UFileMediaSource* FileMediaSource;
+	// 文件媒体源，指定视频文件路径[citation:1]
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")
+	UFileMediaSource* FileMediaSourceInEnglish;
 
 	// 媒体播放器组件
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media")

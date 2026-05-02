@@ -40,6 +40,12 @@ void UAudioManager::InitializeAudioManager()
     CategoryVolumes.Add(EAudioCategory::Ambient, 0.8f);
     CategoryVolumes.Add(EAudioCategory::Voice, 0.8f);
     CategoryVolumes.Add(EAudioCategory::UI, 0.8f);
+
+    // 绑定语言切换事件
+    if (UxyLanguageManager* LangMgr = UxyLanguageManager::GetLanguageManager())
+    {
+        LangMgr->OnLanguageChanged.AddDynamic(this, &UAudioManager::OnLanguageChanged);
+    }
 }
 
 void UAudioManager::Initialize(UDataTable* InAudioDataTable)
@@ -82,11 +88,33 @@ USoundBase* UAudioManager::LoadSoundAsset(const TSoftObjectPtr<USoundBase>& Soft
     return Loaded;
 }
 
+// ========== 核心修改：支持多语言随机池 ==========
 USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
 {
-    if (!Config)
-        return nullptr;
+    if (!Config) return nullptr;
 
+    UxyLanguageManager* LangMgr = UxyLanguageManager::GetLanguageManager();
+    if (LangMgr)
+    {
+        ELanguageType CurrentLang = LangMgr->GetCurrentLanguage();
+        if (const FLocalizedAudioArray* LanguageAssets = Config->LocalizedSoundAssetsList.Find(CurrentLang))
+        {
+            // 过滤掉无效资源
+            TArray<TSoftObjectPtr<USoundBase>> ValidAssets;
+            for (const TSoftObjectPtr<USoundBase>& SoftPtr : LanguageAssets->Assets)
+            {
+                if (!SoftPtr.IsNull())
+                    ValidAssets.Add(SoftPtr);
+            }
+            if (ValidAssets.Num() > 0)
+            {
+                int32 Index = FMath::RandRange(0, ValidAssets.Num() - 1);
+                return LoadSoundAsset(ValidAssets[Index]);
+            }
+        }
+    }
+
+    // 回退到默认随机池
     if (Config->SoundAssets.Num() > 0)
     {
         TArray<TSoftObjectPtr<USoundBase>> ValidAssets;
@@ -102,6 +130,7 @@ USoundBase* UAudioManager::GetRandomSoundFromConfig(const FAudioConfig* Config)
         }
     }
 
+    // 回退到单个资源
     if (!Config->SoundAsset.IsNull())
         return LoadSoundAsset(Config->SoundAsset);
 
@@ -260,7 +289,7 @@ UAudioComponent* UAudioManager::PlaySound(
         return nullptr;
     }
 
-    // 加载资源
+    // 加载资源（已支持多语言随机池）
     USoundBase* SoundAsset = GetRandomSoundFromConfig(Config);
     if (!IsValid(SoundAsset))
     {
@@ -614,7 +643,7 @@ void UAudioManager::PrintCategoryStatus(EAudioCategory Cat)
     UE_LOG(LogTemp, Log, TEXT("Total: %d sounds"), Cnt);
 }
 
-// ========== Shutdown（最终安全版本） ==========
+// ========== Shutdown ==========
 void UAudioManager::Shutdown()
 {
     CurrentBGMComponent = nullptr;
@@ -736,4 +765,11 @@ void UAudioManager::ShutdownEffectSystem()
     ComponentEffectControllers.Empty();
     EffectPresetTable = nullptr;
     UE_LOG(LogTemp, Log, TEXT("AudioManager effect system shutdown"));
+}
+
+// ========== 语言切换响应 ==========
+void UAudioManager::OnLanguageChanged(ELanguageType NewLanguage)
+{
+    // 不影响正在播放的声音，只影响新播放的声音
+    UE_LOG(LogTemp, Log, TEXT("AudioManager: Language changed to %d, new sounds will use localized assets."), (int32)NewLanguage);
 }

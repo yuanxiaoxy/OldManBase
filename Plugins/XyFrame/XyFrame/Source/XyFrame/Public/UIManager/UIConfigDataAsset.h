@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
 #include "UITypes.h"
+#include "LanguageManager/xyLanguageManager.h"   // 引入 ELanguageType
 #include "UIConfigDataAsset.generated.h"
 
 USTRUCT(BlueprintType)
@@ -43,9 +44,15 @@ struct FUIConfigData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     EUIPanelType PanelType = EUIPanelType::Other;
 
-    // 新增：是否修改输入模式（为false时该UI不会影响玩家输入）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     bool bModifyInput = true;
+
+    // ========== 多语言 Widget 映射（使用枚举 Key） ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Localization")
+    TMap<ELanguageType, TSoftClassPtr<UUserWidget>> LocalizedWidgetClasses;
+
+    // 获取适用于当前语言的 Widget 类
+    TSubclassOf<UUserWidget> GetLocalizedWidgetClass() const;
 
     FUIConfigData()
         : DefaultLayer(EUIPanelLayer::Middle)

@@ -1,6 +1,31 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UIManager/UIConfigDataAsset.h"
+#include "Blueprint/UserWidget.h"
+#include "LanguageManager/xyLanguageManager.h"
+
+static TSubclassOf<UUserWidget> LoadWidgetClassHelper(const TSoftClassPtr<UUserWidget>& SoftClassPtr)
+{
+    if (SoftClassPtr.IsNull())
+        return nullptr;
+    return SoftClassPtr.LoadSynchronous();
+}
+
+TSubclassOf<UUserWidget> FUIConfigData::GetLocalizedWidgetClass() const
+{
+    UxyLanguageManager* LangMgr = UxyLanguageManager::GetLanguageManager();
+    if (LangMgr)
+    {
+        ELanguageType CurrentLang = LangMgr->GetCurrentLanguage();
+        if (const TSoftClassPtr<UUserWidget>* LocalizedClass = LocalizedWidgetClasses.Find(CurrentLang))
+        {
+            if (!LocalizedClass->IsNull())
+                return LoadWidgetClassHelper(*LocalizedClass);
+        }
+    }
+    // 回退到默认 WidgetClass
+    return LoadWidgetClassHelper(WidgetClass);
+}
 
 bool UUIConfigDataAsset::GetUIConfig(FName UIName, FUIConfigData& OutConfig) const
 {

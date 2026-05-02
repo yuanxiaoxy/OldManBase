@@ -113,7 +113,7 @@ public:
     UUIManager();
     virtual ~UUIManager() override;
 
-    // ========== UI生命周期方法（基于 UIName） ==========
+    // ========== UI生命周期方法 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     UUserWidget* ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer = EUIPanelLayer::Middle, UObject* Data = nullptr, FName UIName = "", EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive);
 
@@ -213,6 +213,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI|Debug")
     void PrintConfigInfo();
 
+    // ========== 新增：语言切换支持 ==========
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    void OnLanguageChanged(ELanguageType NewLanguage);
+
+    void RefreshAllActiveUIs();
+
     // ========== 事件 ==========
     UPROPERTY(BlueprintAssignable, Category = "UI|Events")
     FOnUIShown OnUIShown;
@@ -238,11 +244,11 @@ private:
     UPROPERTY()
     TMap<UUserWidget*, FName> WidgetToUINameMap;
 
-    // UI层级栈（仅存储当前可见且未关闭的UI）
+    // UI层级栈
     UPROPERTY()
     TArray<FUILayerNode> UIStack;
 
-    // MainPanel 历史栈（记录被自动隐藏的 MainPanel，用于恢复）
+    // MainPanel 历史栈
     TArray<FName> MainPanelHistoryStack;
 
     // 配置数据
@@ -257,39 +263,33 @@ private:
     UPROPERTY()
     TWeakObjectPtr<UUIBase> CurrentInputActiveUI;
 
-    // 关闭标志，用于析构时跳过清理操作
+    // 关闭标志
     bool bIsShuttingDown;
 
-    // ========== 输入状态缓存（新增） ==========
+    // 输入状态缓存
     EUIInputMode CurrentAppliedInputMode;
     TWeakObjectPtr<UUserWidget> CurrentAppliedFocusWidget;
     bool bCurrentAppliedShowMouse;
 
-    // ========== 私有核心方法 ==========
-
-    // 显示/隐藏/关闭的内部实现（不触发公共事件，仅操作UI和栈）
+    // 私有核心方法
     void InternalShowUI(UUIBase* UI, UObject* Data);
     void InternalHideUI(UUIBase* UI);
     void InternalCloseUI(UUIBase* UI);
-    void InternalHideUISilent(UUIBase* UI);  // 静默隐藏，用于MainPanel切换
+    void InternalHideUISilent(UUIBase* UI);
 
-    // MainPanel 专用处理
     void HandleMainPanelShow(FName NewMainPanelName);
     void HandleMainPanelHide(FName HiddenMainPanelName, bool bPushToHistory);
     bool TryRestorePreviousMainPanel();
 
-    // 栈管理
     void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput);
     void RemoveFromStack(FName UIName);
     void UpdateStackOrder();
     void SafeRemoveWidget(UUserWidget* Widget);
 
-    // 输入管理
     void DeactivatePreviousUIInput();
     void ActivateTopUIInput();
     void HandleStackChange();
 
-    // 辅助方法
     void RegisterUIFromConfig(const struct FUIConfigData& Config);
     void RegisterAllUIsFromConfig();
     TSubclassOf<UUserWidget> LoadWidgetClass(const TSoftClassPtr<UUserWidget>& SoftClassPtr);
@@ -298,7 +298,6 @@ private:
     APlayerController* GetPlayerController() const;
     virtual UWorld* GetWorld() const override;
 
-    // 关闭指定类型的所有 UI
     void CloseAllUIsOfType(EUIPanelType Type);
 
     friend class UUIBase;

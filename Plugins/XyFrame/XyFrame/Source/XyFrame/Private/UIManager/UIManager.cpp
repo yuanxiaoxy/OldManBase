@@ -2,10 +2,12 @@
 
 #include "UIManager/UIManager.h"
 #include "Engine/Engine.h"
+#include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "UIManager/UIConfigDataAsset.h"
 #include "UIManager/UIBase.h"
+#include "LanguageManager/xyLanguageManager.h"
 #include "XyCharacter/XyPlayerControllerBase.h"
 
 template<>
@@ -61,6 +63,11 @@ void UUIManager::LoadUIConfig(UUIConfigDataAsset* ConfigDataAsset)
     UIConfigData = ConfigDataAsset;
     RegisterAllUIsFromConfig();
     OnUIConfigLoaded.Broadcast(true);
+
+    if (UxyLanguageManager* LangMgr = UxyLanguageManager::GetLanguageManager())
+    {
+        LangMgr->OnLanguageChanged.AddDynamic(this, &UUIManager::OnLanguageChanged);
+    }
 }
 
 void UUIManager::ReloadUIConfig()
@@ -89,12 +96,10 @@ void UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
     if (Config.UIName.IsNone() || Config.WidgetClass.IsNull()) return;
     if (UIRegistry.Contains(Config.UIName)) return;
 
-    TSubclassOf<UUserWidget> WidgetClass = LoadWidgetClass(Config.WidgetClass);
-    if (!WidgetClass) return;
-
+    // 不立即加载类，运行时通过 GetLocalizedWidgetClass 按需加载
     FUIInfo UIInfo;
     UIInfo.UIName = Config.UIName;
-    UIInfo.WidgetClass = WidgetClass;
+    UIInfo.WidgetClass = nullptr; // 延迟加载，实际 ShowUI 时使用配置中的本地化类
     UIInfo.Layer = Config.DefaultLayer;
     UIInfo.State = EUIState::Hidden;
     UIInfo.WidgetInstance = nullptr;
@@ -125,7 +130,14 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, UIInfo->WidgetClass);
+                // 注意：预加载时使用当前语言的类，但实际显示时还会再根据语言获取类，此处仅作预创建
+                // 因为预加载后语言可能变化，所以预加载只创建默认语言的实例（或者留空不预加载实际实例）
+                // 为简单起见，先不创建实例，仅在真正使用时创建。因为预加载可能会导致过期实例。
+                // 更好的做法：预加载时不创建实例，只加载类资源。这里保持原逻辑不变，但 ShowUI 时会重新检查语言并可能创建新实例。
+                TSubclassOf<UUserWidget> WidgetClass = UIInfo->WidgetClass;
+                if (!WidgetClass) continue;
+
+                UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
                 if (Widget)
                 {
                     UIInfo->WidgetInstance = Widget;
@@ -185,6 +197,14 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     bool bHasConfig = UIConfigData && UIConfigData->GetUIConfig(UIName, Config);
     EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
     bool bModifyInput = bHasConfig ? Config.bModifyInput : true;
+
+    // 获取实际使用的Widget类（根据语言）
+    TSubclassOf<UUserWidget> ActualWidgetClass = bHasConfig ? Config.GetLocalizedWidgetClass() : WidgetClass;
+    if (!ActualWidgetClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("ShowUI: Failed to get widget class for %s"), *UIName.ToString());
+        return nullptr;
+    }
 
     // Notification 类型：自动关闭已存在的同类型 UI
     if (PanelType == EUIPanelType::Notification)
@@ -271,7 +291,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     }
 
     // 创建新UI
-    UUserWidget* NewWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
+    UUserWidget* NewWidget = CreateWidget<UUserWidget>(PlayerController, ActualWidgetClass);
     if (!NewWidget) return nullptr;
     UUIBase* NewUIBase = Cast<UUIBase>(NewWidget);
 
@@ -280,7 +300,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     {
         FUIInfo NewInfo;
         NewInfo.UIName = UIName;
-        NewInfo.WidgetClass = WidgetClass;
+        NewInfo.WidgetClass = ActualWidgetClass;
         NewInfo.Layer = Layer;
         NewInfo.State = EUIState::Visible;
         NewInfo.WidgetInstance = NewWidget;
@@ -291,6 +311,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     }
     else
     {
+        UIInfo->WidgetClass = ActualWidgetClass;
         UIInfo->WidgetInstance = NewWidget;
         UIInfo->State = EUIState::Visible;
         UIInfo->Layer = Layer;
@@ -334,7 +355,17 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
     if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
+        // 需要从配置中获取Widget类
+        FUIConfigData Config;
+        if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
+        {
+            TSubclassOf<UUserWidget> ActualClass = Config.GetLocalizedWidgetClass();
+            return ShowUI(ActualClass, UIInfo->Layer, Data, UIName, OpenPolicy);
+        }
+        else if (UIInfo->WidgetClass)
+        {
+            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
+        }
     }
     return nullptr;
 }
@@ -624,7 +655,6 @@ bool UUIManager::TryRestorePreviousMainPanel()
     FName PreviousMainPanel = MainPanelHistoryStack.Pop();
     if (PreviousMainPanel != NAME_None)
     {
-        // 重新显示上一个 MainPanel，注意不要再次触发 MainPanel 切换循环
         ShowUIByName(PreviousMainPanel, nullptr, EUIOpenPolicy::Additive);
         return true;
     }
@@ -634,7 +664,7 @@ bool UUIManager::TryRestorePreviousMainPanel()
 // ========== 栈管理 ==========
 void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput)
 {
-    RemoveFromStack(UIName);  // 确保不重复
+    RemoveFromStack(UIName);
     UIStack.Add(FUILayerNode(UIName, Layer, Widget, bModifyInput));
     UpdateStackOrder();
 }
@@ -700,7 +730,7 @@ void UUIManager::DeactivatePreviousUIInput()
 
 void UUIManager::ActivateTopUIInput()
 {
-    // 此函数已废弃，仅保留空实现或调用 HandleStackChange
+    // 已废弃，统一由 HandleStackChange 处理
     HandleStackChange();
 }
 
@@ -746,24 +776,22 @@ void UUIManager::HandleStackChange()
         if (!DesiredFocus) DesiredFocus = DesiredUI;
     }
 
-    // 3. 检查是否需要切换（模式变化 或 焦点控件变化 或 鼠标显示状态变化）
+    // 3. 检查是否需要切换
     bool bNeedSwitch = (DesiredMode != CurrentAppliedInputMode);
     if (!bNeedSwitch && DesiredMode != EUIInputMode::GameOnly)
     {
-        // 对于 UI 模式，若焦点控件或鼠标显示状态发生变化也需要更新
         if (DesiredFocus != CurrentAppliedFocusWidget.Get() || bDesiredShowMouse != bCurrentAppliedShowMouse)
             bNeedSwitch = true;
     }
     else if (!bNeedSwitch && DesiredMode == EUIInputMode::GameOnly)
     {
-        // 游戏模式也可能需要更新鼠标显示（例如某些场景强制隐藏鼠标）
         if (bDesiredShowMouse != bCurrentAppliedShowMouse)
             bNeedSwitch = true;
     }
 
     if (!bNeedSwitch)
     {
-        // 无需切换输入模式，但需要确保 UI 激活状态与 CurrentInputActiveUI 一致（同步状态）
+        // 同步激活状态
         if (DesiredUI && DesiredUI != CurrentInputActiveUI.Get())
         {
             if (CurrentInputActiveUI.IsValid())
@@ -779,7 +807,7 @@ void UUIManager::HandleStackChange()
         return;
     }
 
-    // 4. 执行切换：停用旧的 UI 输入，激活新的 UI 输入
+    // 4. 执行切换
     if (CurrentInputActiveUI.IsValid())
     {
         CurrentInputActiveUI->DeactivateInput(true);
@@ -792,10 +820,10 @@ void UUIManager::HandleStackChange()
         CurrentInputActiveUI = DesiredUI;
     }
 
-    // 5. 调用 PlayerController 设置输入模式（仅当真正需要切换时）
+    // 5. 调用 PlayerController 设置输入模式
     XyPC->SetUIInputMode(DesiredMode, DesiredFocus, bDesiredShowMouse, true);
 
-    // 6. 设置焦点（如果焦点控件有效且不是游戏模式）
+    // 6. 设置焦点
     if (DesiredFocus && DesiredMode != EUIInputMode::GameOnly)
     {
         DesiredFocus->SetFocus();
@@ -976,7 +1004,7 @@ void UUIManager::PrintAllUIs()
     {
         const FUIInfo& UIInfo = Pair.Value;
         UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s"),
-            *UIInfo.UIName.ToString(), *UIInfo.WidgetClass->GetName(),
+            *UIInfo.UIName.ToString(), UIInfo.WidgetClass ? *UIInfo.WidgetClass->GetName() : TEXT("Null"),
             *UEnum::GetValueAsString(UIInfo.Layer), *UEnum::GetValueAsString(UIInfo.State),
             UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"),
             *UEnum::GetValueAsString(UIInfo.PanelType), UIInfo.bModifyInput ? TEXT("true") : TEXT("false"));
@@ -1025,4 +1053,48 @@ void UUIManager::PrintConfigInfo()
         UE_LOG(LogTemp, Log, TEXT("No config data asset set"));
     }
     UE_LOG(LogTemp, Log, TEXT("=============================="));
+}
+
+// ========== 语言切换支持 ==========
+void UUIManager::OnLanguageChanged(ELanguageType NewLanguage)
+{
+    UE_LOG(LogTemp, Log, TEXT("UIManager: Language changed to %s, refreshing active UIs..."),
+        *UxyLanguageManager::GetLanguageManager()->GetLanguageCode(NewLanguage));
+    RefreshAllActiveUIs();
+}
+
+void UUIManager::RefreshAllActiveUIs()
+{
+    if (bIsShuttingDown) return;
+
+    // 收集当前可见 UI
+    TArray<FName> ActiveUINames;
+    for (const auto& Pair : UIRegistry)
+    {
+        if (Pair.Value.WidgetInstance && Pair.Value.State == EUIState::Visible)
+            ActiveUINames.Add(Pair.Key);
+    }
+
+    // 保存数据
+    TMap<FName, UObject*> UIDataMap;
+    for (FName UIName : ActiveUINames)
+    {
+        if (UUIBase* UI = Cast<UUIBase>(GetUI(UIName)))
+        {
+            UIDataMap.Add(UIName, UI->GetCurrentData());
+        }
+    }
+
+    // 关闭所有
+    for (FName UIName : ActiveUINames)
+    {
+        CloseUI(UIName, true, false);
+    }
+
+    // 重新打开
+    for (FName UIName : ActiveUINames)
+    {
+        UObject* Data = UIDataMap.FindRef(UIName);
+        ShowUIByName(UIName, Data, EUIOpenPolicy::Additive);
+    }
 }

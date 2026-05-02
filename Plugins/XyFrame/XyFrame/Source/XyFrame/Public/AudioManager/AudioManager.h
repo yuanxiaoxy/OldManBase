@@ -7,6 +7,7 @@
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
 #include "Engine/DataTable.h"
+#include "LanguageManager/xyLanguageManager.h"   // 引入语言枚举
 #include "AudioManager.generated.h"
 
 class UAudioEffectController;
@@ -23,6 +24,16 @@ enum class EAudioCategory : uint8
 
 ENUM_RANGE_BY_COUNT(EAudioCategory, 5)
 
+// 辅助结构体：用于多语言音频数组（绕过 UHT 限制）
+USTRUCT(BlueprintType)
+struct FLocalizedAudioArray
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    TArray<TSoftObjectPtr<USoundBase>> Assets;
+};
+
 USTRUCT(BlueprintType)
 struct FAudioConfig : public FTableRowBase
 {
@@ -34,13 +45,17 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     EAudioCategory Category = EAudioCategory::SFX;
 
-    // 原有单个资源（保留兼容）
+    // 默认单个资源（保留兼容）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TSoftObjectPtr<USoundBase> SoundAsset;
 
-    // 随机池（多个资源）
+    // 默认随机池（多个资源）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     TArray<TSoftObjectPtr<USoundBase>> SoundAssets;
+
+    // ========== 多语言随机池（每个语言对应一个 FLocalizedAudioArray） ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Localization")
+    TMap<ELanguageType, FLocalizedAudioArray> LocalizedSoundAssetsList;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     bool bLooping = false;
@@ -63,7 +78,6 @@ struct FAudioConfig : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Fade", meta = (ClampMin = "0.0"))
     float FadeOutTime = 0.0f;
 
-    // 是否允许重新播放（复用组件，默认 false）
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio|Behavior")
     bool bAllowRestart = false;
 };
@@ -292,6 +306,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|Effect")
     void ShutdownEffectSystem();
 
+    // 语言切换响应
+    UFUNCTION(BlueprintCallable, Category = "Audio")
+    void OnLanguageChanged(ELanguageType NewLanguage);
+
 protected:
     void TickEffectControllers();
 
@@ -321,7 +339,7 @@ private:
 
     FTimerHandle EffectTickTimerHandle;
 
-    // 资源缓存 - 必须加 UPROPERTY 防止 GC
+    // 资源缓存
     UPROPERTY(Transient)
     TMap<FSoftObjectPath, TObjectPtr<USoundBase>> LoadedSoundCache;
 
@@ -330,7 +348,7 @@ private:
     USoundBase* GetRandomSoundFromConfig(const FAudioConfig* Config);
     bool ShouldPlayByProbability(float Probability) const;
 
-    // 复用现有组件（用于 bAllowRestart）
+    // 复用现有组件
     UAudioComponent* FindAndReuseExistingComponent(const FAudioConfig* Config, AActor* AttachActor, const FVector& Location);
 
     UFUNCTION()

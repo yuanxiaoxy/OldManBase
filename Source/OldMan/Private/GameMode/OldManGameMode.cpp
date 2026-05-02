@@ -5,6 +5,7 @@
 #include "EffectManager/EffectManager.h"
 #include "AudioManager/AudioManager.h"
 #include "UIManager/UIConfigDataAsset.h"
+#include "LanguageManager/xyLanguageManager.h"
 #include "ResourceManager/ResourceManager.h"
 #include "SavePoint/OldManSavePointManager.h"
 #include "SceneManager/LoadSceneManager.h"
@@ -66,6 +67,8 @@ void AOldManGameMode::InitializeWorldState_Implementation()
     Super::InitializeWorldState_Implementation();
 
     UE_LOG(LogTemp, Log, TEXT("Initializing my specific world state..."));
+
+    UxyLanguageManager::GetInstance()->InitializeLanguageManager();
 
     // 不在BeginPlay中直接显示UI，等待世界初始化完成
     UIManager = UUIManager::GetInstance();

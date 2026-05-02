@@ -49,6 +49,7 @@ void UOldManCameraComponent::InitializeCameraComponents(USpringArmComponent* InC
     InputSmoothingInterpSpeed = MyCameraData.InputSmoothingInterpSpeed;
     GravityRotationInterpSpeed = MyCameraData.GravityRotationInterpSpeed;
     CameraFrameRate = MyCameraData.CameraFrameRate;
+    FollowCamera->FieldOfView = CurCameraFOV;
 
     if (CameraBoom)
     {

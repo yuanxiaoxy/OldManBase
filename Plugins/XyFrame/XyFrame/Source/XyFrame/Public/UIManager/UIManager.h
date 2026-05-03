@@ -6,8 +6,6 @@
 #include "SingletonBase/SingletonBase.h"
 #include "Engine/GameInstance.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
 #include "UITypes.h"
 #include "UIBase.h"
 #include "UIManager.generated.h"
@@ -42,6 +40,7 @@ struct FUIInfo
 
     EUIPanelType PanelType;
     bool bModifyInput;
+    int32 Priority;
 
     FUIInfo()
         : Layer(EUIPanelLayer::Middle)
@@ -50,6 +49,7 @@ struct FUIInfo
         , bIsPreloaded(false)
         , PanelType(EUIPanelType::Other)
         , bModifyInput(true)
+        , Priority(0)
     {
     }
 };
@@ -69,20 +69,26 @@ struct FUILayerNode
     UUserWidget* Widget;
 
     bool bModifyInput;
+    int32 Priority;
+    uint64 OpenOrder;
 
     FUILayerNode()
         : UIName(NAME_None)
         , Layer(EUIPanelLayer::None)
         , Widget(nullptr)
         , bModifyInput(true)
+        , Priority(0)
+        , OpenOrder(0)
     {
     }
 
-    FUILayerNode(FName InUIName, EUIPanelLayer InLayer, UUserWidget* InWidget, bool bInModifyInput = true)
+    FUILayerNode(FName InUIName, EUIPanelLayer InLayer, UUserWidget* InWidget, bool bInModifyInput, int32 InPriority, uint64 InOpenOrder)
         : UIName(InUIName)
         , Layer(InLayer)
         , Widget(InWidget)
         , bModifyInput(bInModifyInput)
+        , Priority(InPriority)
+        , OpenOrder(InOpenOrder)
     {
     }
 };
@@ -213,7 +219,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI|Debug")
     void PrintConfigInfo();
 
-    // ========== 新增：语言切换支持 ==========
+    // ========== 语言切换支持 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
     void OnLanguageChanged(ELanguageType NewLanguage);
 
@@ -271,6 +277,9 @@ private:
     TWeakObjectPtr<UUserWidget> CurrentAppliedFocusWidget;
     bool bCurrentAppliedShowMouse;
 
+    // 打开序号计数器
+    uint64 NextOpenOrder;
+
     // 私有核心方法
     void InternalShowUI(UUIBase* UI, UObject* Data);
     void InternalHideUI(UUIBase* UI);
@@ -281,9 +290,10 @@ private:
     void HandleMainPanelHide(FName HiddenMainPanelName, bool bPushToHistory);
     bool TryRestorePreviousMainPanel();
 
-    void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput);
+    void AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput, int32 Priority);
     void RemoveFromStack(FName UIName);
     void UpdateStackOrder();
+    void RefreshAllZOrder();    // 根据逻辑栈顺序，刷新所有活跃UI的ZOrder
     void SafeRemoveWidget(UUserWidget* Widget);
 
     void DeactivatePreviousUIInput();

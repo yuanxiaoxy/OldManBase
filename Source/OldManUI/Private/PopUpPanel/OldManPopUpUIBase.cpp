@@ -2,11 +2,14 @@
 
 
 #include "PopUpPanel/OldManPopUpUIBase.h"
+#include "AudioManager/AudioManager.h"
 #include "UIManager/UIManager.h"
 
 void UOldManPopUpUIBase::InternalShowUI(UObject* Data)
 {
 	Super::InternalShowUI(Data);
+
+    UAudioManager::GetInstance()->PlaySound(this, "SFX_PopupGuide");
 
     if (PopupAnimation_out)
     {

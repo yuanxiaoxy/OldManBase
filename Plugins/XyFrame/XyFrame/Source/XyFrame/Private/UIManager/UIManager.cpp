@@ -18,6 +18,7 @@ UUIManager::UUIManager()
     , CurrentAppliedInputMode(EUIInputMode::GameOnly)
     , CurrentAppliedFocusWidget(nullptr)
     , bCurrentAppliedShowMouse(false)
+    , NextOpenOrder(0)
 {
     WorldContext = nullptr;
     UIConfigData = nullptr;
@@ -96,16 +97,16 @@ void UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
     if (Config.UIName.IsNone() || Config.WidgetClass.IsNull()) return;
     if (UIRegistry.Contains(Config.UIName)) return;
 
-    // 不立即加载类，运行时通过 GetLocalizedWidgetClass 按需加载
     FUIInfo UIInfo;
     UIInfo.UIName = Config.UIName;
-    UIInfo.WidgetClass = nullptr; // 延迟加载，实际 ShowUI 时使用配置中的本地化类
+    UIInfo.WidgetClass = nullptr;
     UIInfo.Layer = Config.DefaultLayer;
     UIInfo.State = EUIState::Hidden;
     UIInfo.WidgetInstance = nullptr;
     UIInfo.bIsPreloaded = Config.bPreload;
     UIInfo.PanelType = Config.PanelType;
     UIInfo.bModifyInput = Config.bModifyInput;
+    UIInfo.Priority = Config.Priority;
     UIRegistry.Add(Config.UIName, UIInfo);
 }
 
@@ -130,10 +131,6 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
         {
             if (!UIInfo->WidgetInstance && UIInfo->WidgetClass)
             {
-                // 注意：预加载时使用当前语言的类，但实际显示时还会再根据语言获取类，此处仅作预创建
-                // 因为预加载后语言可能变化，所以预加载只创建默认语言的实例（或者留空不预加载实际实例）
-                // 为简单起见，先不创建实例，仅在真正使用时创建。因为预加载可能会导致过期实例。
-                // 更好的做法：预加载时不创建实例，只加载类资源。这里保持原逻辑不变，但 ShowUI 时会重新检查语言并可能创建新实例。
                 TSubclassOf<UUserWidget> WidgetClass = UIInfo->WidgetClass;
                 if (!WidgetClass) continue;
 
@@ -143,23 +140,9 @@ void UUIManager::PreloadUIs(const TArray<FName>& UINames)
                     UIInfo->WidgetInstance = Widget;
                     UIInfo->bIsPreloaded = true;
                     WidgetToUINameMap.Add(Widget, UIName);
-                    if (UUIBase* UIBase = Cast<UUIBase>(Widget))
-                    {
-                        FUIConfigData Config;
-                        if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
-                        {
-                            UIBase->SetInputMode(Config.DefaultInputMode);
-                            UIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
-                            UIBase->PanelType = Config.PanelType;
-                            UIBase->bModifyInput = Config.bModifyInput;
-                            if (Config.DefaultInputMappingContext)
-                            {
-                                UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
-                                if (IMC)
-                                    UIBase->SetInputMappingContext(IMC, Config.InputPriority);
-                            }
-                        }
-                    }
+
+                    // 预加载的Widget不需要添加到视口，也不需要设置ZOrder
+                    // 之后真正显示时会重新设置ZOrder并添加到视口
                 }
             }
         }
@@ -197,6 +180,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     bool bHasConfig = UIConfigData && UIConfigData->GetUIConfig(UIName, Config);
     EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
     bool bModifyInput = bHasConfig ? Config.bModifyInput : true;
+    int32 Priority = bHasConfig ? Config.Priority : 0;
 
     // 获取实际使用的Widget类（根据语言）
     TSubclassOf<UUserWidget> ActualWidgetClass = bHasConfig ? Config.GetLocalizedWidgetClass() : WidgetClass;
@@ -236,9 +220,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     // 如果已存在且可见，则仅刷新数据和栈顺序
     if (ExistingWidget && UIInfo->State == EUIState::Visible)
     {
-        // 重新入栈（改变顺序）
         RemoveFromStack(UIName);
-        AddToStack(ExistingWidget, UIName, Layer, bModifyInput);
+        AddToStack(ExistingWidget, UIName, Layer, bModifyInput, Priority);
         HandleStackChange();
 
         if (ExistingUIBase && Data)
@@ -249,7 +232,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         return ExistingWidget;
     }
 
-    // 处理 MainPanel 切换：如果要显示的是 MainPanel，先隐藏当前显示的 MainPanel
+    // 处理 MainPanel 切换
     if (PanelType == EUIPanelType::MainPanel)
     {
         HandleMainPanelShow(UIName);
@@ -258,9 +241,10 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     // 如果已存在但未显示（Hidden），则直接显示
     if (ExistingWidget && UIInfo->State == EUIState::Hidden)
     {
+        UIInfo->Priority = Priority;
+
         if (ExistingUIBase)
         {
-            // 更新配置（可能运行时改变）
             if (bHasConfig)
             {
                 ExistingUIBase->SetInputMode(Config.DefaultInputMode);
@@ -282,7 +266,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         }
 
         UIInfo->State = EUIState::Visible;
-        AddToStack(ExistingWidget, UIName, Layer, bModifyInput);
+        AddToStack(ExistingWidget, UIName, Layer, bModifyInput, Priority);
         HandleStackChange();
 
         OnUIShown.Broadcast(UIName);
@@ -307,6 +291,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         NewInfo.bIsPreloaded = false;
         NewInfo.PanelType = PanelType;
         NewInfo.bModifyInput = bModifyInput;
+        NewInfo.Priority = Priority;
         UIRegistry.Add(UIName, NewInfo);
     }
     else
@@ -317,6 +302,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo->Layer = Layer;
         UIInfo->PanelType = PanelType;
         UIInfo->bModifyInput = bModifyInput;
+        UIInfo->Priority = Priority;
     }
     WidgetToUINameMap.Add(NewWidget, UIName);
 
@@ -338,11 +324,13 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         }
     }
 
-    InternalShowUI(NewUIBase, Data);
+    // 添加到视口（设置初始ZOrder）
     if (!NewWidget->IsInViewport())
-        NewWidget->AddToViewport();
+        NewWidget->AddToViewport(0);
 
-    AddToStack(NewWidget, UIName, Layer, bModifyInput);
+    InternalShowUI(NewUIBase, Data);
+
+    AddToStack(NewWidget, UIName, Layer, bModifyInput, Priority);
     HandleStackChange();
 
     OnUIShown.Broadcast(UIName);
@@ -355,7 +343,6 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
     if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
     {
-        // 需要从配置中获取Widget类
         FUIConfigData Config;
         if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
         {
@@ -393,10 +380,8 @@ void UUIManager::HideUIByWidget(UUserWidget* Widget, bool bRestorePreviousMainPa
 
     bool bIsMainPanel = (UIInfo->PanelType == EUIPanelType::MainPanel);
 
-    // 隐藏 MainPanel 并恢复上一个 MainPanel
     if (bIsMainPanel && bRestorePreviousMainPanel)
     {
-        // 1. 隐藏当前 MainPanel（不销毁）
         if (UUIBase* UIBase = Cast<UUIBase>(Widget))
             InternalHideUI(UIBase);
         else
@@ -404,17 +389,13 @@ void UUIManager::HideUIByWidget(UUserWidget* Widget, bool bRestorePreviousMainPa
 
         UIInfo->State = EUIState::Hidden;
         RemoveFromStack(UIName);
-
-        // 2. 恢复上一个 MainPanel
         TryRestorePreviousMainPanel();
-
         HandleStackChange();
         OnUIHidden.Broadcast(UIName);
         OnUITopChanged.Broadcast(GetTopUIName());
         return;
     }
 
-    // 普通隐藏
     if (UUIBase* UIBase = Cast<UUIBase>(Widget))
         InternalHideUI(UIBase);
     else
@@ -451,10 +432,8 @@ void UUIManager::CloseUIByWidget(UUserWidget* Widget, bool bDestroyInstance, boo
 
     bool bIsMainPanel = (UIInfo->PanelType == EUIPanelType::MainPanel);
 
-    // 处理 MainPanel 关闭并恢复上一个 MainPanel
     if (bIsMainPanel && bRestorePreviousMainPanel)
     {
-        // 1. 先销毁/隐藏当前 MainPanel
         if (CurrentInputActiveUI.Get() == Widget)
         {
             if (CurrentInputActiveUI.IsValid())
@@ -491,16 +470,12 @@ void UUIManager::CloseUIByWidget(UUserWidget* Widget, bool bDestroyInstance, boo
         }
 
         OnUIClosed.Broadcast(UIName);
-
-        // 2. 恢复上一个 MainPanel（从历史栈中弹出并显示）
         TryRestorePreviousMainPanel();
-
         HandleStackChange();
         OnUITopChanged.Broadcast(GetTopUIName());
         return;
     }
 
-    // 普通关闭（非 MainPanel 或不需要恢复）
     if (CurrentInputActiveUI.Get() == Widget)
     {
         if (CurrentInputActiveUI.IsValid())
@@ -605,7 +580,6 @@ void UUIManager::InternalHideUISilent(UUIBase* UI)
 // ========== MainPanel 专用处理 ==========
 void UUIManager::HandleMainPanelShow(FName NewMainPanelName)
 {
-    // 查找当前栈中可见的 MainPanel（可能只有一个）
     FName CurrentMainPanel = NAME_None;
     for (int32 i = UIStack.Num() - 1; i >= 0; --i)
     {
@@ -619,7 +593,6 @@ void UUIManager::HandleMainPanelShow(FName NewMainPanelName)
 
     if (CurrentMainPanel != NAME_None && CurrentMainPanel != NewMainPanelName)
     {
-        // 隐藏当前的 MainPanel，并推入历史栈
         HandleMainPanelHide(CurrentMainPanel, true);
     }
 }
@@ -631,14 +604,12 @@ void UUIManager::HandleMainPanelHide(FName HiddenMainPanelName, bool bPushToHist
 
     if (bPushToHistory)
     {
-        // 避免重复推入同一个
         if (MainPanelHistoryStack.Num() == 0 || MainPanelHistoryStack.Last() != HiddenMainPanelName)
         {
             MainPanelHistoryStack.Add(HiddenMainPanelName);
         }
     }
 
-    // 静默隐藏
     if (UUIBase* UIBase = Cast<UUIBase>(Info->WidgetInstance))
         InternalHideUISilent(UIBase);
     else
@@ -662,11 +633,13 @@ bool UUIManager::TryRestorePreviousMainPanel()
 }
 
 // ========== 栈管理 ==========
-void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput)
+void UUIManager::AddToStack(UUserWidget* Widget, FName UIName, EUIPanelLayer Layer, bool bModifyInput, int32 Priority)
 {
     RemoveFromStack(UIName);
-    UIStack.Add(FUILayerNode(UIName, Layer, Widget, bModifyInput));
+    uint64 Order = NextOpenOrder++;
+    UIStack.Add(FUILayerNode(UIName, Layer, Widget, bModifyInput, Priority, Order));
     UpdateStackOrder();
+    RefreshAllZOrder();
 }
 
 void UUIManager::RemoveFromStack(FName UIName)
@@ -679,13 +652,33 @@ void UUIManager::RemoveFromStack(FName UIName)
             break;
         }
     }
+    RefreshAllZOrder();
 }
 
 void UUIManager::UpdateStackOrder()
 {
     UIStack.Sort([](const FUILayerNode& A, const FUILayerNode& B) {
-        return static_cast<int32>(A.Layer) > static_cast<int32>(B.Layer);
+        if (A.Layer != B.Layer)
+            return static_cast<int32>(A.Layer) < static_cast<int32>(B.Layer);
+        if (A.Priority != B.Priority)
+            return A.Priority < B.Priority;
+        return A.OpenOrder < B.OpenOrder;
         });
+}
+
+void UUIManager::RefreshAllZOrder()
+{
+    // 根据排序后的栈顺序，重新设置每个可见Widget的ZOrder
+    for (int32 i = 0; i < UIStack.Num(); ++i)
+    {
+        UUserWidget* Widget = UIStack[i].Widget;
+        if (Widget && Widget->IsInViewport())
+        {
+            // 移除后重新添加来更新ZOrder
+            Widget->RemoveFromParent();
+            Widget->AddToViewport(i);  // 使用索引作为ZOrder
+        }
+    }
 }
 
 void UUIManager::SafeRemoveWidget(UUserWidget* Widget)
@@ -730,11 +723,9 @@ void UUIManager::DeactivatePreviousUIInput()
 
 void UUIManager::ActivateTopUIInput()
 {
-    // 已废弃，统一由 HandleStackChange 处理
     HandleStackChange();
 }
 
-// ========== 核心修改：HandleStackChange ==========
 void UUIManager::HandleStackChange()
 {
     if (bIsShuttingDown) return;
@@ -747,7 +738,7 @@ void UUIManager::HandleStackChange()
         return;
     }
 
-    // 1. 寻找需要激活的顶层 UI（bModifyInput=true, 可见, 且 InputMode != GameOnly）
+    // 寻找需要激活的顶层 UI
     UUIBase* DesiredUI = nullptr;
     for (int32 i = UIStack.Num() - 1; i >= 0; --i)
     {
@@ -763,7 +754,7 @@ void UUIManager::HandleStackChange()
         }
     }
 
-    // 2. 计算期望的输入模式和焦点控件
+    // 计算期望的输入模式和焦点控件
     EUIInputMode DesiredMode = EUIInputMode::GameOnly;
     UUserWidget* DesiredFocus = nullptr;
     bool bDesiredShowMouse = false;
@@ -776,7 +767,7 @@ void UUIManager::HandleStackChange()
         if (!DesiredFocus) DesiredFocus = DesiredUI;
     }
 
-    // 3. 检查是否需要切换
+    // 检查是否需要切换
     bool bNeedSwitch = (DesiredMode != CurrentAppliedInputMode);
     if (!bNeedSwitch && DesiredMode != EUIInputMode::GameOnly)
     {
@@ -791,7 +782,6 @@ void UUIManager::HandleStackChange()
 
     if (!bNeedSwitch)
     {
-        // 同步激活状态
         if (DesiredUI && DesiredUI != CurrentInputActiveUI.Get())
         {
             if (CurrentInputActiveUI.IsValid())
@@ -807,7 +797,7 @@ void UUIManager::HandleStackChange()
         return;
     }
 
-    // 4. 执行切换
+    // 执行切换
     if (CurrentInputActiveUI.IsValid())
     {
         CurrentInputActiveUI->DeactivateInput(true);
@@ -820,16 +810,16 @@ void UUIManager::HandleStackChange()
         CurrentInputActiveUI = DesiredUI;
     }
 
-    // 5. 调用 PlayerController 设置输入模式
+    // 调用 PlayerController 设置输入模式
     XyPC->SetUIInputMode(DesiredMode, DesiredFocus, bDesiredShowMouse, true);
 
-    // 6. 设置焦点
+    // 设置焦点
     if (DesiredFocus && DesiredMode != EUIInputMode::GameOnly)
     {
         DesiredFocus->SetFocus();
     }
 
-    // 7. 更新缓存
+    // 更新缓存
     CurrentAppliedInputMode = DesiredMode;
     CurrentAppliedFocusWidget = DesiredFocus;
     bCurrentAppliedShowMouse = bDesiredShowMouse;
@@ -898,6 +888,7 @@ void UUIManager::SetUILayer(FName UIName, EUIPanelLayer NewLayer)
             }
         }
         UpdateStackOrder();
+        RefreshAllZOrder();
         HandleStackChange();
     }
 }
@@ -1003,11 +994,12 @@ void UUIManager::PrintAllUIs()
     for (const auto& Pair : UIRegistry)
     {
         const FUIInfo& UIInfo = Pair.Value;
-        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s"),
+        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s, Priority: %d"),
             *UIInfo.UIName.ToString(), UIInfo.WidgetClass ? *UIInfo.WidgetClass->GetName() : TEXT("Null"),
             *UEnum::GetValueAsString(UIInfo.Layer), *UEnum::GetValueAsString(UIInfo.State),
             UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"),
-            *UEnum::GetValueAsString(UIInfo.PanelType), UIInfo.bModifyInput ? TEXT("true") : TEXT("false"));
+            *UEnum::GetValueAsString(UIInfo.PanelType), UIInfo.bModifyInput ? TEXT("true") : TEXT("false"),
+            UIInfo.Priority);
     }
     UE_LOG(LogTemp, Log, TEXT("=========================="));
 }
@@ -1021,8 +1013,8 @@ void UUIManager::PrintStackInfo()
     for (int32 i = UIStack.Num() - 1; i >= 0; i--)
     {
         const FUILayerNode& Node = UIStack[i];
-        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Widget: %s, ModifyInput: %s"),
-            i, *Node.UIName.ToString(), *UEnum::GetValueAsString(Node.Layer),
+        UE_LOG(LogTemp, Log, TEXT("[%d] Name: %s, Layer: %s, Priority: %d, OpenOrder: %llu, Widget: %s, ModifyInput: %s"),
+            i, *Node.UIName.ToString(), *UEnum::GetValueAsString(Node.Layer), Node.Priority, Node.OpenOrder,
             Node.Widget ? TEXT("Valid") : TEXT("Null"), Node.bModifyInput ? TEXT("true") : TEXT("false"));
     }
     UE_LOG(LogTemp, Log, TEXT("MainPanel History:"));
@@ -1041,11 +1033,11 @@ void UUIManager::PrintConfigInfo()
         UE_LOG(LogTemp, Log, TEXT("Total Config Entries: %d"), AllConfigs.Num());
         for (const FUIConfigData& Config : AllConfigs)
         {
-            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, ModifyInput: %s, Desc: %s"),
+            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, ModifyInput: %s, Priority: %d, Desc: %s"),
                 *Config.UIName.ToString(), *Config.WidgetClass.ToString(), *UEnum::GetValueAsString(Config.DefaultLayer),
                 *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"),
                 *UEnum::GetValueAsString(Config.PanelType), Config.bModifyInput ? TEXT("true") : TEXT("false"),
-                *Config.Description);
+                Config.Priority, *Config.Description);
         }
     }
     else
@@ -1067,7 +1059,6 @@ void UUIManager::RefreshAllActiveUIs()
 {
     if (bIsShuttingDown) return;
 
-    // 收集当前可见 UI
     TArray<FName> ActiveUINames;
     for (const auto& Pair : UIRegistry)
     {
@@ -1075,7 +1066,6 @@ void UUIManager::RefreshAllActiveUIs()
             ActiveUINames.Add(Pair.Key);
     }
 
-    // 保存数据
     TMap<FName, UObject*> UIDataMap;
     for (FName UIName : ActiveUINames)
     {
@@ -1085,13 +1075,11 @@ void UUIManager::RefreshAllActiveUIs()
         }
     }
 
-    // 关闭所有
     for (FName UIName : ActiveUINames)
     {
         CloseUI(UIName, true, false);
     }
 
-    // 重新打开
     for (FName UIName : ActiveUINames)
     {
         UObject* Data = UIDataMap.FindRef(UIName);

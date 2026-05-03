@@ -6,7 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
 #include "UITypes.h"
-#include "LanguageManager/xyLanguageManager.h"   // 引入 ELanguageType
+#include "LanguageManager/xyLanguageManager.h"
 #include "UIConfigDataAsset.generated.h"
 
 USTRUCT(BlueprintType)
@@ -47,11 +47,14 @@ struct FUIConfigData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     bool bModifyInput = true;
 
-    // ========== 多语言 Widget 映射（使用枚举 Key） ==========
+    // ========== 新增：UI 优先级（数值越大层级越高）==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    int32 Priority = 0;
+
+    // ========== 多语言 Widget 映射 ==========
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Localization")
     TMap<ELanguageType, TSoftClassPtr<UUserWidget>> LocalizedWidgetClasses;
 
-    // 获取适用于当前语言的 Widget 类
     TSubclassOf<UUserWidget> GetLocalizedWidgetClass() const;
 
     FUIConfigData()
@@ -61,6 +64,7 @@ struct FUIConfigData : public FTableRowBase
         , InputPriority(0)
         , bPreload(false)
         , bModifyInput(true)
+        , Priority(0)
     {
     }
 };

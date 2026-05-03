@@ -2,6 +2,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "Engine/World.h"
+#include "AudioManager/AudioManager.h"
 #include "Math/UnrealMathUtility.h"
 
 AFloatingItem::AFloatingItem()
@@ -98,6 +99,8 @@ void AFloatingItem::OnMeshBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	// 只有下落时才触发（跳上来），避免地面走上也触发
 	FVector PlayerVelocity = Player->GetVelocity();
 	if (PlayerVelocity.Z >= 0.0f) return;
+
+	UAudioManager::GetInstance()->PlaySound(this, "SFX_OnWaterFloatItem");
 
 	StartSinkRiseCycle(Player);
 }

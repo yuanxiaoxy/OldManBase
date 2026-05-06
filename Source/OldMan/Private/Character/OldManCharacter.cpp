@@ -40,6 +40,9 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     bulletFirePos = CreateDefaultSubobject<USceneComponent>(TEXT("bulletFirePosition"));
     bulletFirePos->SetupAttachment(GetMesh());
 
+    PlayerCenterPos = CreateDefaultSubobject<USceneComponent>(TEXT("PlayerCenterPos"));
+    PlayerCenterPos->SetupAttachment(GetMesh());
+
     // Create camera boom
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
@@ -1120,6 +1123,15 @@ void AOldManCharacter::SetCurrentCableWithDirection(AOldManCableBase* newCable, 
         CurrentCable = newCable;
         bCableMoveForward = bMoveForward;
     }
+}
+FVector AOldManCharacter::GetLineEffectStartPos()
+{
+    if (PlayerCenterPos)
+    {
+        return PlayerCenterPos->GetComponentLocation();
+    }
+
+    return FVector();
 }
 #pragma endregion
 

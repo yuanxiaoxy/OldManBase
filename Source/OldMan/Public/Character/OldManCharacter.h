@@ -85,6 +85,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeathCheck")
     UCheckDeathAreaComponent* CheckDeathAreaComponent;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerCenterPos")
+    USceneComponent* PlayerCenterPos;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State Machine")
     UStateMachineBase* StateMachine;
 
@@ -473,6 +476,9 @@ public:
 
     /** 获取当前滑索移动方向符号（+1 正向，-1 反向） */
     float GetCableMoveDirectionSign() const { return bCableMoveForward ? 1.0f : -1.0f; }
+
+    UFUNCTION(BlueprintCallable, Category = "Cable")
+    FVector GetLineEffectStartPos();
 #pragma endregion
 
 #pragma region Character Param

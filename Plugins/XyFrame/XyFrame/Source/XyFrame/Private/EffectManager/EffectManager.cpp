@@ -20,7 +20,6 @@ static USceneComponent* FindComponentForAttach(AActor* Actor, FName SocketName)
 
     if (SocketName != NAME_None)
     {
-        // 优先查找静态网格体组件
         TArray<UStaticMeshComponent*> StaticComps;
         Actor->GetComponents<UStaticMeshComponent>(StaticComps);
         for (auto* Comp : StaticComps)
@@ -29,7 +28,6 @@ static USceneComponent* FindComponentForAttach(AActor* Actor, FName SocketName)
                 return Comp;
         }
 
-        // 查找骨骼网格体组件
         TArray<USkeletalMeshComponent*> SkelComps;
         Actor->GetComponents<USkeletalMeshComponent>(SkelComps);
         for (auto* Comp : SkelComps)
@@ -38,7 +36,6 @@ static USceneComponent* FindComponentForAttach(AActor* Actor, FName SocketName)
                 return Comp;
         }
 
-        // 查找任意场景组件
         TArray<USceneComponent*> SceneComps;
         Actor->GetComponents<USceneComponent>(SceneComps);
         for (auto* Comp : SceneComps)
@@ -289,7 +286,7 @@ FName UEffectManager::InternalPlayEffectAtLocation(const FName& EffectID, const 
     InstanceInfo.TempActor = TempActor;
     InstanceInfo.StartTime = World->GetTimeSeconds();
     InstanceInfo.EffectConfig = Config;
-    InstanceInfo.bIsFollowMode = false; // 世界空间特效不是跟随模式
+    InstanceInfo.bIsFollowMode = false;
     InitializeInstanceInfo(InstanceInfo);
 
     EffectInstances.Add(InstanceID, InstanceInfo);
@@ -316,9 +313,6 @@ FName UEffectManager::InternalPlayEffectAttached(const FName& EffectID, const FE
         RelativeOffset, RelativeRotation, false);
     if (!EffectComponent) return NAME_None;
 
-    if (Config.SizeMultiplier != 1.0f)
-        EffectComponent->SetWorldScale3D(FVector(Config.SizeMultiplier));
-
     FEffectInstanceInfo InstanceInfo;
     InstanceInfo.InstanceID = InstanceID;
     InstanceInfo.EffectID = EffectID;
@@ -326,7 +320,7 @@ FName UEffectManager::InternalPlayEffectAttached(const FName& EffectID, const FE
     InstanceInfo.ParentActor = ParentActor;
     InstanceInfo.StartTime = World->GetTimeSeconds();
     InstanceInfo.EffectConfig = Config;
-    InstanceInfo.bIsFollowMode = false; // 附加模式，不是手动跟随
+    InstanceInfo.bIsFollowMode = false;
     InitializeInstanceInfo(InstanceInfo);
 
     EffectInstances.Add(InstanceID, InstanceInfo);
@@ -348,13 +342,9 @@ FName UEffectManager::InternalPlayEffectFollowActor(const FName& EffectID, const
     }
 
     FName InstanceID = GenerateInstanceID();
-    // 跟随模式也调用 CreateEffectComponent，但传入 bFollowActor = true
     UNiagaraComponent* EffectComponent = CreateEffectComponent(Config, TargetActor,
         NAME_None, Config.RelativeOffset, Config.RelativeRotation, true);
     if (!EffectComponent) return NAME_None;
-
-    if (Config.SizeMultiplier != 1.0f)
-        EffectComponent->SetWorldScale3D(FVector(Config.SizeMultiplier));
 
     FEffectInstanceInfo InstanceInfo;
     InstanceInfo.InstanceID = InstanceID;
@@ -363,7 +353,7 @@ FName UEffectManager::InternalPlayEffectFollowActor(const FName& EffectID, const
     InstanceInfo.ParentActor = TargetActor;
     InstanceInfo.StartTime = World->GetTimeSeconds();
     InstanceInfo.EffectConfig = Config;
-    InstanceInfo.bIsFollowMode = true; // 标记为手动跟随模式
+    InstanceInfo.bIsFollowMode = true;
     InitializeInstanceInfo(InstanceInfo);
 
     EffectInstances.Add(InstanceID, InstanceInfo);
@@ -469,6 +459,71 @@ void UEffectManager::RestartEffectInstance(const FName& InstanceID)
         InstanceInfo->RemainingLoops = InstanceInfo->EffectConfig.LoopCount;
         ActivateEffectInstance(InstanceID);
         UE_LOG(LogTemp, Log, TEXT("Restarted effect instance: %s"), *InstanceID.ToString());
+    }
+}
+
+bool UEffectManager::IsEffectInstanceValid(const FName& InstanceID) const
+{
+    const FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    return InstanceInfo && InstanceInfo->EffectComponent && IsValid(InstanceInfo->EffectComponent);
+}
+
+// ========== 新增：位置/变换控制 ==========
+
+void UEffectManager::SetEffectWorldLocation(const FName& InstanceID, const FVector& NewLocation)
+{
+    FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    if (InstanceInfo && InstanceInfo->EffectComponent && IsValid(InstanceInfo->EffectComponent))
+    {
+        InstanceInfo->EffectComponent->SetWorldLocation(NewLocation);
+    }
+}
+
+void UEffectManager::SetEffectWorldRotation(const FName& InstanceID, const FRotator& NewRotation)
+{
+    FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    if (InstanceInfo && InstanceInfo->EffectComponent && IsValid(InstanceInfo->EffectComponent))
+    {
+        InstanceInfo->EffectComponent->SetWorldRotation(NewRotation);
+    }
+}
+
+void UEffectManager::SetEffectWorldTransform(const FName& InstanceID, const FTransform& NewTransform)
+{
+    FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    if (InstanceInfo && InstanceInfo->EffectComponent && IsValid(InstanceInfo->EffectComponent))
+    {
+        InstanceInfo->EffectComponent->SetWorldTransform(NewTransform);
+    }
+}
+
+void UEffectManager::SetEffectFollowLocationTarget(const FName& InstanceID, AActor* TargetActor, FVector Offset)
+{
+    FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    if (InstanceInfo)
+    {
+        if (TargetActor && IsValid(TargetActor))
+        {
+            InstanceInfo->FollowLocationTarget = TargetActor;
+            InstanceInfo->FollowLocationOffset = Offset;
+            // 立即更新一次位置
+            FVector NewLocation = TargetActor->GetActorLocation() + Offset;
+            SetEffectWorldLocation(InstanceID, NewLocation);
+        }
+        else
+        {
+            ClearEffectFollowLocationTarget(InstanceID);
+        }
+    }
+}
+
+void UEffectManager::ClearEffectFollowLocationTarget(const FName& InstanceID)
+{
+    FEffectInstanceInfo* InstanceInfo = EffectInstances.Find(InstanceID);
+    if (InstanceInfo)
+    {
+        InstanceInfo->FollowLocationTarget.Reset();
+        InstanceInfo->FollowLocationOffset = FVector::ZeroVector;
     }
 }
 
@@ -701,7 +756,6 @@ UNiagaraComponent* UEffectManager::CreateWorldEffectComponent(const FEffectTable
     return NiagaraComp;
 }
 
-// 核心修改：CreateEffectComponent，正确处理附加和跟随模式
 UNiagaraComponent* UEffectManager::CreateEffectComponent(const FEffectTableRow& Config,
     AActor* ParentActor,
     FName SocketName,
@@ -734,22 +788,19 @@ UNiagaraComponent* UEffectManager::CreateEffectComponent(const FEffectTableRow& 
         return nullptr;
     }
 
-    // 创建组件（Outer 设为 ParentActor，这样组件会随父级销毁而销毁）
     UNiagaraComponent* NiagaraComp = NewObject<UNiagaraComponent>(ParentActor);
     if (!NiagaraComp) return nullptr;
 
     NiagaraComp->SetAsset(NiagaraSystem);
     NiagaraComp->RegisterComponent();
-    NiagaraComp->SetActive(false); // 初始非激活
+    NiagaraComp->SetActive(false);
 
     if (!bFollowActor)
     {
-        // 附加模式：查找目标组件并附加
         USceneComponent* TargetComponent = FindComponentForAttach(ParentActor, SocketName);
         if (!TargetComponent)
         {
             UE_LOG(LogTemp, Error, TEXT("No target component for attachment on actor %s"), *ParentActor->GetName());
-            // 降级：不附加，但记录错误
         }
         else
         {
@@ -764,35 +815,44 @@ UNiagaraComponent* UEffectManager::CreateEffectComponent(const FEffectTableRow& 
                 if (!bAttached)
                     UE_LOG(LogTemp, Error, TEXT("AttachToComponent still failed, effect may not follow parent"));
             }
-            if (bAttached)
-            {
-                UE_LOG(LogTemp, Log, TEXT("Effect attached to %s (socket: %s)"), *TargetComponent->GetName(), *SocketName.ToString());
-            }
         }
 
-        // 设置相对变换
         NiagaraComp->SetRelativeLocation(RelativeOffset);
         NiagaraComp->SetRelativeRotation(RelativeRotation);
-        if (!FMath::IsNearlyEqual(Config.SizeMultiplier, 1.0f))
-            NiagaraComp->SetRelativeScale3D(FVector(Config.SizeMultiplier));
 
-        // 确保跟随父级的所有变换（默认就是跟随，无需额外设置）
+        // 缩放处理
+        if (Config.bFollowScale)
+        {
+            NiagaraComp->SetRelativeScale3D(FVector(Config.SizeMultiplier));
+            NiagaraComp->SetUsingAbsoluteScale(false);
+        }
+        else
+        {
+            NiagaraComp->SetUsingAbsoluteScale(true);
+            NiagaraComp->SetWorldScale3D(FVector(Config.SizeMultiplier));
+        }
     }
     else
     {
-        // 跟随模式：不附加，只设置绝对位置标志，每帧由 UpdateEffectInstances 手动更新位置
         NiagaraComp->SetUsingAbsoluteLocation(true);
         NiagaraComp->SetUsingAbsoluteRotation(true);
         NiagaraComp->SetUsingAbsoluteScale(true);
 
-        // 设置初始位置为父级位置加上偏移
         FVector InitialLocation = ParentActor->GetActorLocation();
         if (!RelativeOffset.IsZero())
             InitialLocation += ParentActor->GetActorRotation().RotateVector(RelativeOffset);
         NiagaraComp->SetWorldLocation(InitialLocation);
         NiagaraComp->SetWorldRotation(ParentActor->GetActorRotation() + RelativeRotation);
-        if (!FMath::IsNearlyEqual(Config.SizeMultiplier, 1.0f))
+
+        if (Config.bFollowScale)
+        {
+            FVector ParentScale = ParentActor->GetActorScale3D();
+            NiagaraComp->SetWorldScale3D(ParentScale * Config.SizeMultiplier);
+        }
+        else
+        {
             NiagaraComp->SetWorldScale3D(FVector(Config.SizeMultiplier));
+        }
     }
 
     return NiagaraComp;
@@ -848,10 +908,9 @@ void UEffectManager::UpdateEffectInstances(float DeltaTime)
             default: break;
             }
 
-            // 关键修复：只有手动跟随模式（bIsFollowMode == true）才手动更新位置
+            // 手动跟随模式（原有逻辑）
             if (Info.bIsFollowMode && Info.ParentActor && IsValid(Info.ParentActor))
             {
-                // 应用相对偏移（需要考虑父级旋转）
                 FVector TargetLocation = Info.ParentActor->GetActorLocation();
                 if (!Info.EffectConfig.RelativeOffset.IsZero())
                     TargetLocation += Info.ParentActor->GetActorRotation().RotateVector(Info.EffectConfig.RelativeOffset);
@@ -862,6 +921,28 @@ void UEffectManager::UpdateEffectInstances(float DeltaTime)
                     FRotator TargetRotation = Info.ParentActor->GetActorRotation();
                     TargetRotation += Info.EffectConfig.RelativeRotation;
                     Info.EffectComponent->SetWorldRotation(TargetRotation);
+                }
+
+                if (Info.EffectConfig.bFollowScale)
+                {
+                    FVector ParentScale = Info.ParentActor->GetActorScale3D();
+                    Info.EffectComponent->SetWorldScale3D(ParentScale * Info.EffectConfig.SizeMultiplier);
+                }
+            }
+
+            // ========== 新增：自动跟随指定Actor的位置 ==========
+            if (Info.FollowLocationTarget.IsValid())
+            {
+                AActor* TargetActor = Info.FollowLocationTarget.Get();
+                if (TargetActor && IsValid(TargetActor))
+                {
+                    FVector NewLocation = TargetActor->GetActorLocation() + Info.FollowLocationOffset;
+                    Info.EffectComponent->SetWorldLocation(NewLocation);
+                }
+                else
+                {
+                    // 目标已失效，清除跟随
+                    Info.FollowLocationTarget.Reset();
                 }
             }
         }

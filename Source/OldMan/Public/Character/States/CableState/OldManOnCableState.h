@@ -104,4 +104,12 @@ protected:
 
     /** 自动计算在当前电缆上的移动方向 */
     void AutoDetermineCableDirection();
+
+    UPROPERTY()
+    FName Line_Name = FName();
+    UPROPERTY()
+    FName Sphere_Name = FName();
+
+    UFUNCTION()
+    void HideDetectionEffects();
 };

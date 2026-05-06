@@ -25,16 +25,16 @@ struct FEffectInstanceInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
     FName EffectID;
 
-    // Niagara特效组件
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+    // Niagara特效组件（GC保护）
+    UPROPERTY()
     UNiagaraComponent* EffectComponent = nullptr;
 
-    // 父级Actor（跟随或附加特效使用）
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+    // 父级Actor（跟随或附加特效使用）(GC保护)
+    UPROPERTY()
     AActor* ParentActor = nullptr;
 
-    // 临时Actor（仅世界空间特效使用）
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+    // 临时Actor（仅世界空间特效使用）(GC保护)
+    UPROPERTY()
     AActor* TempActor = nullptr;
 
     // 开始播放时间
@@ -69,6 +69,12 @@ struct FEffectInstanceInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
     FEffectTableRow EffectConfig;
 
+    // ========== 新增：自动跟随位置目标 ==========
+    // 弱引用目标Actor，如果有效则每帧将特效位置设置为该Actor位置+偏移
+    TWeakObjectPtr<AActor> FollowLocationTarget;
+    // 跟随位置时的偏移量（世界空间偏移，不受目标旋转影响）
+    FVector FollowLocationOffset;
+
     FEffectInstanceInfo()
         : EffectComponent(nullptr)
         , ParentActor(nullptr)
@@ -80,6 +86,7 @@ struct FEffectInstanceInfo
         , bIsPlaying(false)
         , bIsActive(false)
         , bIsFollowMode(false)
+        , FollowLocationOffset(FVector::ZeroVector)
     {
     }
 };
@@ -210,6 +217,32 @@ public:
     // 重启特效实例
     UFUNCTION(BlueprintCallable, Category = "Effect")
     void RestartEffectInstance(const FName& InstanceID);
+
+    // 检查特效实例是否有效（组件未销毁且未被标记待删除）
+    UFUNCTION(BlueprintCallable, Category = "Effect")
+    bool IsEffectInstanceValid(const FName& InstanceID) const;
+
+    // ========== 特效实例位置/变换控制（新增） ==========
+
+    // 手动设置特效实例的世界位置（适用于外部每帧更新位置）
+    UFUNCTION(BlueprintCallable, Category = "Effect|Transform")
+    void SetEffectWorldLocation(const FName& InstanceID, const FVector& NewLocation);
+
+    // 手动设置特效实例的世界旋转
+    UFUNCTION(BlueprintCallable, Category = "Effect|Transform")
+    void SetEffectWorldRotation(const FName& InstanceID, const FRotator& NewRotation);
+
+    // 手动设置特效实例的完整世界变换
+    UFUNCTION(BlueprintCallable, Category = "Effect|Transform")
+    void SetEffectWorldTransform(const FName& InstanceID, const FTransform& NewTransform);
+
+    // 设置特效实例自动跟随某个Actor的位置（每帧自动更新，无需手动Tick）
+    UFUNCTION(BlueprintCallable, Category = "Effect|Transform")
+    void SetEffectFollowLocationTarget(const FName& InstanceID, AActor* TargetActor, FVector Offset = FVector::ZeroVector);
+
+    // 清除特效实例的自动跟随设置
+    UFUNCTION(BlueprintCallable, Category = "Effect|Transform")
+    void ClearEffectFollowLocationTarget(const FName& InstanceID);
 
     // ========== 特效实例参数控制 ==========
 

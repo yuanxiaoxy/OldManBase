@@ -136,6 +136,7 @@ void UOldManOnCableMoveState::HandleCableInput(float DeltaTime)
     }
     else
     {
+        HideDetectionEffects();
         Character->SetNextCable(nullptr, false);
     }
 }

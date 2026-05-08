@@ -6,6 +6,7 @@
 #include "Character/States/OldManFallingState.h"
 #include "Character/States/OldManJumpingState.h"
 #include "Engine/OverlapResult.h"
+#include "EffectManager/EffectManager.h"
 
 void UOldManOnCableState::Enter()
 {
@@ -49,78 +50,108 @@ void UOldManOnCableState::SetupTransitionRules()
 void UOldManOnCableState::UpdateNearbyCableDetection(float HorizontalDir)
 {
     AOldManCharacter* Character = GetOldManCharacter();
-    if (!Character || !CurrentCable) return;
+    if (!Character || !CurrentCable)
+    {
+        // 角色或当前缆绳无效时，隐藏特效
+        HideDetectionEffects();
+        return;
+    }
+
+    // 方向为零：不进行检测，隐藏特效
+    if (FMath::IsNearlyZero(HorizontalDir))
+    {
+        HideDetectionEffects();
+        return;
+    }
 
     FVector CharacterLocation = Character->GetActorLocation();
     FRotator CharacterRotation = Character->GetActorRotation();
     FVector CharacterRight = Character->GetActorRightVector();
 
+    bool bDetected = false;
+    FVector TargetPosition = FVector::ZeroVector;
+    FCableDetectionResult TargetCable = FCableDetectionResult();
+    bool bIsLeft = false;
+
     if (HorizontalDir > 0)
     {
+        // 检测右侧缆绳
         RightCable = FindCableInBox(CharacterRight, LateralJumpDistance, DetectionHeight, DetectionLength);
-        Character->SetNextCable(RightCable.Cable, false);
-        Character->IsLeftCable = false;   // 标记向右跳
-        Character->NextCableJumpPosition = RightCable.Position;  // 保存目标位置
-
-        UWorld* World = Character->GetWorld();
-        if (World)
+        if (RightCable.Cable)
         {
-            // Calculate box center and extent in local space
-            FVector BoxExtent = FVector(DetectionLength * 0.5f, LateralJumpDistance * 0.5f, DetectionHeight * 0.5f);
-            FVector RightBoxCenter = CharacterLocation + (CharacterRight * LateralJumpDistance * 0.5f);
-
-            // Draw debug box using character's rotation
-            DrawDebugBox(
-                World,
-                RightBoxCenter,
-                BoxExtent,
-                CharacterRotation.Quaternion(),
-                FColor::Green,
-                false,
-                -1.0f,
-                0,
-                2.0f
-            );
-
-            // If cable detected, draw connection lines
-            if (RightCable.Cable)
-            {
-                DrawDebugLine(World, CharacterLocation, RightCable.Position, FColor::Green, false, -1.0f, 0, 2.0f);
-                DrawDebugSphere(World, RightCable.Position, 20.0f, 8, FColor::Green, false, -1.0f, 0, 2.0f);
-            }
+            TargetCable = RightCable;
+            TargetPosition = RightCable.Position;
+            bIsLeft = false;
+            bDetected = true;
         }
     }
     else if (HorizontalDir < 0)
     {
+        // 检测左侧缆绳
         LeftCable = FindCableInBox(-CharacterRight, LateralJumpDistance, DetectionHeight, DetectionLength);
-        Character->SetNextCable(LeftCable.Cable, true);
-        Character->IsLeftCable = true;    // 标记向左跳
-        Character->NextCableJumpPosition = LeftCable.Position;   // 保存目标位置
-
-        UWorld* World = Character->GetWorld();
-        if (World)
+        if (LeftCable.Cable)
         {
-            FVector BoxExtent = FVector(DetectionLength * 0.5f, LateralJumpDistance * 0.5f, DetectionHeight * 0.5f);
-            FVector LeftBoxCenter = CharacterLocation + (-CharacterRight * LateralJumpDistance * 0.5f);
-
-            DrawDebugBox(
-                World,
-                LeftBoxCenter,
-                BoxExtent,
-                CharacterRotation.Quaternion(),
-                FColor::Blue,
-                false,
-                -1.0f,
-                0,
-                2.0f
-            );
-
-            if (LeftCable.Cable)
-            {
-                DrawDebugLine(World, CharacterLocation, LeftCable.Position, FColor::Blue, false, -1.0f, 0, 2.0f);
-                DrawDebugSphere(World, LeftCable.Position, 20.0f, 8, FColor::Blue, false, -1.0f, 0, 2.0f);
-            }
+            TargetCable = LeftCable;
+            TargetPosition = LeftCable.Position;
+            bIsLeft = true;
+            bDetected = true;
         }
+    }
+
+    if (bDetected)
+    {
+        // 更新角色的跳跃目标信息
+        Character->SetNextCable(TargetCable.Cable, bIsLeft);
+        Character->IsLeftCable = bIsLeft;
+        Character->NextCableJumpPosition = TargetPosition;
+
+        UEffectManager* EffectMgr = UEffectManager::GetInstance();
+        if (!EffectMgr) return;
+
+        // 创建或更新线条特效（附加到角色中心，每帧设置终点位置）
+        if (!EffectMgr->GetEffectInstanceComponent(Line_Name))
+        {
+            Line_Name = EffectMgr->PlayEffectAtLocation("HorizontalLine", GetOldManCharacter()->GetLineEffectStartPos());
+        }
+        else
+        {
+            EffectMgr->SetEffectWorldLocation(Line_Name, GetOldManCharacter()->GetLineEffectStartPos());
+
+            FVector Delta = TargetPosition - GetOldManCharacter()->GetLineEffectStartPos();
+            EffectMgr->SetEffectVectorParameter(Line_Name, "Target", Delta);
+        }
+
+        // 创建或更新球体特效（位于目标点位置）
+        if (!EffectMgr->GetEffectInstanceComponent(Sphere_Name))
+        {
+            Sphere_Name = EffectMgr->PlayEffectAtLocation("TargetPosSphere", TargetPosition);
+        }
+        else
+        {
+            EffectMgr->SetEffectWorldLocation(Sphere_Name, TargetPosition);
+        }
+    }
+    else
+    {
+        // 未检测到有效缆绳，隐藏特效
+        HideDetectionEffects();
+    }
+}
+
+void UOldManOnCableState::HideDetectionEffects()
+{
+    UEffectManager* EffectMgr = UEffectManager::GetInstance();
+    if (!EffectMgr) return;
+
+    if (!Line_Name.IsNone())
+    {
+        EffectMgr->DestroyEffectInstance(Line_Name);
+        Line_Name = NAME_None;
+    }
+    if (!Sphere_Name.IsNone())
+    {
+        EffectMgr->DestroyEffectInstance(Sphere_Name);
+        Sphere_Name = NAME_None;
     }
 }
 

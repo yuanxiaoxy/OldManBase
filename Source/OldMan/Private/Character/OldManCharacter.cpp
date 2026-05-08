@@ -40,6 +40,9 @@ AOldManCharacter::AOldManCharacter(const FObjectInitializer& ObjectInitializer)
     bulletFirePos = CreateDefaultSubobject<USceneComponent>(TEXT("bulletFirePosition"));
     bulletFirePos->SetupAttachment(GetMesh());
 
+    PlayerCenterPos = CreateDefaultSubobject<USceneComponent>(TEXT("PlayerCenterPos"));
+    PlayerCenterPos->SetupAttachment(GetMesh());
+
     // Create camera boom
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
@@ -887,26 +890,66 @@ void AOldManCharacter::OnUnLockCharacterAttack()
 #pragma region Item Fun
 void AOldManCharacter::FireBullet(AActor* actor)
 {
-    // Spawn bullet
+    if (!GetWorld() || !bulletFirePos || !FollowCamera)
+        return;
+
+    // 确定子弹最终的目标（用于制导）和飞行方向
+    AActor* TargetActor = nullptr;
+    FVector BulletDirection;
+
+    if (actor)
+    {
+        // 情况1：指定了目标Actor
+        TargetActor = actor;
+        BulletDirection = actor->GetActorLocation() - bulletFirePos->GetComponentLocation();
+    }
+    else
+    {
+        // 情况2：未指定目标 -> 从相机中心发射射线
+        const float TraceDistance = 10000.0f;
+        FVector Start = FollowCamera->GetComponentLocation();
+        FVector End = Start + FollowCamera->GetForwardVector() * TraceDistance;
+
+        FHitResult Hit;
+        FCollisionQueryParams QueryParams;
+        QueryParams.AddIgnoredActor(this); // 忽略自身
+
+        if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams))
+        {
+            // 射线命中：瞄准命中点，并将命中的Actor作为制导目标
+            //TargetActor = Hit.GetActor();
+            BulletDirection = Hit.Location - bulletFirePos->GetComponentLocation();
+        }
+        else
+        {
+            // 未命中：沿相机前方方向
+            TargetActor = nullptr;
+            BulletDirection = FollowCamera->GetForwardVector();
+        }
+    }
+
+    // 生成子弹
     FActorSpawnParameters SpawnParams;
     SpawnParams.Owner = this;
     SpawnParams.Instigator = GetInstigator();
 
-    AOldManBulletBase* Bullet = GetWorld()->SpawnActor<AOldManBulletBase>(firstKindBullet,
-        bulletFirePos->GetComponentLocation(), bulletFirePos->GetComponentRotation(), SpawnParams);
+    AOldManBulletBase* Bullet = GetWorld()->SpawnActor<AOldManBulletBase>(
+        firstKindBullet,
+        bulletFirePos->GetComponentLocation(),
+        bulletFirePos->GetComponentRotation(),
+        SpawnParams);
 
     if (Bullet)
     {
+        // 音效与冷却逻辑保持不变
         UAudioManager::GetInstance()->PlaySound(this, "SFX_Shoot");
+        UMonoManager::GetInstance()->SetTimeout(
+            CharacterAttributes->OldManDetectionData.CoolDown,
+            this,
+            &AOldManCharacter::CancelFireCoolDown);
 
-        UMonoManager::GetInstance()->SetTimeout(CharacterAttributes->OldManDetectionData.CoolDown, this, &AOldManCharacter::CancelFireCoolDown);
-
-        FVector bulletDir = FollowCamera->GetForwardVector();;
-        if (actor)
-        {
-            bulletDir = actor->GetActorLocation() - bulletFirePos->GetComponentLocation();
-        }
-        Bullet->InitializeBullet(bulletDir.GetSafeNormal(), actor);
+        // 初始化子弹（方向 + 制导目标）
+        Bullet->InitializeBullet(BulletDirection.GetSafeNormal(), TargetActor);
     }
 }
 
@@ -1120,6 +1163,15 @@ void AOldManCharacter::SetCurrentCableWithDirection(AOldManCableBase* newCable, 
         CurrentCable = newCable;
         bCableMoveForward = bMoveForward;
     }
+}
+FVector AOldManCharacter::GetLineEffectStartPos()
+{
+    if (PlayerCenterPos)
+    {
+        return PlayerCenterPos->GetComponentLocation();
+    }
+
+    return FVector();
 }
 #pragma endregion
 

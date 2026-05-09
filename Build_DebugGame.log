@@ -1,0 +1,182 @@
+生成开始于 19:23...
+1>------ 已启动生成: 项目: EpicGames.UBA, 配置: Development Any CPU ------
+2>------ 已启动生成: 项目: EpicGames.Oodle, 配置: Development Any CPU ------
+3>------ 已启动生成: 项目: EpicGames.OIDC, 配置: Development Any CPU ------
+4>------ 已启动生成: 项目: EpicGames.Core, 配置: Development Any CPU ------
+3>EpicGames.OIDC -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.OIDC\bin\Development\net6.0\EpicGames.OIDC.dll
+1>EpicGames.UBA -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.UBA\bin\Development\net6.0\EpicGames.UBA.dll
+4>EpicGames.Core -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Core\bin\Development\net6.0\EpicGames.Core.dll
+5>------ 已启动生成: 项目: EpicGames.MsBuild, 配置: Development Any CPU ------
+6>------ 已启动生成: 项目: EpicGames.IoHash, 配置: Development Any CPU ------
+2>EpicGames.Oodle -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Oodle\bin\Development\net6.0\EpicGames.Oodle.dll
+6>EpicGames.IoHash -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net6.0\EpicGames.IoHash.dll
+已用时间: 00:00:00.1997163
+========== 已完成 ==========
+
+
+5>EpicGames.MsBuild -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.MsBuild\bin\Development\net6.0\EpicGames.MsBuild.dll
+7>------ 已启动生成: 项目: EpicGames.Serialization, 配置: Development Any CPU ------
+8>------ 已启动生成: 项目: EpicGames.Build, 配置: Development Any CPU ------
+7>EpicGames.Serialization -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Serialization\bin\Development\net6.0\EpicGames.Serialization.dll
+8>EpicGames.Build -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Build\bin\Development\net6.0\EpicGames.Build.dll
+9>------ 已启动生成: 项目: EpicGames.Horde, 配置: Development Any CPU ------
+9>E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Horde\EpicGames.Horde.csproj : warning NU1903: 包 "Microsoft.Extensions.Caching.Memory" 6.0.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-qj66-m88j-hmgj
+10>------ 已启动生成: 项目: EpicGames.UHT, 配置: Development Any CPU ------
+9>EpicGames.Horde -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.Horde\bin\Development\net6.0\EpicGames.Horde.dll
+9>已完成生成项目“EpicGames.Horde.csproj”的操作。
+10>EpicGames.UHT -> E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.UHT\bin\Development\net6.0\EpicGames.UHT.dll
+11>------ 已启动生成: 项目: UnrealBuildTool, 配置: Development Any CPU ------
+11>C:\Program Files\dotnet\sdk\9.0.313\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.EolTargetFrameworks.targets(32,5): warning NETSDK1138: 目标框架“net6.0”不受支持，将来不会收到安全更新。有关支持策略的详细信息，请参阅 https://aka.ms/dotnet-core-support。
+11>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\Microsoft.Common.CurrentVersion.targets(5093,5): warning MSB3026: 无法将“E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net6.0\EpicGames.IoHash.dll”复制到“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”。1000 毫秒后将开始第 1 次重试。文件“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”正由另一进程使用，因此该进程无法访问此文件。 文件被“UnrealBuildTool (18900)”锁定。
+11>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\Microsoft.Common.CurrentVersion.targets(5093,5): warning MSB3026: 无法将“E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net6.0\EpicGames.IoHash.dll”复制到“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”。1000 毫秒后将开始第 2 次重试。文件“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”正由另一进程使用，因此该进程无法访问此文件。 文件被“UnrealBuildTool (18900)”锁定。
+11>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\Microsoft.Common.CurrentVersion.targets(5093,5): warning MSB3026: 无法将“E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net6.0\EpicGames.IoHash.dll”复制到“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”。1000 毫秒后将开始第 3 次重试。文件“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”正由另一进程使用，因此该进程无法访问此文件。 文件被“UnrealBuildTool (18900)”锁定。
+11>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\Microsoft.Common.CurrentVersion.targets(5093,5): warning MSB3026: 无法将“E:\ue\UE_5.4\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net6.0\EpicGames.IoHash.dll”复制到“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”。1000 毫秒后将开始第 4 次重试。文件“..\..\..\Binaries\DotNET\UnrealBuildTool\EpicGames.IoHash.dll”正由另一进程使用，因此该进程无法访问此文件。 文件被“UnrealBuildTool (18900)”锁定。
+11>UnrealBuildTool -> E:\ue\UE_5.4\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll
+11>已完成生成项目“UnrealBuildTool.csproj”的操作。
+12>------ 已启动生成: 项目: OldMan, 配置: DebugGame_Editor x64 ------
+12>Using bundled DotNet SDK version: 6.0.302
+12>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" OldManEditor Win64 DebugGame -Project="D:\project_bishe\project_oldman\GitClone\OldManBase\OldMan.uproject" -WaitMutex -FromMsBuild -architecture=x64
+12>Log file: C:\Users\Administrator\AppData\Local\UnrealBuildTool\Log.txt
+12>Using 'git status' to determine working set for adaptive non-unity build (D:\project_bishe\project_oldman\GitClone\OldManBase).
+12>Creating makefile for OldManEditor (no existing makefile)
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldMan\OldMan.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Public' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManItem\OldManItem.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Public' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManItem\OldManItem.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Private' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\OldManEnemy.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Public' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\OldManEnemy.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Private' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManUI\OldManUI.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Public' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManUI\OldManUI.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Private' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManBossGrid\OldManBossGrid.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Public' does not exist.
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManBossGrid\OldManBossGrid.Build.cs : warning : Referenced directory 'D:\project_bishe\project_oldman\GitClone\OldManBase\Source\XyFrame\Private' does not exist.
+12>EXEC : warning : Plugin 'XyFrame' does not list plugin 'Niagara' as a dependency, but module 'XyFrame' depends on module 'Niagara'.
+12>EXEC : warning : Plugin 'XyFrame' does not list plugin 'EnhancedInput' as a dependency, but module 'XyFrame' depends on module 'EnhancedInput'.
+12>Parsing headers for OldManEditor
+12>  Running Internal UnrealHeaderTool D:\project_bishe\project_oldman\GitClone\OldManBase\OldMan.uproject D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\OldManEditor\DebugGame\OldManEditor.uhtmanifest -WarningsAsErrors -installed
+12>Total of 0 written
+12>Reflection code generated for OldManEditor in 1.5514996 seconds
+12>Building OldManEditor...
+12>Using Visual Studio 2022 14.38.33145 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130) and Windows 10.0.26100.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+12>Determining max actions to execute in parallel (20 physical cores, 28 logical cores)
+12>  Executing up to 20 processes, one per physical core
+12>  Requested 1.5 GB memory per action, 24.24 GB available: limiting max parallel actions to 16
+12>Using Parallel executor to run 78 action(s)
+12>------ Building 78 action(s) started ------
+12>[1/78] Resource Default.rc2
+12>[2/78] Resource Default.rc2
+12>[3/78] Resource Default.rc2
+12>[4/78] Resource Default.rc2
+12>[5/78] Resource Default.rc2
+12>[6/78] Resource Default.rc2
+12>[7/78] Resource Default.rc2
+12>[8/78] Resource Default.rc2
+12>[9/78] Compile [x64] SharedPCH.UnrealEd.Project.NonOptimized.ValApi.Cpp20.cpp
+12>[10/78] Compile [x64] OldManConfig.init.gen.cpp
+12>[11/78] Compile [x64] Module.XyFrame.9.cpp
+12>c1xx : error C3859: 未能创建 PCH 的虚拟内存
+12>c1xx: note: 系统返回代码 1455: 页面文件太小，无法完成操作。
+12>c1xx: note: 请访问 https://aka.ms/pch-help 了解更多详情
+12>c1xx : fatal error C1076: 编译器限制: 达到内部堆限制
+12>[12/78] Compile [x64] Module.XyFrame.8.cpp
+12>c1xx : error C3859: 未能创建 PCH 的虚拟内存
+12>c1xx: note: 系统返回代码 1455: 页面文件太小，无法完成操作。
+12>c1xx: note: 请访问 https://aka.ms/pch-help 了解更多详情
+12>c1xx : fatal error C1076: 编译器限制: 达到内部堆限制
+12>[13/78] Compile [x64] Module.XyFrame.3.cpp
+12>c1xx : error C3859: 未能创建 PCH 的虚拟内存
+12>c1xx: note: 系统返回代码 1455: 页面文件太小，无法完成操作。
+12>c1xx: note: 请访问 https://aka.ms/pch-help 了解更多详情
+12>c1xx : fatal error C1076: 编译器限制: 达到内部堆限制
+12>[14/78] Compile [x64] Module.XyFrame.6.cpp
+12>c1xx : error C3859: 未能创建 PCH 的虚拟内存
+12>c1xx: note: 系统返回代码 1455: 页面文件太小，无法完成操作。
+12>c1xx: note: 请访问 https://aka.ms/pch-help 了解更多详情
+12>c1xx : fatal error C1076: 编译器限制: 达到内部堆限制
+12>[15/78] Compile [x64] GlobalEventName.gen.cpp
+12>[16/78] Compile [x64] GlobalTagName.gen.cpp
+12>[17/78] Compile [x64] OldManConfig.cpp
+12>[18/78] Compile [x64] BossGrid.gen.cpp
+12>[19/78] Compile [x64] GlobalTagName.cpp
+12>[20/78] Compile [x64] GlobalEventName.cpp
+12>[21/78] Link [x64] UnrealEditor-OldManConfig-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManConfig\UnrealEditor-OldManConfig-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManConfig\UnrealEditor-OldManConfig-Win64-DebugGame.exp
+12>[22/78] Link [x64] UnrealEditor-OldManConfig-Win64-DebugGame.dll
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManConfig\UnrealEditor-OldManConfig-Win64-DebugGame.sup.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManConfig\UnrealEditor-OldManConfig-Win64-DebugGame.sup.exp
+12>[23/78] Compile [x64] BossGrid.cpp
+12>[24/78] Compile [x64] Module.XyFrame.5.cpp
+12>[25/78] Compile [x64] OldManBossGrid.init.gen.cpp
+12>[26/78] Compile [x64] Module.XyFrame.1.cpp
+12>[27/78] Compile [x64] EBossGridState.gen.cpp
+12>[28/78] Compile [x64] BossGridManager.gen.cpp
+12>[29/78] Compile [x64] OldManBossGrid.cpp
+12>[30/78] Compile [x64] BossGridManager.cpp
+12>[31/78] Compile [x64] Module.XyFrame.2.cpp
+12>[32/78] Link [x64] UnrealEditor-OldManBossGrid-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManBossGrid\UnrealEditor-OldManBossGrid-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManBossGrid\UnrealEditor-OldManBossGrid-Win64-DebugGame.exp
+12>[33/78] Compile [x64] Module.XyFrame.4.cpp
+12>[34/78] Compile [x64] AdEnemyManagerAgent.cpp
+12>[35/78] Compile [x64] AdEnemyAIController.gen.cpp
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(63): warning C4263: “void AAdEnemyAIController::ChangeState(EAdMonsterState)”: 成员函数不重写任何基类虚拟成员函数
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(71): warning C4264: “void AController::ChangeState(FName)”: 不重写基“AController”中的虚拟成员函数；函数被隐藏
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Controller.h(140): note: 参见“AController::ChangeState”的声明
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Pawn.h(16): note: 参见“AController”的声明
+12>[36/78] Compile [x64] AdEnemyManagerAgent.gen.cpp
+12>[37/78] Compile [x64] AdEnemyStateTypes.gen.cpp
+12>[38/78] Compile [x64] EShootInkType.gen.cpp
+12>[39/78] Compile [x64] EnemyInitializationInterface.gen.cpp
+12>[40/78] Compile [x64] AdEnemyCharacter.gen.cpp
+12>[41/78] Compile [x64] ApproachEnemyCharacter.gen.cpp
+12>[42/78] Compile [x64] FEnemyLocationInfo.gen.cpp
+12>[43/78] Compile [x64] OldManEnemy.cpp
+12>[44/78] Compile [x64] EnemyPatrolPoint.cpp
+12>[45/78] Compile [x64] FActiveInk.gen.cpp
+12>[46/78] Compile [x64] EnemyPatrolPoint.gen.cpp
+12>[47/78] Compile [x64] OldManEnemy.init.gen.cpp
+12>[48/78] Compile [x64] AdEnemyAIController.cpp
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(63): warning C4263: “void AAdEnemyAIController::ChangeState(EAdMonsterState)”: 成员函数不重写任何基类虚拟成员函数
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(71): warning C4264: “void AController::ChangeState(FName)”: 不重写基“AController”中的虚拟成员函数；函数被隐藏
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Controller.h(140): note: 参见“AController::ChangeState”的声明
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Pawn.h(16): note: 参见“AController”的声明
+12>[49/78] Compile [x64] OldManHUD.gen.cpp
+12>[50/78] Compile [x64] OldManHUD.cpp
+12>[51/78] Compile [x64] ApproachEnemyCharacter.cpp
+12>[52/78] Compile [x64] OldManEnemyManager.gen.cpp
+12>[53/78] Compile [x64] Module.ToolDev_1.cpp
+12>[54/78] Compile [x64] Module.OldManItem.3.cpp
+12>[55/78] Link [x64] UnrealEditor-ToolDev_1-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Plugins\ToolDev_1\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ToolDev_1\UnrealEditor-ToolDev_1-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Plugins\ToolDev_1\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ToolDev_1\UnrealEditor-ToolDev_1-Win64-DebugGame.exp
+12>[56/78] Compile [x64] OldManEnemyManager.cpp
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(63): warning C4263: “void AAdEnemyAIController::ChangeState(EAdMonsterState)”: 成员函数不重写任何基类虚拟成员函数
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(71): warning C4264: “void AController::ChangeState(FName)”: 不重写基“AController”中的虚拟成员函数；函数被隐藏
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Controller.h(140): note: 参见“AController::ChangeState”的声明
+12>E:\ue\UE_5.4\Engine\Intermediate\Build\Win64\UnrealEditor\Inc\Engine\UHT\GameplayStatics.generated.h(14): note: 参见“AController”的声明
+12>[57/78] Link [x64] UnrealEditor-ToolDev_1-Win64-DebugGame.dll
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Plugins\ToolDev_1\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ToolDev_1\UnrealEditor-ToolDev_1-Win64-DebugGame.sup.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Plugins\ToolDev_1\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ToolDev_1\UnrealEditor-ToolDev_1-Win64-DebugGame.sup.exp
+12>[58/78] Compile [x64] Module.OldMan.1.cpp
+12>[59/78] Compile [x64] Module.XyFrame.7.cpp
+12>[60/78] Compile [x64] Module.OldManUI.cpp
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManUI\Private\GamePanel\OldManMouseFollowerWidget.cpp(12): warning C4996: 'UImage::SetBrushSize': Deprecated. Use SetDesiredSizeOverride instead. Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+12>[61/78] Link [x64] UnrealEditor-OldManUI-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManUI\UnrealEditor-OldManUI-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManUI\UnrealEditor-OldManUI-Win64-DebugGame.exp
+12>[62/78] Compile [x64] Module.OldMan.3.cpp
+12>[63/78] Compile [x64] Module.OldManItem.1.cpp
+12>[64/78] Compile [x64] Module.OldMan.2.cpp
+12>[65/78] Compile [x64] Module.OldManItem.2.cpp
+12>[66/78] Link [x64] UnrealEditor-OldManItem-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManItem\UnrealEditor-OldManItem-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManItem\UnrealEditor-OldManItem-Win64-DebugGame.exp
+12>[67/78] Compile [x64] AdEnemyCharacter.cpp
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(63): warning C4263: “void AAdEnemyAIController::ChangeState(EAdMonsterState)”: 成员函数不重写任何基类虚拟成员函数
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Source\OldManEnemy\Public\AdEnemyAIController.h(71): warning C4264: “void AController::ChangeState(FName)”: 不重写基“AController”中的虚拟成员函数；函数被隐藏
+12>E:\ue\UE_5.4\Engine\Source\Runtime\Engine\Classes\GameFramework\Controller.h(140): note: 参见“AController::ChangeState”的声明
+12>D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\UnrealEditor\Inc\OldMan\UHT\OldManCharacter.generated.h(13): note: 参见“AController”的声明
+12>[68/78] Link [x64] UnrealEditor-OldManEnemy-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManEnemy\UnrealEditor-OldManEnemy-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldManEnemy\UnrealEditor-OldManEnemy-Win64-DebugGame.exp
+12>[69/78] Compile [x64] Module.OldMan.4.cpp
+12>[70/78] Link [x64] UnrealEditor-OldMan-Win64-DebugGame.lib
+12>  正在创建库 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldMan\UnrealEditor-OldMan-Win64-DebugGame.lib 和对象 D:\project_bishe\project_oldman\GitClone\OldManBase\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\OldMan\UnrealEditor-OldMan-Win64-DebugGame.exp
+12>Total time in Parallel executor: 178.48 seconds
+12>Total execution time: 201.65 seconds
+12>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: 命令“E:\ue\UE_5.4\Engine\Build\BatchFiles\Build.bat OldManEditor Win64 DebugGame -Project="D:\project_bishe\project_oldman\GitClone\OldManBase\OldMan.uproject" -WaitMutex -FromMsBuild -architecture=x64”已退出，代码为 6。
+12>已完成生成项目“OldMan.vcxproj”的操作 - 失败。
+========== 生成: 11 成功，1 失败，0 最新，0 已跳过 ==========
+========== 生成 于 19:27 完成，耗时 03:47.528 分钟 ==========
+

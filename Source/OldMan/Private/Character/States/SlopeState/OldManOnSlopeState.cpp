@@ -67,7 +67,7 @@ void UOldManOnSlopeState::HandleRotation(float DeltaTime)
             FRotator NewRotation = FRotator::ZeroRotator;
             NewRotation.Yaw += Character->MovementInputVector.Y * 
                 Character->CharacterAttributes->RotatorSpeedMultiInSlope;
-            Character->AddActorLocalRotation(NewRotation);
+            Character->AddActorLocalRotation(DeltaTime * NewRotation);
         }
     }
 }

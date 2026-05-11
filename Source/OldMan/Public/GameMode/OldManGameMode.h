@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "XyFrame/Public/XyGameModeBase/XyBaseGameMode.h"
+#include "LanguageManager/xyLanguageManager.h"
 #include "OldManGameMode.generated.h"
 
 UCLASS(minimalapi)
@@ -51,6 +52,9 @@ protected:
     UDataTable* AudioEffectConfig = nullptr;
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UDataTable* TaskConfig = nullptr;  
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ELanguageType DefualtLanguage = ELanguageType::Chinese;
 
 private:
     void SetupInputModeForUI();

@@ -34,7 +34,7 @@ class XYFRAME_API UxyLanguageManager : public USingletonBase
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Language")
-    void InitializeLanguageManager();
+    void InitializeLanguageManager(ELanguageType defualtLanguage = ELanguageType::Chinese);
 
     virtual void InitializeSingleton() override;
     virtual void DestroyCurSingleton() override { DestroyInstance(); }
@@ -62,6 +62,7 @@ public:
 
 private:
     ELanguageType CurrentLanguage;
+    ELanguageType DefaultLanguage;
 
     static const FString SaveSlotName;
     static const int32 SaveUserIndex;

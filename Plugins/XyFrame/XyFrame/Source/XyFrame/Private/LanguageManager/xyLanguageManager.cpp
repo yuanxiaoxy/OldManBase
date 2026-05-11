@@ -7,8 +7,9 @@ const int32 UxyLanguageManager::SaveUserIndex = 0;
 template<>
 UxyLanguageManager* TSingleton<UxyLanguageManager>::SingletonInstance = nullptr;
 
-void UxyLanguageManager::InitializeLanguageManager()
+void UxyLanguageManager::InitializeLanguageManager(ELanguageType defualtLanguage)
 {
+    DefaultLanguage = defualtLanguage;
     LoadLanguageSetting();
     UE_LOG(LogTemp, Log, TEXT("LanguageManager Initialized, Current Language: %d"), (int32)CurrentLanguage);
 }
@@ -91,5 +92,5 @@ void UxyLanguageManager::LoadLanguageSetting()
         UE_LOG(LogTemp, Log, TEXT("LoadLanguageSetting: No save game found. Using default Chinese."));
     }
 
-    CurrentLanguage = ELanguageType::Chinese;
+    SetCurrentLanguage(DefaultLanguage, true);
 }

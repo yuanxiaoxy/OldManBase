@@ -195,7 +195,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope", meta = (ClampMin = 1.0f, ClampMax = 2.0f))
     float MoveSpeedMultiInSlope = 1.0f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope", meta = (ClampMin = 0.0f, ClampMax = 10.0f))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope", meta = (ClampMin = 0.0f, ClampMax = 100.0f))
     float RotatorSpeedMultiInSlope = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slope")

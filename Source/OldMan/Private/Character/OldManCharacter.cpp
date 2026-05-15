@@ -228,19 +228,6 @@ FVector AOldManCharacter::PerformGravityRaycast()
         CollisionParams
     );
 
-    // Debug drawing
-    if (true) // Can be toggled with a debug switch
-    {
-        FColor DebugColor = bHit ? FColor::Green : FColor::Red;
-        DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() - GetGravityDirection() * 100.0f, DebugColor, false, 0.1f, 0, 2.0f);
-
-        if (bHit)
-        {
-            DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Yellow, false, 0.1f, 0);
-            DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 50.0f, FColor::Blue, false, 0.1f, 0, 2.0f);
-        }
-    }
-
     if (bHit)
     {
         return -Hit.ImpactNormal;

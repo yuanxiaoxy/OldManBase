@@ -124,14 +124,29 @@ void AOldManAnimationBall::PlayAniInUI()
 {
 	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
 	UAniMationBallDatas* datas = NewObject<UAniMationBallDatas>();
-	datas->IsOpenSkip = IsOpenSkip;
 	if (IsOpenSkip)
 	{
 		datas->MediaPlayer = MediaPlayer;
 		datas->AnimationBall = this;
+		switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+		{
+		case ELanguageType::English:
+			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglish", datas);
+			CurUIName = "AnimationPlayPanelWithButtonInEnglish";
+			break;
+		case ELanguageType::Chinese:
+			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButton", datas);
+			CurUIName = "AnimationPlayPanelWithButton";
+			break;
+		}
+
 	}
-	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", datas);
-	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI("AnimationPlayPanel");
+	else
+	{
+		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel");
+		CurUIName = "AnimationPlayPanel";
+	}
+	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI(CurUIName);
 	if (curWidget != nullptr) 
 	{
 		UImage* curImg = Cast<UImage>(curWidget->GetWidgetFromName("Image_0"));
@@ -201,11 +216,14 @@ void AOldManAnimationBall::PlayOver()
 	//若是UI物体，关闭UI
 	if (myType == E_AniBallType::playOnUI)
 	{
-		UUIManager::GetInstance()->CloseUI("AnimationPlayPanel", true, true);
+		UUIManager::GetInstance()->CloseUI(CurUIName, true, true);
 	}
 	//停止播放
 	MediaPlayer->Close();
 	MediaTexture = nullptr;
+
+	//销毁自己
+	this->Destroy();
 }
 
 

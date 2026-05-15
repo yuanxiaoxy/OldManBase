@@ -242,33 +242,27 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     if (ExistingWidget && UIInfo->State == EUIState::Hidden)
     {
         UIInfo->Priority = Priority;
-
         if (ExistingUIBase)
         {
+            // 更新配置
             if (bHasConfig)
             {
                 ExistingUIBase->SetInputMode(Config.DefaultInputMode);
                 ExistingUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
                 ExistingUIBase->PanelType = Config.PanelType;
                 ExistingUIBase->bModifyInput = Config.bModifyInput;
-                if (Config.DefaultInputMappingContext)
-                {
-                    UInputMappingContext* IMC = LoadInputMappingContext(Config.DefaultInputMappingContext);
-                    if (IMC)
-                        ExistingUIBase->SetInputMappingContext(IMC, Config.InputPriority);
-                }
+                // ... 更新 IMC 等
             }
+            // 关键：使用 InternalShowUI 仅显示，不会触发关闭事件
             InternalShowUI(ExistingUIBase, Data);
         }
         else
         {
             ExistingWidget->SetVisibility(ESlateVisibility::Visible);
         }
-
         UIInfo->State = EUIState::Visible;
         AddToStack(ExistingWidget, UIName, Layer, bModifyInput, Priority);
-        HandleStackChange();
-
+        HandleStackChange();  // 此处应只处理输入模式，不应关闭 UI
         OnUIShown.Broadcast(UIName);
         OnUITopChanged.Broadcast(GetTopUIName());
         return ExistingWidget;

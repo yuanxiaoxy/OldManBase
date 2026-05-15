@@ -310,18 +310,6 @@ void UOldManOnCableState::ApplyCableGravity(float DeltaTime)
         float GravityAcceleration = GetWorld()->GetGravityZ();
         FVector GravityVector = GravityDirection * -GravityAcceleration;
         Character->OldManMovementComponent->SetGravityDirection(GravityVector.GetSafeNormal());
-
-        DrawDebugDirectionalArrow(
-            GetWorld(),
-            Character->GetActorLocation(),
-            Character->GetActorLocation() + GravityDirection * 200.0f,
-            50.0f,
-            FColor::Red,
-            false,
-            -1.0f,
-            0,
-            5.0f
-        );
     }
 }
 

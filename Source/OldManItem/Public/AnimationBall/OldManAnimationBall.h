@@ -29,8 +29,6 @@ class OLDMANITEM_API UAniMationBallDatas : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool IsOpenSkip = false;
 	// 媒体播放器组件
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMediaPlayer* MediaPlayer;
@@ -116,6 +114,8 @@ private:
 	//AOldManCharacter* Player;
 	//一次性
 	bool Disposable = true;
+	//当前UI名字
+	FName CurUIName;
 
 	UFUNCTION()
 	void PlayAniInScene();

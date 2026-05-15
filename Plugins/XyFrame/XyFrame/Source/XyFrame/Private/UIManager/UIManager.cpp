@@ -1,3 +1,4 @@
+// UIManager.cpp (完整修改后文件)
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UIManager/UIManager.h"
@@ -107,6 +108,7 @@ void UUIManager::RegisterUIFromConfig(const FUIConfigData& Config)
     UIInfo.PanelType = Config.PanelType;
     UIInfo.bModifyInput = Config.bModifyInput;
     UIInfo.Priority = Config.Priority;
+    UIInfo.bClosePreviousMainPanel = Config.bClosePreviousMainPanel; // 新增
     UIRegistry.Add(Config.UIName, UIInfo);
 }
 
@@ -161,7 +163,7 @@ void UUIManager::PreloadMarkedUIs()
 
 // ========== 核心UI生命周期 ==========
 
-UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer, UObject* Data, FName UIName, EUIOpenPolicy OpenPolicy)
+UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer, UObject* Data, FName UIName, EUIOpenPolicy OpenPolicy, int32 ClosePreviousMainPanelOverride)
 {
     APlayerController* PlayerController = GetPlayerController();
     if (!PlayerController || !WidgetClass)
@@ -181,6 +183,10 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     EUIPanelType PanelType = bHasConfig ? Config.PanelType : EUIPanelType::Other;
     bool bModifyInput = bHasConfig ? Config.bModifyInput : true;
     int32 Priority = bHasConfig ? Config.Priority : 0;
+    bool bClosePrevious = bHasConfig ? Config.bClosePreviousMainPanel : true;
+    // 参数覆写
+    if (ClosePreviousMainPanelOverride == 0) bClosePrevious = false;
+    else if (ClosePreviousMainPanelOverride == 1) bClosePrevious = true;
 
     // 获取实际使用的Widget类（根据语言）
     TSubclassOf<UUserWidget> ActualWidgetClass = bHasConfig ? Config.GetLocalizedWidgetClass() : WidgetClass;
@@ -232,8 +238,8 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         return ExistingWidget;
     }
 
-    // 处理 MainPanel 切换
-    if (PanelType == EUIPanelType::MainPanel)
+    // 处理 MainPanel 切换（根据配置决定是否关闭之前的 MainPanel）
+    if (PanelType == EUIPanelType::MainPanel && bClosePrevious)
     {
         HandleMainPanelShow(UIName);
     }
@@ -242,6 +248,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     if (ExistingWidget && UIInfo->State == EUIState::Hidden)
     {
         UIInfo->Priority = Priority;
+        UIInfo->bClosePreviousMainPanel = bClosePrevious; // 更新配置
         if (ExistingUIBase)
         {
             // 更新配置
@@ -251,7 +258,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
                 ExistingUIBase->bShowMouseCursorWhenActive = Config.bShowMouseCursor;
                 ExistingUIBase->PanelType = Config.PanelType;
                 ExistingUIBase->bModifyInput = Config.bModifyInput;
-                // ... 更新 IMC 等
+                // 更新 IMC 等
             }
             // 关键：使用 InternalShowUI 仅显示，不会触发关闭事件
             InternalShowUI(ExistingUIBase, Data);
@@ -286,6 +293,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         NewInfo.PanelType = PanelType;
         NewInfo.bModifyInput = bModifyInput;
         NewInfo.Priority = Priority;
+        NewInfo.bClosePreviousMainPanel = bClosePrevious;
         UIRegistry.Add(UIName, NewInfo);
     }
     else
@@ -297,6 +305,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
         UIInfo->PanelType = PanelType;
         UIInfo->bModifyInput = bModifyInput;
         UIInfo->Priority = Priority;
+        UIInfo->bClosePreviousMainPanel = bClosePrevious;
     }
     WidgetToUINameMap.Add(NewWidget, UIName);
 
@@ -332,7 +341,7 @@ UUserWidget* UUIManager::ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLa
     return NewWidget;
 }
 
-UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy OpenPolicy)
+UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy OpenPolicy, int32 ClosePreviousMainPanelOverride)
 {
     if (UIName.IsNone()) return nullptr;
     if (FUIInfo* UIInfo = UIRegistry.Find(UIName))
@@ -341,11 +350,11 @@ UUserWidget* UUIManager::ShowUIByName(FName UIName, UObject* Data, EUIOpenPolicy
         if (UIConfigData && UIConfigData->GetUIConfig(UIName, Config))
         {
             TSubclassOf<UUserWidget> ActualClass = Config.GetLocalizedWidgetClass();
-            return ShowUI(ActualClass, UIInfo->Layer, Data, UIName, OpenPolicy);
+            return ShowUI(ActualClass, UIInfo->Layer, Data, UIName, OpenPolicy, ClosePreviousMainPanelOverride);
         }
         else if (UIInfo->WidgetClass)
         {
-            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy);
+            return ShowUI(UIInfo->WidgetClass, UIInfo->Layer, Data, UIName, OpenPolicy, ClosePreviousMainPanelOverride);
         }
     }
     return nullptr;
@@ -988,12 +997,12 @@ void UUIManager::PrintAllUIs()
     for (const auto& Pair : UIRegistry)
     {
         const FUIInfo& UIInfo = Pair.Value;
-        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s, Priority: %d"),
+        UE_LOG(LogTemp, Log, TEXT("UI: %s, Class: %s, Layer: %s, State: %s, Instance: %s, Preloaded: %s, PanelType: %s, ModifyInput: %s, Priority: %d, ClosePreviousMainPanel: %s"),
             *UIInfo.UIName.ToString(), UIInfo.WidgetClass ? *UIInfo.WidgetClass->GetName() : TEXT("Null"),
             *UEnum::GetValueAsString(UIInfo.Layer), *UEnum::GetValueAsString(UIInfo.State),
             UIInfo.WidgetInstance ? TEXT("Valid") : TEXT("Null"), UIInfo.bIsPreloaded ? TEXT("Yes") : TEXT("No"),
             *UEnum::GetValueAsString(UIInfo.PanelType), UIInfo.bModifyInput ? TEXT("true") : TEXT("false"),
-            UIInfo.Priority);
+            UIInfo.Priority, UIInfo.bClosePreviousMainPanel ? TEXT("true") : TEXT("false"));
     }
     UE_LOG(LogTemp, Log, TEXT("=========================="));
 }
@@ -1027,11 +1036,11 @@ void UUIManager::PrintConfigInfo()
         UE_LOG(LogTemp, Log, TEXT("Total Config Entries: %d"), AllConfigs.Num());
         for (const FUIConfigData& Config : AllConfigs)
         {
-            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, ModifyInput: %s, Priority: %d, Desc: %s"),
+            UE_LOG(LogTemp, Log, TEXT("  UI: %s, Class: %s, Layer: %s, InputMode: %s, Preload: %s, PanelType: %s, ModifyInput: %s, Priority: %d, ClosePreviousMainPanel: %s, Desc: %s"),
                 *Config.UIName.ToString(), *Config.WidgetClass.ToString(), *UEnum::GetValueAsString(Config.DefaultLayer),
                 *UEnum::GetValueAsString(Config.DefaultInputMode), Config.bPreload ? TEXT("Yes") : TEXT("No"),
                 *UEnum::GetValueAsString(Config.PanelType), Config.bModifyInput ? TEXT("true") : TEXT("false"),
-                Config.Priority, *Config.Description);
+                Config.Priority, Config.bClosePreviousMainPanel ? TEXT("true") : TEXT("false"), *Config.Description);
         }
     }
     else

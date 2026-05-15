@@ -1,3 +1,4 @@
+// UIConfigDataAsset.h
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
@@ -55,6 +56,10 @@ struct FUIConfigData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Localization")
     TMap<ELanguageType, TSoftClassPtr<UUserWidget>> LocalizedWidgetClasses;
 
+    // ========== 新增：MainPanel 打开时是否关闭之前的 MainPanel ==========
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|MainPanel")
+    bool bClosePreviousMainPanel = true;
+
     TSubclassOf<UUserWidget> GetLocalizedWidgetClass() const;
 
     FUIConfigData()
@@ -65,6 +70,7 @@ struct FUIConfigData : public FTableRowBase
         , bPreload(false)
         , bModifyInput(true)
         , Priority(0)
+        , bClosePreviousMainPanel(true)
     {
     }
 };

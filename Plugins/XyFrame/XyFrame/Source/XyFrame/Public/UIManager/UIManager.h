@@ -41,6 +41,7 @@ struct FUIInfo
     EUIPanelType PanelType;
     bool bModifyInput;
     int32 Priority;
+    bool bClosePreviousMainPanel; // 新增
 
     FUIInfo()
         : Layer(EUIPanelLayer::Middle)
@@ -50,6 +51,7 @@ struct FUIInfo
         , PanelType(EUIPanelType::Other)
         , bModifyInput(true)
         , Priority(0)
+        , bClosePreviousMainPanel(true)
     {
     }
 };
@@ -121,11 +123,10 @@ public:
 
     // ========== UI生命周期方法 ==========
     UFUNCTION(BlueprintCallable, Category = "UI")
-    UUserWidget* ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer = EUIPanelLayer::Middle, UObject* Data = nullptr, FName UIName = "", EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive);
-
+    UUserWidget* ShowUI(TSubclassOf<UUserWidget> WidgetClass, EUIPanelLayer Layer = EUIPanelLayer::Middle, UObject* Data = nullptr, FName UIName = "", EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive, int32 ClosePreviousMainPanelOverride = -1);
     UFUNCTION(BlueprintCallable, Category = "UI")
-    UUserWidget* ShowUIByName(FName UIName, UObject* Data = nullptr, EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive);
-
+    UUserWidget* ShowUIByName(FName UIName, UObject* Data = nullptr, EUIOpenPolicy OpenPolicy = EUIOpenPolicy::Additive, int32 ClosePreviousMainPanelOverride = -1);
+    
     UFUNCTION(BlueprintCallable, Category = "UI")
     void HideUI(FName UIName, bool bRestorePreviousMainPanel = false);
 

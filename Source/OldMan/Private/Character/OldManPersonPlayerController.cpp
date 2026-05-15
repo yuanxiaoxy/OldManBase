@@ -1,11 +1,13 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #include "Character/OldManPersonPlayerController.h"
 #include "Character/OldManCharacter.h"
 #include "Character/OldManCameraComponent.h"
 #include "EventManager/MyEventManager.h"
 #include "MonoManager/MonoManager.h"
 #include "UIManager/UIManager.h"
+#include "UIManager/UIBase.h"
 
-// Enhanced Input related headers
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -14,59 +16,61 @@
 
 AOldManPersonPlayerController::AOldManPersonPlayerController()
 {
-    // Initialize variables
     CachedOldManCharacter = nullptr;
     EnhancedInputComponent = nullptr;
     CurrentCameraMode = TEXT("ThirdPerson");
 
-    // Gamepad cursor initialization
     bGamepadCursorMode = false;
     GamepadCursorPosition = FVector2D::ZeroVector;
     GamepadCursorSpeed = 1000.0f;
+    LastMouseMoveTime = 0.0f;
+
+    PrimaryActorTick.bCanEverTick = true;
 }
 
 void AOldManPersonPlayerController::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Set input mode
     FInputModeGameOnly InputMode;
     SetInputMode(InputMode);
     bShowMouseCursor = false;
 
-    // Register event listeners
     RegisterEventListeners();
 
-    // Initialize cursor position to screen center
     int32 ViewportSizeX, ViewportSizeY;
     GetViewportSize(ViewportSizeX, ViewportSizeY);
-    GamepadCursorPosition = FVector2D(ViewportSizeX * 0.5f, ViewportSizeY * 0.5f);
+    FVector2D Center(ViewportSizeX * 0.5f, ViewportSizeY * 0.5f);
+    GamepadCursorPosition = Center;
+    SetMouseLocation(Center.X, Center.Y);
 }
 
 void AOldManPersonPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
 
-    // Get Enhanced Input component
     EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
     if (!EnhancedInputComponent)
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to get EnhancedInputComponent"));
         return;
     }
+
+    if (GamepadClickAction)
+    {
+        EnhancedInputComponent->BindAction(GamepadClickAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleGamepadClickStart);
+        EnhancedInputComponent->BindAction(GamepadClickAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleGamepadClickStop);
+    }
 }
 
 void AOldManPersonPlayerController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
-
-    // Cache character pointer
     CachedOldManCharacter = Cast<AOldManCharacter>(InPawn);
 }
 
 void AOldManPersonPlayerController::OnUnPossess()
 {
-    // Remove input mapping context
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
         if (DefaultMappingContext)
@@ -75,11 +79,29 @@ void AOldManPersonPlayerController::OnUnPossess()
         }
     }
 
-    // Clear cache
     CachedOldManCharacter = nullptr;
     EnhancedInputComponent = nullptr;
 
     Super::OnUnPossess();
+}
+
+void AOldManPersonPlayerController::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (bGamepadCursorMode)
+    {
+        float MouseX, MouseY;
+        if (GetMousePosition(MouseX, MouseY))
+        {
+            static FVector2D LastMousePos(MouseX, MouseY);
+            if (!FMath::IsNearlyEqual(LastMousePos.X, MouseX) || !FMath::IsNearlyEqual(LastMousePos.Y, MouseY))
+            {
+                DisableGamepadCursorMode();
+            }
+            LastMousePos = FVector2D(MouseX, MouseY);
+        }
+    }
 }
 
 void AOldManPersonPlayerController::BindCharacterInputs()
@@ -100,7 +122,6 @@ void AOldManPersonPlayerController::BindCharacterInputs()
         return;
     }
 
-    // Add input mapping context to local player subsystem
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
         Subsystem->ClearAllMappings();
@@ -109,7 +130,6 @@ void AOldManPersonPlayerController::BindCharacterInputs()
 
     EnhancedInputComponent->ClearActionBindings();
 
-    // Bind movement input actions
     if (MoveAction)
     {
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AOldManPersonPlayerController::HandleMove);
@@ -121,7 +141,6 @@ void AOldManPersonPlayerController::BindCharacterInputs()
         EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AOldManPersonPlayerController::HandleLook);
     }
 
-    // Bind character action inputs
     if (JumpAction)
     {
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleJumpStart);
@@ -144,10 +163,8 @@ void AOldManPersonPlayerController::BindCharacterInputs()
     {
         EnhancedInputComponent->BindAction(RightMouseAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleRightMouseStart);
         EnhancedInputComponent->BindAction(RightMouseAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleRightMouseStop);
-
     }
 
-    // Bind camera control input actions
     if (ZoomInAction)
     {
         EnhancedInputComponent->BindAction(ZoomInAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleZoomIn);
@@ -171,80 +188,73 @@ void AOldManPersonPlayerController::BindCharacterInputs()
     UE_LOG(LogTemp, Log, TEXT("Enhanced Input bindings setup for OldMan character and camera"));
 }
 
-// ========== Movement input handling functions ==========
+// ========== Input Handling ==========
+
 void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
 {
-    if (!bInputEnabled)
-        return;
+    if (!bInputEnabled) return;
 
-    // Get 2D vector input value (mouse/gamepad look input)
     FVector2D LookAxisVector = Value.Get<FVector2D>();
+    if (LookAxisVector.IsNearlyZero()) return;
 
-    if (LookAxisVector.IsNearlyZero())
-        return;
-
-    //// Check if in gamepad cursor mode and current device is gamepad
-    if (CachedOldManCharacter && GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad && CachedOldManCharacter->bUseCursorPos)
+    if (bGamepadCursorMode && GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad)
     {
         MoveGamepadCursor(LookAxisVector);
+        return;
     }
 
     UOldManCameraComponent* CameraComp = GetCameraComponent();
-    if (!CameraComp)
-        return;
+    if (!CameraComp) return;
 
     if (CachedOldManCharacter)
     {
         CachedOldManCharacter->HandleMouseLook(LookAxisVector);
-
-        // Handle view rotation, pass input through camera component
-        float mouseSensitivity = CachedOldManCharacter ? CachedOldManCharacter->CharacterAttributes->MouseSensitivity : 1.0f;
+        float mouseSensitivity = CachedOldManCharacter->CharacterAttributes ? CachedOldManCharacter->CharacterAttributes->MouseSensitivity : 1.0f;
         CameraComp->SetCameraInput(LookAxisVector.Y * mouseSensitivity, LookAxisVector.X * mouseSensitivity);
     }
 }
 
 void AOldManPersonPlayerController::HandleMove(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
     FVector2D InputVal2D = Value.Get<FVector2D>();
     FVector InputVal = FVector(InputVal2D.X, InputVal2D.Y, 0.0f);
-
-    // Set movement input
     CachedOldManCharacter->SetMovementInput(InputVal);
 }
 
 void AOldManPersonPlayerController::HandleMoveCancel(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter)
-        return;
-
-    // Clear movement input
+    if (!bInputEnabled || !CachedOldManCharacter) return;
     CachedOldManCharacter->SetMovementInput(FVector::ZeroVector);
 }
 
 void AOldManPersonPlayerController::HandleJumpStart(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
     CachedOldManCharacter->SetJumpInput(true);
 }
 
 void AOldManPersonPlayerController::HandleJumpStop(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter)
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter) return;
     CachedOldManCharacter->SetJumpInput(false);
+}
+
+void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)
+{
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
+    CachedOldManCharacter->SetRunning(true);
+}
+
+void AOldManPersonPlayerController::HandleStopRunning(const FInputActionValue& Value)
+{
+    if (!bInputEnabled || !CachedOldManCharacter) return;
+    CachedOldManCharacter->SetRunning(false);
 }
 
 void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
     FGameEventData tempEventData;
     UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputAttack.ToString(), tempEventData);
     CachedOldManCharacter->DectedActors();
@@ -252,78 +262,43 @@ void AOldManPersonPlayerController::HandleAttackStart(const FInputActionValue& V
 
 void AOldManPersonPlayerController::HandleAttackStop(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter)
-        return;
+    // One-shot action
 }
 
 void AOldManPersonPlayerController::HandleRightMouseStart(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
     CachedOldManCharacter->StartRightMousePull();
 }
 
 void AOldManPersonPlayerController::HandleRightMouseStop(const FInputActionValue& Value)
 {
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
+    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive()) return;
     CachedOldManCharacter->StopRightMousePull();
 }
 
-void AOldManPersonPlayerController::HandleStartRunning(const FInputActionValue& Value)
-{
-    if (!bInputEnabled || !CachedOldManCharacter || !CachedOldManCharacter->IsAlive())
-        return;
-
-    CachedOldManCharacter->SetRunning(true);
-}
-
-void AOldManPersonPlayerController::HandleStopRunning(const FInputActionValue& Value)
-{
-    if (!bInputEnabled || !CachedOldManCharacter)
-        return;
-
-    CachedOldManCharacter->SetRunning(false);
-}
-
-// ========== Camera control input handling functions ==========
-
 void AOldManPersonPlayerController::HandleZoomIn(const FInputActionValue& Value)
 {
-    if (!bInputEnabled)
-        return;
-
-    ZoomCamera(-50.0f); // Zoom in (reduce distance)
+    if (!bInputEnabled) return;
+    ZoomCamera(-50.0f);
 }
 
 void AOldManPersonPlayerController::HandleZoomOut(const FInputActionValue& Value)
 {
-    if (!bInputEnabled)
-        return;
-
-    ZoomCamera(50.0f); // Zoom out (increase distance)
+    if (!bInputEnabled) return;
+    ZoomCamera(50.0f);
 }
 
 void AOldManPersonPlayerController::HandleCameraMode(const FInputActionValue& Value)
 {
-    if (!bInputEnabled)
-        return;
+    if (!bInputEnabled) return;
 
-    // Switch camera mode
     if (CurrentCameraMode == TEXT("ThirdPerson"))
-    {
-        SetCameraMode(TEXT("FirstPerson"));
-    }
+        CurrentCameraMode = TEXT("FirstPerson");
     else if (CurrentCameraMode == TEXT("FirstPerson"))
-    {
-        SetCameraMode(TEXT("FreeLook"));
-    }
+        CurrentCameraMode = TEXT("FreeLook");
     else
-    {
-        SetCameraMode(TEXT("ThirdPerson"));
-    }
+        CurrentCameraMode = TEXT("ThirdPerson");
 }
 
 void AOldManPersonPlayerController::HandleEcsPanel(const FInputActionValue& Value)
@@ -331,28 +306,37 @@ void AOldManPersonPlayerController::HandleEcsPanel(const FInputActionValue& Valu
     UUIManager::GetInstance()->ShowUIByName("PausePanel");
 }
 
-// ========== Camera control functions ==========
+void AOldManPersonPlayerController::HandleGamepadClickStart(const FInputActionValue& Value)
+{
+    if (!bGamepadCursorMode) return;
+    SimulateMouseClick(EKeys::LeftMouseButton, true);
+}
+
+void AOldManPersonPlayerController::HandleGamepadClickStop(const FInputActionValue& Value)
+{
+    if (!bGamepadCursorMode) return;
+    SimulateMouseClick(EKeys::LeftMouseButton, false);
+}
+
+// ========== Camera Functions ==========
 
 UOldManCameraComponent* AOldManPersonPlayerController::GetCameraComponent() const
 {
     if (CachedOldManCharacter)
-    {
         return CachedOldManCharacter->CameraComponent;
-    }
     return nullptr;
 }
 
 void AOldManPersonPlayerController::ZoomCamera(float Delta)
 {
     UOldManCameraComponent* CameraComp = GetCameraComponent();
-    if (!CameraComp)
-        return;
-
-    // Get current distance and apply delta
+    if (!CameraComp) return;
     float CurrentDistance = CameraComp->CurCameraDistance;
     float NewDistance = FMath::Clamp(CurrentDistance + Delta, 100.0f, 1000.0f);
     CameraComp->SetCameraDistance(NewDistance);
 }
+
+// ========== Event Handling ==========
 
 void AOldManPersonPlayerController::OnCharacterEvent(EGameEventType EventType, const FGameEventData& EventData)
 {
@@ -362,79 +346,110 @@ void AOldManPersonPlayerController::OnCharacterEvent(EGameEventType EventType, c
         HandleCharacterDeath();
         break;
     case EGameEventType::PlayerSpawned:
-        // Handle character spawn
         UE_LOG(LogTemp, Log, TEXT("OldMan character spawned"));
         break;
     default:
-        // Handle other custom events
         break;
     }
 }
 
 void AOldManPersonPlayerController::HandleCharacterDeath()
 {
-    // Disable input when character dies
     SetInputEnabled(false);
-
     UE_LOG(LogTemp, Log, TEXT("OldMan character died, respawning in 3 seconds..."));
-
-    // Set respawn timer
     UMonoManager* MonoMgr = GetMonoManager();
     if (MonoMgr)
-    {
         MonoMgr->SetTimeout(3.0f, this, &AOldManPersonPlayerController::HandleCharacterRespawn);
-    }
 }
 
 void AOldManPersonPlayerController::HandleCharacterRespawn()
 {
-    // Enable input
     SetInputEnabled(true);
-
-    // Respawn logic can be added here, e.g., respawn character
     UE_LOG(LogTemp, Log, TEXT("Respawning OldMan character..."));
 }
 
-// ========== Override SetInputEnabled to clear persistent input states ==========
 void AOldManPersonPlayerController::SetInputEnabled(bool bEnabled)
 {
-    // When disabling input, clear all persistent input states
     if (!bEnabled && bInputEnabled)
     {
         if (CachedOldManCharacter)
         {
-            // Clear movement input
             CachedOldManCharacter->SetMovementInput(FVector::ZeroVector);
-            // Clear jump input
             CachedOldManCharacter->SetJumpInput(false);
-            // Clear running state
             CachedOldManCharacter->SetRunning(false);
-            // Stop right mouse pull (if character is pulling)
-            CachedOldManCharacter->StopRightMousePull(); // This function should handle idempotency internally
-            // Attack is a one-shot action, no need to stop
+            CachedOldManCharacter->StopRightMousePull();
         }
     }
-
-    // Call base class to actually enable/disable pawn input
     Super::SetInputEnabled(bEnabled);
 }
 
-// ========== Gamepad cursor control function implementations ==========
+// ========== Gamepad Cursor Functions ==========
+
+void AOldManPersonPlayerController::EnableGamepadCursorMode()
+{
+    if (bGamepadCursorMode) return;
+    if (GetCurrentHardwareDeviceType() != EHardwareDevicePrimaryType::Gamepad) return;
+
+    bGamepadCursorMode = true;
+    bShowMouseCursor = true;
+
+    UE_LOG(LogTemp, Log, TEXT("Gamepad Cursor Mode Enabled"));
+}
+
+void AOldManPersonPlayerController::DisableGamepadCursorMode()
+{
+    if (!bGamepadCursorMode) return;
+
+    bGamepadCursorMode = false;
+
+    UUIManager* UIMgr = UUIManager::GetUIManager();
+    if (UIMgr)
+    {
+        UUIBase* ActiveUI = UIMgr->GetCurrentInputActiveUI();
+        if (ActiveUI)
+            bShowMouseCursor = ActiveUI->ShouldShowMouseCursor();
+        else
+            bShowMouseCursor = false;
+    }
+    else
+    {
+        bShowMouseCursor = false;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Gamepad Cursor Mode Disabled"));
+}
 
 void AOldManPersonPlayerController::MoveGamepadCursor(const FVector2D& Delta)
 {
-    // Update cursor position and clamp within viewport bounds
-    GamepadCursorPosition += Delta * GamepadCursorSpeed;
+    if (!bGamepadCursorMode) return;
+
+    float DeltaTime = GetWorld()->GetDeltaSeconds();
+    FVector2D Movement = Delta * GamepadCursorSpeed * DeltaTime;
+
+    float MouseX, MouseY;
+    if (!GetMousePosition(MouseX, MouseY))
+    {
+        int32 ViewportSizeX, ViewportSizeY;
+        GetViewportSize(ViewportSizeX, ViewportSizeY);
+        MouseX = ViewportSizeX * 0.5f;
+        MouseY = ViewportSizeY * 0.5f;
+    }
+
     int32 ViewportSizeX, ViewportSizeY;
     GetViewportSize(ViewportSizeX, ViewportSizeY);
-    GamepadCursorPosition.X = FMath::Clamp(GamepadCursorPosition.X, 0.0f, (float)ViewportSizeX);
-    GamepadCursorPosition.Y = FMath::Clamp(GamepadCursorPosition.Y, 0.0f, (float)ViewportSizeY);
+    float NewX = FMath::Clamp(MouseX + Movement.X, 0.0f, (float)ViewportSizeX);
+    float NewY = FMath::Clamp(MouseY + Movement.Y, 0.0f, (float)ViewportSizeY);
 
-    // Move system mouse to virtual cursor position (sync positions)
-    SetMouseLocation(GamepadCursorPosition.X, GamepadCursorPosition.Y);
+    SetMouseLocation(NewX, NewY);
+    GamepadCursorPosition = FVector2D(NewX, NewY); // 同步虚拟位置
 }
 
-// ===== Modified: Get effective cursor screen position, return screen center when cursor hidden =====
+bool AOldManPersonPlayerController::ShouldUseCursorPosition() const
+{
+    return bGamepadCursorMode && GetCurrentHardwareDeviceType() == EHardwareDevicePrimaryType::Gamepad;
+}
+
+// ===== 关键：实现 GetEffectiveCursorScreenPosition（兼容旧代码）=====
 FVector2D AOldManPersonPlayerController::GetEffectiveCursorScreenPosition() const
 {
     // If in gamepad cursor mode and current device is gamepad, return virtual cursor position
@@ -459,9 +474,20 @@ FVector2D AOldManPersonPlayerController::GetEffectiveCursorScreenPosition() cons
     return FVector2D(ViewportSizeX * 0.5f, ViewportSizeY * 0.5f);
 }
 
-bool AOldManPersonPlayerController::ShouldUseCursorPosition() const
+// ========== SimulateMouseClick with correct UE5 InputKey ==========
+void AOldManPersonPlayerController::SimulateMouseClick(FKey MouseButton, bool bPressed)
 {
-    // When gamepad cursor mode is enabled and current input device is gamepad, use virtual cursor position
-    EHardwareDevicePrimaryType CurrentDevice = GetCurrentHardwareDeviceType();
-    return bGamepadCursorMode && CurrentDevice == EHardwareDevicePrimaryType::Gamepad;
+    if (bPressed)
+        InputKey(MouseButton, IE_Pressed, 1.0f, false);
+    else
+        InputKey(MouseButton, IE_Released, 1.0f, false);
+}
+
+void AOldManPersonPlayerController::OnInputHardwareDeviceChanged(FPlatformUserId UserId, FInputDeviceId DeviceId)
+{
+    EHardwareDevicePrimaryType NewDevice = GetCurrentHardwareDeviceType();
+    if (NewDevice != EHardwareDevicePrimaryType::Gamepad && NewDevice != EHardwareDevicePrimaryType::Unspecified)
+    {
+        DisableGamepadCursorMode();
+    }
 }

@@ -18,7 +18,8 @@ public class OldManUI : ModuleRules
             "InputCore",
             "Slate",
             "SlateCore",
-            "UMG"
+            "UMG",
+            "OldMan"
         });
 
         //The path for the header files

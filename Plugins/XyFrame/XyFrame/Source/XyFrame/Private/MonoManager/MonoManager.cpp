@@ -458,8 +458,6 @@ FString UMonoManager::GenerateTimerId() const
 
 void UMonoManager::ExecuteTimerCallback(const FString& TimerId)
 {
-    UE_LOG(LogTemp, Log, TEXT("Executing timer callback: %s"), *TimerId);
-
     // 注意：回调函数中可能会调用ClearTimer，从而修改Timers容器
     // 所以我们需要确保这里的操作不会导致迭代器失效
 
@@ -486,19 +484,16 @@ void UMonoManager::ExecuteTimerCallback(const FString& TimerId)
     // 执行回调
     if (TimerCallback.IsBound())
     {
-        UE_LOG(LogTemp, Log, TEXT("Executing TimerCallback for: %s"), *TimerId);
         TimerCallback.Execute(TimerId);
     }
 
     if (SimpleCallback.IsBound())
     {
-        UE_LOG(LogTemp, Log, TEXT("Executing SimpleCallback for: %s"), *TimerId);
         SimpleCallback.Execute();
     }
 
     if (GenericCallback)
     {
-        UE_LOG(LogTemp, Log, TEXT("Executing GenericCallback for: %s"), *TimerId);
         GenericCallback();
     }
 }

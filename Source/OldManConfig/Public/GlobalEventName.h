@@ -62,4 +62,8 @@ public:
 	static const FName Key_Input_UnLockAttack;
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
 	static FName GetKey_Input_UnLockAttack() { return Key_Input_UnLockAttack; }
+
+	static const FName Key_GamePad_Click;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_GamePad_Click() { return Key_GamePad_Click; }
 };

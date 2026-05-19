@@ -119,7 +119,33 @@ TSubclassOf<UUserWidget> UUIManager::LoadWidgetClass(const TSoftClassPtr<UUserWi
 
 UInputMappingContext* UUIManager::LoadInputMappingContext(const TSoftObjectPtr<UInputMappingContext>& SoftObjectPtr)
 {
-    return SoftObjectPtr.IsNull() ? nullptr : SoftObjectPtr.LoadSynchronous();
+    if (SoftObjectPtr.IsNull())
+    {
+        UE_LOG(LogTemp, Error, TEXT("LoadInputMappingContext - SoftObjectPtr is null"));
+        return nullptr;
+    }
+
+    FSoftObjectPath ObjectPath = SoftObjectPtr.ToSoftObjectPath();
+    FString AssetPath = ObjectPath.ToString();
+    UE_LOG(LogTemp, Warning, TEXT("LoadInputMappingContext - Attempting to load: %s"), *AssetPath);
+
+    // 检查资产是否存在于内存中
+    if (ObjectPath.ResolveObject())
+    {
+        UE_LOG(LogTemp, Log, TEXT("LoadInputMappingContext - Asset already in memory: %s"), *AssetPath);
+    }
+
+    // 同步加载
+    UInputMappingContext* IMC = SoftObjectPtr.LoadSynchronous();
+    if (IMC)
+    {
+        UE_LOG(LogTemp, Log, TEXT("LoadInputMappingContext - Successfully loaded: %s"), *AssetPath);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("LoadInputMappingContext - FAILED to load: %s"), *AssetPath);
+    }
+    return IMC;
 }
 
 void UUIManager::PreloadUIs(const TArray<FName>& UINames)

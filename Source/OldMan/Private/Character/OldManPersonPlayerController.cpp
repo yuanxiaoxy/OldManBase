@@ -203,9 +203,12 @@ void AOldManPersonPlayerController::HandleLook(const FInputActionValue& Value)
     {
         CachedOldManCharacter->HandleMouseLook(LookAxisVector);
 
-        // Handle view rotation, pass input through camera component
-        float mouseSensitivity = CachedOldManCharacter ? CachedOldManCharacter->CharacterAttributes->MouseSensitivity : 1.0f;
-        CameraComp->SetCameraInput(LookAxisVector.Y * mouseSensitivity, LookAxisVector.X * mouseSensitivity);
+        if (!CachedOldManCharacter->bInPullState)
+        {
+            // Handle view rotation, pass input through camera component
+            float mouseSensitivity = CachedOldManCharacter ? CachedOldManCharacter->CharacterAttributes->MouseSensitivity : 1.0f;
+            CameraComp->SetCameraInput(LookAxisVector.Y * mouseSensitivity, LookAxisVector.X * mouseSensitivity);
+        }
     }
 }
 

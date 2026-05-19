@@ -479,7 +479,7 @@ FVector2D AOldManPersonPlayerController::GetEffectiveCursorScreenPosition() cons
     }
 
     // Otherwise, if mouse cursor is visible, return system mouse position
-    if (bShowMouseCursor)
+    if (CachedOldManCharacter->bUseCursorPos)
     {
         float MouseX, MouseY;
         if (GetMousePosition(MouseX, MouseY))

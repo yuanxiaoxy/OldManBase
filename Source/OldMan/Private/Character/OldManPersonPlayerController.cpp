@@ -116,6 +116,12 @@ void AOldManPersonPlayerController::BindCharacterInputs()
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleMoveCancel);
     }
 
+    if (AimAction)
+    {
+        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleAim);
+        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleAimCancel);
+    }
+
     if (LookAction)
     {
         EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AOldManPersonPlayerController::HandleLook);
@@ -237,6 +243,18 @@ void AOldManPersonPlayerController::HandleGamePadClick(const FInputActionValue& 
     //    tempPos.X, tempPos.Y);
     //// 输出到控制台日志
     //UE_LOG(LogTemp, Warning, TEXT("%s"), *Msg);
+}
+
+void AOldManPersonPlayerController::HandleAim(const FInputActionValue& Value)
+{
+    FGameEventData tempEventData;
+    UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_Aim.ToString(), tempEventData);
+}
+
+void AOldManPersonPlayerController::HandleAimCancel(const FInputActionValue& Value)
+{
+    FGameEventData tempEventData;
+    UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_CancelAim.ToString(), tempEventData);
 }
 
 void AOldManPersonPlayerController::HandleMove(const FInputActionValue& Value)

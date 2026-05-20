@@ -153,6 +153,9 @@ void UOldManOnCableState::HideDetectionEffects()
         EffectMgr->DestroyEffectInstance(Sphere_Name);
         Sphere_Name = NAME_None;
     }
+
+    EffectMgr->StopAllEffectsOfType("HorizontalLine");
+    EffectMgr->StopAllEffectsOfType("TargetPosSphere");
 }
 
 FCableDetectionResult UOldManOnCableState::FindCableInBox(const FVector& Direction, float Width, float Height, float Length)

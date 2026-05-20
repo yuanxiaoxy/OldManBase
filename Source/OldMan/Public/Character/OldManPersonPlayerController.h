@@ -43,6 +43,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* LookAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputAction* AimAction;
+
     // Input actions - Character actions
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* JumpAction;
@@ -78,6 +81,8 @@ protected:
     void HandleMoveCancel(const FInputActionValue& Value);
     void HandleLook(const FInputActionValue& Value);
     void HandleGamePadClick(const FInputActionValue& Value);
+    void HandleAim(const FInputActionValue& Value);
+    void HandleAimCancel(const FInputActionValue& Value);
 
     // Input handling functions - Character actions
     void HandleJumpStart(const FInputActionValue& Value);

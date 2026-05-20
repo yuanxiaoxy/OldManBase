@@ -119,7 +119,7 @@ void AOldManPersonPlayerController::BindCharacterInputs()
     if (AimAction)
     {
         EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AOldManPersonPlayerController::HandleAim);
-        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Canceled, this, &AOldManPersonPlayerController::HandleAimCancel);
+        EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AOldManPersonPlayerController::HandleAimCancel);
     }
 
     if (LookAction)

@@ -66,4 +66,11 @@ public:
 	static const FName Key_GamePad_Click;
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
 	static FName GetKey_GamePad_Click() { return Key_GamePad_Click; }
+
+	static const FName Key_Input_Aim;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_Aim() { return Key_Input_Aim; }
+	static const FName Key_Input_CancelAim;
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventName")
+	static FName GetKey_Input_CancelAim() { return Key_Input_CancelAim; }
 };

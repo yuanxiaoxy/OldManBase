@@ -25,3 +25,8 @@ const FName UGlobalEventName::Key_Input_LockMouseKey = FName("Key_Input_LockMous
 
 const FName UGlobalEventName::Key_Input_UnLockPull = FName("Key_Input_UnLockPull");
 const FName UGlobalEventName::Key_Input_UnLockAttack = FName("Key_Input_UnLockAttack");
+
+const FName UGlobalEventName::Key_GamePad_Click = FName("Key_GamePad_Click");
+
+const FName UGlobalEventName::Key_Input_Aim = FName("Key_Input_Aim");
+const FName UGlobalEventName::Key_Input_CancelAim = FName("Key_Input_CancelAim");

@@ -59,6 +59,8 @@ void UOldManOnCableMoveState::Exit()
     }
 
     UAudioManager::GetInstance()->StopSound(MoveSoundName);
+
+    HideDetectionEffects();
 }
 
 void UOldManOnCableMoveState::Update(float DeltaTime)

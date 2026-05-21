@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ItemBase/OldManPullItemBase.h"
@@ -16,4 +16,14 @@ void AOldManPullItemBase::StartDragging()
 void AOldManPullItemBase::StopDragging()
 {
 	OnStopDragging();
+}
+
+void AOldManPullItemBase::C_OnBeChecked()
+{
+	OnBeChecked();
+}
+
+void AOldManPullItemBase::C_OnDismissChecked()
+{
+	OnDismissChecked();
 }

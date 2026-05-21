@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -39,8 +39,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStopDragging();
 
+	UFUNCTION(BlueprintCallable)
+	void C_OnBeChecked();
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnBeChecked();
+
+	UFUNCTION(BlueprintCallable)
+	void C_OnDismissChecked();
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnDismissChecked();

@@ -383,7 +383,7 @@ public:
     bool UnLockAttack = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-    bool bUseCursorPos = true;
+    bool bUseCursorPos = false;
 
     UPROPERTY()
     FTimerHandle FireTimerHandle;

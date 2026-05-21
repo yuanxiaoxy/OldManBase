@@ -8,14 +8,19 @@ class UOldManUIBase : public UUIBase
 {
     GENERATED_BODY()
 public:
-    virtual void NativeConstruct() override;
-    virtual void NativeDestruct() override;
+    UFUNCTION(BlueprintCallable)
+    void GamepadClick(FVector2D position);
 
-    // 设备变化时调用
-    UFUNCTION()
-    void OnInputDeviceChanged(EHardwareDevicePrimaryType NewDevice);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool NeedGetGamePadClick = false;
 
 protected:
+    UFUNCTION()
+    void OnInputDeviceChanged(EHardwareDevicePrimaryType InputDevice);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "InputDevice")
+    void BP_OnInputDeviceChanged(EHardwareDevicePrimaryType InputDevice);
+
     virtual void InternalShowUI(UObject* Data = nullptr) override;
     virtual void InternalHideUI() override;
 };

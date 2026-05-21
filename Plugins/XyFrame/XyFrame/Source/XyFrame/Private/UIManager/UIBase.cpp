@@ -437,6 +437,9 @@ FReply UUIBase::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& In
 {
     if (!bInputActivated) return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 
+    UE_LOG(LogTemp, Warning, TEXT("UUIBase::NativeOnKeyDown - Widget %s, HasUserFocus: %d, HasKeyboardFocus: %d"),
+        *GetName(), HasAnyUserFocus(), HasKeyboardFocus());
+
     FKey PressedKey = InKeyEvent.GetKey();
     if (const TArray<UInputAction*>* Actions = KeyToActionMap.Find(PressedKey))
     {

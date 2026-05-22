@@ -178,6 +178,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Effect|DataTable")
     bool DoesEffectIDExist(const FName& EffectID) const;
 
+    // 获取特效资产
+    UFUNCTION(BlueprintCallable, Category = "Effect|DataTable")
+    UObject* GetEffectAsset(const FName& EffectID);
+
     // ========== 特效播放控制 ==========
 
     // 播放特效（世界空间位置）

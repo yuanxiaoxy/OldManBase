@@ -190,6 +190,22 @@ bool UEffectManager::DoesEffectIDExist(const FName& EffectID) const
     return EffectConfigMap.Contains(EffectID);
 }
 
+UObject* UEffectManager::GetEffectAsset(const FName& EffectID)
+{
+    FEffectTableRow* Config = EffectConfigMap.Find(EffectID);
+    if (Config)
+    {
+        UObject* EffectAsset = StreamableManager.LoadSynchronous(Config->EffectAssetPath);
+        if (!EffectAsset)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to load effect asset: %s"), *Config->EffectAssetPath.ToString());
+        }
+
+        return EffectAsset;
+    }
+    return nullptr;
+}
+
 // ========== 特效播放控制 ==========
 
 FName UEffectManager::PlayEffectAtLocation(const FName& EffectID, const FVector& Location, const FRotator& Rotation)

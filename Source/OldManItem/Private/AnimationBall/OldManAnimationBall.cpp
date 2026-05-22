@@ -128,23 +128,51 @@ void AOldManAnimationBall::PlayAniInUI()
 	{
 		datas->MediaPlayer = MediaPlayer;
 		datas->AnimationBall = this;
-		switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+		if (IsTouMing)
 		{
-		case ELanguageType::English:
-			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglish", datas);
-			CurUIName = "AnimationPlayPanelWithButtonInEnglish";
-			break;
-		case ELanguageType::Chinese:
-			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButton", datas);
-			CurUIName = "AnimationPlayPanelWithButton";
-			break;
+			switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+			{
+			case ELanguageType::English:
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglish", datas);
+				CurUIName = "AnimationPlayPanelWithButtonInEnglish";
+				break;
+			case ELanguageType::Chinese:
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButton", datas);
+				CurUIName = "AnimationPlayPanelWithButton";
+				break;
+			}
+
+		}
+		else
+		{
+			switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
+			{
+			case ELanguageType::English:
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglishWithBlack", datas);
+				CurUIName = "AnimationPlayPanelWithButtonInEnglishWithBlack";
+				break;
+			case ELanguageType::Chinese:
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonWithBlack", datas);
+				CurUIName = "AnimationPlayPanelWithButtonWithBlack";
+				break;
+			}
+
 		}
 
 	}
 	else
 	{
-		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel");
-		CurUIName = "AnimationPlayPanel";
+		if (IsTouMing)
+		{
+			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel");
+			CurUIName = "AnimationPlayPanel";
+		}
+		else
+		{
+			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithBlack");
+			CurUIName = "AnimationPlayPanelWithBlack";
+
+		}
 	}
 	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI(CurUIName);
 	if (curWidget != nullptr) 

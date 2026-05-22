@@ -86,6 +86,9 @@ public:
 	//是否取消玩家输入
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
 	bool PlayerInputCancel = true;
+	//是否取消玩家输入
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType")
+	bool IsTouMing = true;
 	//对话框是否自动播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType",
 		meta = (EditCondition = "myType == E_AniBallType::playAsText"))

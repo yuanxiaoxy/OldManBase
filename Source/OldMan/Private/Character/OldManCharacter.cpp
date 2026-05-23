@@ -1039,12 +1039,12 @@ void AOldManCharacter::StartRightMousePull()
 void AOldManCharacter::StopRightMousePull()
 {
     SetPullItemState(false);
+    UEffectManager::GetInstance()->StopAllEffectsOfType("Effect_OnPullItem");
     if (curOldManPullItem)
     {
         FGameEventData tempEventData;
         UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Input_InputPullEnd.ToString(), tempEventData);
 
-        UEffectManager::GetInstance()->StopAllEffectsOfType("Effect_OnPullItem");
         curOldManPullItem->OnDismissChecked();
         curOldManPullItem->StopDragging();
         curOldManPullItem = nullptr;

@@ -35,6 +35,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) // 编辑器可改、蓝图可读写
 	AOldManAnimationBall* AnimationBall; // 当前触发的动画球 Actor 指针
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) // 编辑器可改、蓝图可读写
+	bool IsPauseGame; // 是否暂停游戏
 };
 
 /** 动画球 Actor：玩家触发后按类型播视频/显 UI */
@@ -58,6 +61,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media") // 媒体分类
 	UMaterial* PlayWallMaterial; // 场景墙/UI 图片使用的材质
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Media") // 编辑器可改、蓝图可读写
+	bool IsPauseGame = false; // 是否暂停游戏
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationBallType") // 动画球类型分类
 	E_AniBallType myType = E_AniBallType::playOnScene; // 播放模式，默认场景播放
@@ -178,6 +185,8 @@ private:
 	void PrepareSharedMediaForNewClip(); // 新开媒体前清空共享播放器/纹理残留帧
 
 	void ApplyUIVideoBrush(); // 将视频材质赋给 UI Image（延迟一帧避免残影）
+
+	void SetGlobalTime(float Time); // 设置globalTime
 
 	FTimerHandle DeferredUIVideoBrushTimer; // 延迟刷 UI 材质计时器
 

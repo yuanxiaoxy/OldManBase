@@ -254,6 +254,17 @@ void AOldManAnimationBall::ApplyUIVideoBrush()
 	CurImg->SetRenderOpacity(1.f);
 }
 
+void AOldManAnimationBall::SetGlobalTime(float Time)
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (AWorldSettings* WorldSettings = World->GetWorldSettings())
+		{
+			WorldSettings->SetTimeDilation(Time);
+		}
+	}
+}
+
 bool AOldManAnimationBall::StartPlayback(AActor* TriggerActor)
 {
 	if (bMediaPrepared)
@@ -380,6 +391,7 @@ void AOldManAnimationBall::PlayAniInUI() // 根据语言与选项打开对应 UI
 	{
 		Datas->MediaPlayer = MediaPlayer; // 供 UI 内控制播放/跳过
 		Datas->AnimationBall = this; // 供 UI 回调本球
+		Datas->IsPauseGame = IsPauseGame;// 供 UI 确定是否暂停游戏
 		if (IsTouMing) // 透明背景款
 		{
 			switch (CurrentLanguage) // 按语言选 UI 名
@@ -511,6 +523,7 @@ void AOldManAnimationBall::CleanupPlayback(bool bCloseMedia, bool bRestorePlayer
 	if (myType == E_AniBallType::playOnUI && !CurUIName.IsNone())
 	{
 		UUIManager::GetInstance()->CloseUI(CurUIName, true, true);
+		if (IsPauseGame) SetGlobalTime(1);
 		CurUIName = NAME_None;
 	}
 

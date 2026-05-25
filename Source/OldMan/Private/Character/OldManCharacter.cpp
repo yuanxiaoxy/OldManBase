@@ -1040,6 +1040,7 @@ void AOldManCharacter::StopRightMousePull()
 {
     SetPullItemState(false);
     UEffectManager::GetInstance()->StopAllEffectsOfType("Effect_OnPullItem");
+    UEffectManager::GetInstance()->StopAllEffectsOfType("DragLine");
     if (curOldManPullItem)
     {
         FGameEventData tempEventData;

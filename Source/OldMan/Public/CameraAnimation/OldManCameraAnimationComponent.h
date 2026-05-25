@@ -1,4 +1,4 @@
-// File: OldManCameraAnimationComponent.h
+﻿// File: OldManCameraAnimationComponent.h
 #pragma once
 
 #include "CoreMinimal.h"

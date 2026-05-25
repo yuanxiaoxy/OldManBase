@@ -88,6 +88,8 @@ void UOldManSavePointManager::OnPlayerRespawn()
 		}
 
 		UMyEventManager::GetInstance()->TriggerCppEvent<bool>(UGlobalEventName::Key_Player_OnRespawn, ShouldWaitFotInput, ReBornPosition, ReBornRotation, ShouldResetCamera);
+		FGameEventData tempEventData;
+		UMyEventManager::GetInstance()->TriggerEventString(UGlobalEventName::Key_Player_OnRespawn.ToString(), tempEventData);
 	}
 }
 

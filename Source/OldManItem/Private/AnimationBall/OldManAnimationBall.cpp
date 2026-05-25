@@ -1,336 +1,620 @@
-﻿#include "AnimationBall/OldManAnimationBall.h"
-#include "GlobalEventName.h"
-#include "UIManager/UIManager.h"
-#include "Components/Image.h"
-#include "IMediaEventSink.h"
-#include "LanguageManager/xyLanguageManager.h"
+﻿#include "AnimationBall/OldManAnimationBall.h" // 对应头文件
+#include "GlobalEventName.h" // 全局事件名（玩家输入开关等）
+#include "GlobalTagName.h" // 全局 Tag 名（玩家 Tag）
+#include "UIManager/UIManager.h" // UI 管理器（显示/关闭面板）
+#include "Components/Image.h" // UMG Image 控件
+#include "Components/BoxComponent.h" // UBoxComponent（InteractionBox）
+#include "Components/StaticMeshComponent.h" // 静态网格组件
+#include "EventManager/MyEventManager.h" // 项目事件管理器
+#include "LanguageManager/xyLanguageManager.h" // 多语言管理器
+#include "TimerManager.h"
 
-//初始化
-void AOldManAnimationBall::BeginPlay()
+namespace AnimationBallPlayback // 匿名命名空间级：仅本 cpp 可见的播放状态
 {
-	Super::BeginPlay();
+	TWeakObjectPtr<AOldManAnimationBall> ActiveBall; // 当前正在播放的动画球（弱指针防悬空）
+}
 
-	//检测媒体源是否存在
-	if (FileMediaSource == nullptr)
+bool AOldManAnimationBall::IsMediaSetupValid() const // 校验播放所需资源是否配置完整
+{
+	if (!IsValid(MediaPlayer)) // MediaPlayer 无效则无法播放
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AB_媒体源不存在"));
-	}
-	//检测媒体播放器组件是否存在
-	if (MediaPlayer == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AB_媒体播放器组件不存在"));
-	}
-	//检测媒体纹理是否存在
-	if (MediaTexture == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AB_媒体纹理不存在"));
+		return false; // 校验失败
 	}
 
-	//场景中播放的物体
-	if (myType == E_AniBallType::playOnScene)
+	if (myType == E_AniBallType::playOnScene) // 场景播放模式额外检查
 	{
-		//检测场景中播放的物体是否存在
-		if (!PlayWall)
+		if (!IsValid(PlayWall)) // 场景墙 Actor 必须存在
 		{
-			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体不存在"));
+			return false; // 校验失败
 		}
-		//检测材质是否存在
-		if (PlayWallMaterial == nullptr)
+		if (!IsCreateOnly && !IsValid(PlayWallMaterial) && !(ShouldFadeIn && IsValid(FadeInMaterial))) // 非仅创建时要有材质或淡入材质
 		{
-			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体上的材质"));
-		}
-		//失活场景物体
-		if (PlayWall && !PlayWall->IsHidden())
-		{
-			PlayWall->SetActorHiddenInGame(true);
-			PlayWall->SetActorEnableCollision(false);
-			PlayWall->SetActorTickEnabled(false);
+			return false; // 校验失败
 		}
 	}
-	//清空纹理
+
+	if (myType != E_AniBallType::playAsText && !IsCreateOnly && !IsValid(GetMediaSourceForCurrentLanguage())) // 需要播视频时媒体源必须有效
+	{
+		return false; // 校验失败
+	}
+
+	return true; // 全部检查通过
+}
+
+UFileMediaSource* AOldManAnimationBall::GetMediaSourceForCurrentLanguage() const // 根据当前语言返回对应 FileMediaSource
+{
+	const UxyLanguageManager* LanguageManager = UxyLanguageManager::GetLanguageManager(); // 取语言管理器单例
+	if (!LanguageManager) // 管理器不存在时回退
+	{
+		return FileMediaSource; // 默认中文源
+	}
+
+	switch (LanguageManager->GetCurrentLanguage()) // 按当前语言分支
+	{
+	case ELanguageType::English: // 英文
+		return IsValid(FileMediaSourceInEnglish) ? FileMediaSourceInEnglish : FileMediaSource; // 英文源优先，否则回退中文
+	case ELanguageType::Chinese: // 中文
+	default: // 其它语言走默认
+		return FileMediaSource; // 中文源
+	}
+}
+
+bool AOldManAnimationBall::OpenMediaSourceForCurrentLanguage() // 对 MediaPlayer 打开当前语言媒体
+{
+	if (!IsValid(MediaPlayer)) // 播放器无效
+	{
+		return false; // 打开失败
+	}
+
+	UFileMediaSource* Source = GetMediaSourceForCurrentLanguage(); // 解析媒体源
+	if (!IsValid(Source)) // 源无效
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AB_当前语言媒体源不存在")); // 打日志
+		return false; // 打开失败
+	}
+
+	return MediaPlayer->OpenSource(Source); // 异步打开，成功返回 true 仅表示开始尝试
+}
+
+bool AOldManAnimationBall::IsActiveAnimationBall() const // 是否为本场景当前“活跃”动画球
+{
+	return AnimationBallPlayback::ActiveBall.Get() == this; // 与全局弱指针比较
+}
+
+void AOldManAnimationBall::HandoffFromPreviousBall() // 新球开始播前：结束上一球
+{
+	if (AOldManAnimationBall* PreviousBall = AnimationBallPlayback::ActiveBall.Get()) // 取上一活跃球
+	{
+		if (PreviousBall != this && IsValid(PreviousBall)) // 存在且不是本球
+		{
+			PreviousBall->PlayOverInterruptedByHandoff(); // 收尾上一球，但不 Close 共享 MediaPlayer
+		}
+	}
+
+	AnimationBallPlayback::ActiveBall = this; // 将本球登记为当前活跃球
+}
+
+void AOldManAnimationBall::UnbindMediaDelegates() // 移除本 Actor 在 MediaPlayer 上的动态委托
+{
+	if (!IsValid(MediaPlayer)) // 播放器无效则无需解绑
+	{
+		return; // 直接返回
+	}
+
+	MediaPlayer->OnMediaOpened.RemoveDynamic(this, &AOldManAnimationBall::OnMediaOpened_ChooseType); // 解绑：打开后按类型
+	MediaPlayer->OnEndReached.RemoveDynamic(this, &AOldManAnimationBall::PlayOver); // 解绑：播放到结尾
+}
+
+void AOldManAnimationBall::BindPlaybackEndDelegates() // 仅在媒体打开成功后绑定结束回调
+{
+	if (!IsValid(MediaPlayer) || !IsActiveAnimationBall())
+	{
+		return;
+	}
+
+	MediaPlayer->OnEndReached.RemoveDynamic(this, &AOldManAnimationBall::PlayOver);
+	MediaPlayer->OnEndReached.AddDynamic(this, &AOldManAnimationBall::PlayOver);
+}
+
+void AOldManAnimationBall::HideIfDisposableTriggered() // 一次性球触发后隐藏自身
+{
+	if (!Disposable) // Disposable 为 false 表示已消耗一次性
+	{
+		Print(TEXT("执行死亡")); // 调试输出
+		SetActorHiddenInGame(true); // 游戏中隐藏
+		SetActorEnableCollision(false); // 关闭碰撞（不能再触发）
+		SetActorTickEnabled(false); // 关闭 Tick
+	}
+}
+
+void AOldManAnimationBall::EnsureMediaSoundComponent() // 创建或更新媒体声音组件
+{
+	if (IsValid(MediaSoundComponent)) // 已存在则只更新关联
+	{
+		MediaSoundComponent->SetMediaPlayer(MediaPlayer); // 绑定到当前 MediaPlayer
+		return; // 结束
+	}
+
+	MediaSoundComponent = NewObject<UMediaSoundComponent>(this, UMediaSoundComponent::StaticClass()); // 新建组件对象
+	if (!IsValid(MediaSoundComponent)) // 创建失败
+	{
+		return; // 结束
+	}
+
+	MediaSoundComponent->RegisterComponent(); // 注册到世界以便发声
+	MediaSoundComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform); // 挂到根组件
+	AddInstanceComponent(MediaSoundComponent); // 加入实例组件列表便于管理
+	MediaSoundComponent->SetMediaPlayer(MediaPlayer); // 关联播放器
+}
+
+void AOldManAnimationBall::BeginPlay() // Actor 进入关卡时
+{
+	Super::BeginPlay(); // 调用父类 BeginPlay
+
+	if (!IsValid(FileMediaSource)) // 检查中文媒体源
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AB_媒体源不存在")); // 警告日志
+	}
+	if (!IsValid(MediaPlayer)) // 检查播放器
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AB_媒体播放器组件不存在")); // 警告日志
+	}
+	if (!IsValid(MediaTexture)) // 检查纹理
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AB_媒体纹理不存在")); // 警告日志
+	}
+
+	if (myType == E_AniBallType::playOnScene) // 场景模式初始化 PlayWall
+	{
+		if (!IsValid(PlayWall)) // 墙不存在
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体不存在")); // 警告日志
+		}
+		if (!IsValid(PlayWallMaterial)) // 材质未配
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AB_场景中播放的物体上的材质")); // 警告日志
+		}
+		if (IsValid(PlayWall) && !PlayWall->IsHidden()) // 墙存在且当前可见
+		{
+			PlayWall->SetActorHiddenInGame(true); // 开局先隐藏墙
+			PlayWall->SetActorEnableCollision(false); // 关闭墙碰撞
+			PlayWall->SetActorTickEnabled(false); // 关闭墙 Tick
+		}
+	}
+
+	if (IsValid(MediaPlayer)) // 播放器有效
+	{
+		MediaPlayer->Close(); // 清空/关闭可能残留的上次媒体状态
+	}
+}
+
+void AOldManAnimationBall::EndPlay(const EEndPlayReason::Type EndPlayReason) // Actor 离开关卡/销毁前
+{
+	if (bMediaPrepared && PlayerInputCancel) // 若在准备态且曾禁用输入
+	{
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true); // 恢复玩家输入
+	}
+
+	UnbindMediaDelegates(); // 解绑所有媒体委托
+	bMediaPrepared = false; // 清除准备标记
+
+	if (AnimationBallPlayback::ActiveBall.Get() == this) // 若本球仍是活跃球
+	{
+		AnimationBallPlayback::ActiveBall.Reset(); // 清空全局活跃引用
+	}
+
+	Super::EndPlay(EndPlayReason); // 调用父类 EndPlay
+}
+
+bool AOldManAnimationBall::CanStartPlayback() const
+{
+	return Disposable && IsMediaSetupValid() && !bMediaPrepared;
+}
+
+void AOldManAnimationBall::NotifyBlueprintEnterTrigger(AActor* TriggerActor)
+{
+	OnEnterTrigger(InteractionBox, TriggerActor, nullptr, 0, false, FHitResult());
+}
+
+void AOldManAnimationBall::PrepareSharedMediaForNewClip()
+{
+	if (!IsValid(MediaPlayer))
+	{
+		return;
+	}
+
 	MediaPlayer->Close();
-	//MediaPlayer->OpenSource(FileMediaSource);
+
+	if (IsValid(MediaTexture))
+	{
+		MediaTexture->SetMediaPlayer(MediaPlayer);
+	}
+}
+
+void AOldManAnimationBall::ApplyUIVideoBrush()
+{
+	if (!IsActiveAnimationBall() || !bMediaPrepared || CurUIName.IsNone())
+	{
+		return;
+	}
+
+	UUserWidget* CurWidget = UUIManager::GetInstance()->GetUI(CurUIName);
+	if (!IsValid(CurWidget))
+	{
+		return;
+	}
+
+	UImage* CurImg = Cast<UImage>(CurWidget->GetWidgetFromName(TEXT("Image_0")));
+	if (!IsValid(CurImg) || !IsValid(PlayWallMaterial))
+	{
+		return;
+	}
+
+	CurImg->SetBrushFromMaterial(PlayWallMaterial);
+	CurImg->SetRenderOpacity(1.f);
+}
+
+void AOldManAnimationBall::SetGlobalTime(float Time)
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (AWorldSettings* WorldSettings = World->GetWorldSettings())
+		{
+			WorldSettings->SetTimeDilation(Time);
+		}
+	}
+}
+
+bool AOldManAnimationBall::StartPlayback(AActor* TriggerActor)
+{
+	if (bMediaPrepared)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("AB_StartPlayback: 已在播放准备中，忽略重复调用"));
+		return false;
+	}
+
+	if (!Disposable)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("AB_StartPlayback: 已触发过（Disposable=false）"));
+		return false;
+	}
+
+	if (!IsMediaSetupValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AB_StartPlayback: 媒体/场景配置无效"));
+		return false;
+	}
+
+	if (IsDisposable)
+	{
+		Disposable = false;
+	}
+
+	HandoffFromPreviousBall();
+	PrepareSharedMediaForNewClip();
+	BeforePreparation();
+	MediaPlayer->OnMediaOpened.AddDynamic(this, &AOldManAnimationBall::OnMediaOpened_ChooseType);
+
+	if (!IsCreateOnly)
+	{
+		OpenMediaSourceForCurrentLanguage();
+	}
+	else
+	{
+		BindPlaybackEndDelegates();
+		ChooseType();
+	}
+
+	HideIfDisposableTriggered();
+
+	// 触发蓝图 OnEnterTrigger：暂停游戏、Niagara、音效等（与碰撞路径一致）
+	NotifyBlueprintEnterTrigger(TriggerActor);
+
+	return true;
 }
 
 void AOldManAnimationBall::PlayVideoInUI()
 {
-	if (MediaPlayer->IsPlaying())
+	StartPlayback(nullptr);
+}
+
+void AOldManAnimationBall::Interect(FOldManItemInteractData interectData)
+{
+	Super::Interect(interectData);
+	StartPlayback(interectData.InteractingActor);
+}
+
+void AOldManAnimationBall::PlayAniInScene() // 激活场景墙并设置材质
+{
+	UE_LOG(LogTemp, Display, TEXT("AB_scene")); // 日志：场景分支
+
+	if (!IsValid(PlayWall)) // 墙无效
 	{
-		MediaPlayer->Pause();
+		return; // 退出
+	}
+
+	UStaticMeshComponent* PlayWallMesh = PlayWall->GetStaticMeshComponent(); // 取静态网格组件
+	if (!IsValid(PlayWallMesh)) // 组件无效
+	{
+		return; // 退出
+	}
+
+	if (PlayWall->IsHidden()) // 若墙当前隐藏
+	{
+		PlayWall->SetActorHiddenInGame(false); // 显示墙
+		PlayWall->SetActorEnableCollision(true); // 开启碰撞（若需要）
+		PlayWall->SetActorTickEnabled(true); // 开启 Tick
+	}
+
+	if (ShouldFadeIn && IsValid(FadeInMaterial)) // 需要淡入且有淡入材质
+	{
+		PlayWallMesh->SetMaterial(0, FadeInMaterial); // 槽 0 设为淡入材质
+		StartFadeIn(); // 通知蓝图做淡入
+	}
+	else if (!IsCreateOnly && IsValid(PlayWallMaterial)) // 普通播放且非仅创建
+	{
+		PlayWallMesh->SetMaterial(0, PlayWallMaterial); // 槽 0 设为播放材质
+	}
+}
+
+void AOldManAnimationBall::StartPlaybackIfNeeded() // 媒体已打开但未播放时补 Play
+{
+	if (IsValid(MediaPlayer) && !MediaPlayer->IsPlaying()) // 有效且未在播
+	{
+		MediaPlayer->Play(); // 开始播放
+	}
+}
+
+void AOldManAnimationBall::OnMediaOpened_ChooseType(FString /*OpenedUrl*/) // OnMediaOpened：按 myType 分发
+{
+	if (!bMediaPrepared || !IsActiveAnimationBall()) // 未准备或非活跃球则忽略
+	{
+		return; // 退出
+	}
+
+	BindPlaybackEndDelegates(); // 打开成功后再绑 OnEndReached
+	StartPlaybackIfNeeded(); // 确保开始播放
+	ChooseType(); // 场景 / UI / 文本 分支
+}
+
+void AOldManAnimationBall::PlayAniInUI() // 根据语言与选项打开对应 UI
+{
+	UE_LOG(LogTemp, Display, TEXT("AB_UI")); // 日志：UI 分支
+
+	UAniMationBallDatas* Datas = NewObject<UAniMationBallDatas>(this); // 构造传给 UI 的数据对象
+	const UxyLanguageManager* LanguageManager = UxyLanguageManager::GetLanguageManager(); // 语言管理器
+	const ELanguageType CurrentLanguage = LanguageManager // 当前语言
+		? LanguageManager->GetCurrentLanguage() // 有管理器则查询
+		: ELanguageType::Chinese; // 否则默认中文
+
+	if (IsOpenSkip) // 需要跳过按钮的面板
+	{
+		Datas->MediaPlayer = MediaPlayer; // 供 UI 内控制播放/跳过
+		Datas->AnimationBall = this; // 供 UI 回调本球
+		Datas->IsPauseGame = IsPauseGame;// 供 UI 确定是否暂停游戏
+		if (IsTouMing) // 透明背景款
+		{
+			switch (CurrentLanguage) // 按语言选 UI 名
+			{
+			case ELanguageType::English: // 英文透明+按钮
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglish", Datas); // 显示 UI
+				CurUIName = "AnimationPlayPanelWithButtonInEnglish"; // 记录名称供关闭
+				break; // 结束 case
+			case ELanguageType::Chinese: // 中文透明+按钮
+			default: // 默认中文
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButton", Datas); // 显示 UI
+				CurUIName = "AnimationPlayPanelWithButton"; // 记录名称
+				break; // 结束 case
+			}
+		}
+		else // 黑色背景款
+		{
+			switch (CurrentLanguage) // 按语言选 UI 名
+			{
+			case ELanguageType::English: // 英文黑底+按钮
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglishWithBlack", Datas); // 显示 UI
+				CurUIName = "AnimationPlayPanelWithButtonInEnglishWithBlack"; // 记录名称
+				break; // 结束 case
+			case ELanguageType::Chinese: // 中文黑底+按钮
+			default: // 默认中文
+				UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonWithBlack", Datas); // 显示 UI
+				CurUIName = "AnimationPlayPanelWithButtonWithBlack"; // 记录名称
+				break; // 结束 case
+			}
+		}
+	}
+	else if (IsTouMing) // 无跳过、透明
+	{
+		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel"); // 显示简单透明面板
+		CurUIName = "AnimationPlayPanel"; // 记录名称
+	}
+	else // 无跳过、黑底
+	{
+		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithBlack"); // 显示黑底面板
+		CurUIName = "AnimationPlayPanelWithBlack"; // 记录名称
+	}
+
+	if (UUserWidget* CurWidget = UUIManager::GetInstance()->GetUI(CurUIName))
+	{
+		if (UImage* CurImg = Cast<UImage>(CurWidget->GetWidgetFromName(TEXT("Image_0"))))
+		{
+			CurImg->SetRenderOpacity(0.f);
+		}
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeferredUIVideoBrushTimer);
+		World->GetTimerManager().SetTimer(
+			DeferredUIVideoBrushTimer,
+			this,
+			&AOldManAnimationBall::ApplyUIVideoBrush,
+			0.05f,
+			false);
+	}
+}
+
+void AOldManAnimationBall::ChooseType() // 按 myType 调用具体播放实现
+{
+	switch (myType) // 分支
+	{
+	case E_AniBallType::playOnScene: // 场景
+		PlayAniInScene(); // 显示墙
+		break; // 结束 case
+	case E_AniBallType::playOnUI: // UI
+		PlayAniInUI(); // 开面板
+		break; // 结束 case
+	case E_AniBallType::playAsText: // 文本
+		PlayText(); // 文本逻辑
+		break; // 结束 case
+	default: // 未配置类型
+		UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢")); // 警告
+		if (GEngine) // 编辑器/游戏有 GEngine
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢")); // 屏幕提示
+		}
+		break; // 结束 case
+	}
+}
+
+void AOldManAnimationBall::PlayText() // 文本模式（待实现）
+{
+	UE_LOG(LogTemp, Display, TEXT("AB_text")); // 日志占位
+}
+
+void AOldManAnimationBall::CleanupPlayback(bool bCloseMedia, bool bRestorePlayerInput, bool bDestroyActor) // 统一清理
+{
+	if (!bMediaPrepared)
+	{
+		return;
+	}
+
+	if (!IsActiveAnimationBall())
+	{
+		bMediaPrepared = false;
+		UnbindMediaDelegates();
+		return;
+	}
+
+	bMediaPrepared = false;
+	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
+
+	UnbindMediaDelegates(); // 先解绑，避免 Close/Open 时误回调到本球
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeferredUIVideoBrushTimer);
+	}
+
+	VideoPlayCompelete();
+
+	if (bRestorePlayerInput && PlayerInputCancel)
+	{
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true);
+	}
+
+	if (myType == E_AniBallType::playOnScene && IsValid(PlayWall) && !PlayWall->IsHidden() && !IsCreateOnly)
+	{
+		PlayWall->SetActorHiddenInGame(true);
+		PlayWall->SetActorEnableCollision(false);
+		PlayWall->SetActorTickEnabled(false);
+	}
+
+	if (myType == E_AniBallType::playOnUI && !CurUIName.IsNone())
+	{
+		UUIManager::GetInstance()->CloseUI(CurUIName, true, true);
+		if (IsPauseGame) SetGlobalTime(1);
+		CurUIName = NAME_None;
+	}
+
+	if (bCloseMedia && IsValid(MediaPlayer))
+	{
 		MediaPlayer->Close();
 	}
 
-	if (Disposable)
+	if (AnimationBallPlayback::ActiveBall.Get() == this)
 	{
-		//判断是否为一次性
-		if (IsDisposable)
-		{
-			Disposable = false;
-		}
-		BeforePreparation();
-		//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
-		//绑定事件
-		MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AOldManAnimationBall::PlayAniInUI);
-		//打开媒体源
-		switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
-		{
-		case ELanguageType::English:
-			MediaPlayer->OpenSource(FileMediaSourceInEnglish);
-			break;
-		case ELanguageType::Chinese:
-			MediaPlayer->OpenSource(FileMediaSource);
-			break;
-		}
-		//如果是一次性的 销毁自己
-		if (!Disposable)
-		{
-			Print("执行死亡");
-			this->SetActorHiddenInGame(true);
-			this->SetActorEnableCollision(false);
-			this->SetActorTickEnabled(false);
-			//this->Destroy();
-		}
-
+		AnimationBallPlayback::ActiveBall.Reset();
 	}
 
+	if (bDestroyActor)
+	{
+		Destroy();
+	}
 }
 
-//在场景中播放
-void AOldManAnimationBall::PlayAniInScene()
+void AOldManAnimationBall::PlayOver() // 自然结束 / 跳过：关媒体、恢复输入、销毁
 {
-	UE_LOG(LogTemp, Display, TEXT("AB_scene"));
-	//激活场景物体
-	if (PlayWall->IsHidden())
-	{
-		PlayWall->SetActorHiddenInGame(false);
-		PlayWall->SetActorEnableCollision(true);
-		PlayWall->SetActorTickEnabled(true);
-	}
-	if (!IsCreateOnly)
-	{
-		//为场景物体添加材质
-		PlayWall->GetStaticMeshComponent()->SetMaterial(0, PlayWallMaterial);
-	}
-
-	if (ShouldFadeIn && FadeInMaterial)
-	{
-		PlayWall->GetStaticMeshComponent()->SetMaterial(0, FadeInMaterial);
-		StartFadeIn();
-	}
+	CleanupPlayback(true, true, true);
 }
 
-//在UI界面上播放
-void AOldManAnimationBall::PlayAniInUI()
+void AOldManAnimationBall::PlayOverInterruptedByHandoff() // 被新球顶替：不关媒体、不恢复输入
 {
-	UE_LOG(LogTemp, Display, TEXT("AB_UI"));
-	UAniMationBallDatas* datas = NewObject<UAniMationBallDatas>();
-	if (IsOpenSkip)
-	{
-		datas->MediaPlayer = MediaPlayer;
-		datas->AnimationBall = this;
-		switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
-		{
-		case ELanguageType::English:
-			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButtonInEnglish", datas);
-			CurUIName = "AnimationPlayPanelWithButtonInEnglish";
-			break;
-		case ELanguageType::Chinese:
-			UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithButton", datas);
-			CurUIName = "AnimationPlayPanelWithButton";
-			break;
-		}
-
-	}
-	else
-	{
-		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel");
-		CurUIName = "AnimationPlayPanel";
-	}
-	UUserWidget* curWidget = UUIManager::GetInstance()->GetUI(CurUIName);
-	if (curWidget != nullptr) 
-	{
-		UImage* curImg = Cast<UImage>(curWidget->GetWidgetFromName("Image_0"));
-		if (curImg)
-		{
-			curImg->SetBrushFromMaterial(PlayWallMaterial);
-		}
-	}
-
-
+	CleanupPlayback(false, false, true);
 }
 
-void AOldManAnimationBall::ChooseType()
+void AOldManAnimationBall::BeforePreparation() // 每次开始播放前的准备
 {
-	switch (myType)
+	if (!IsValid(MediaPlayer)) // 无播放器
 	{
-		case E_AniBallType::playOnScene:
-			PlayAniInScene();
-			break;
-		case E_AniBallType::playOnUI:
-			PlayAniInUI();
-			break;
-		case E_AniBallType::playAsText:
-			PlayText();
-			break;
-		default:
-			UE_LOG(LogTemp, Warning, TEXT("AB_你不用，还不删，留着过年呢"));
-			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_你不用，还不删，留着过年呢"));
-			break;
+		return; // 退出
+	}
+
+	UnbindMediaDelegates(); // 先清旧绑定，避免重复
+
+	MediaPlayer->SetLooping(Loop); // 设置是否循环（OnEndReached 在 OnMediaOpened 里再绑）
+	bMediaPrepared = true; // 标记已进入准备态
+
+	if (PlayerInputCancel) // 需要禁用玩家输入
+	{
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), false); // 发送禁用
+	}
+
+	EnsureMediaSoundComponent(); // 确保有声音组件
+
+	if (IsValid(MediaTexture) && IsValid(MediaPlayer))
+	{
+		MediaTexture->SetMediaPlayer(MediaPlayer);
 	}
 }
 
-//对话框
-void AOldManAnimationBall::PlayText()
+void AOldManAnimationBall::Print(FString text) // 屏幕打印调试信息
 {
-	UE_LOG(LogTemp, Display, TEXT("AB_text"));
-}
-
-//播放完毕
-void AOldManAnimationBall::PlayOver()
-{
-	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
-	//终止播放
-	MediaPlayer->Close();
-	VideoPlayCompelete();
-	//恢复玩家输入
-	if (PlayerInputCancel)
+	if (GEngine) // GEngine 可用（PIE/Game）
 	{
-		//Player->SetPlayerInput(true);
-		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true);
-
-	}
-	//取消绑定
-	MediaPlayer->OnPlaybackResumed.RemoveDynamic(this, &AOldManAnimationBall::ChooseType);
-	MediaPlayer->OnEndReached.RemoveDynamic(this, &AOldManAnimationBall::PlayOver);
-
-	//若是场景物体播放模式 失活PlayWall
-	if (myType == E_AniBallType::playOnScene)
-	{
-		if (!PlayWall->IsHidden() && !IsCreateOnly)
-		{
-			PlayWall->SetActorHiddenInGame(true);
-			PlayWall->SetActorEnableCollision(false);
-			PlayWall->SetActorTickEnabled(false);
-		}
-	}
-	//若是UI物体，关闭UI
-	if (myType == E_AniBallType::playOnUI)
-	{
-		UUIManager::GetInstance()->CloseUI(CurUIName, true, true);
-	}
-	//停止播放
-	MediaPlayer->Close();
-	MediaTexture = nullptr;
-
-	//销毁自己
-	this->Destroy();
-}
-
-
-//播放前准备
-void AOldManAnimationBall::BeforePreparation()
-{
-	//启用计时器
-	//if (CountdownTime > 0)
-	//{
-	//	UMonoManager::GetInstance()->SetTimeout(CountdownTime - BeginTime, this, &AOldManAnimationBall::PlayOver);
-	//}
-	//绑定回调
-	MediaPlayer->OnEndReached.AddDynamic(this, &AOldManAnimationBall::PlayOver);
-	//MediaPlayer->OnMediaOpened.AddDynamic(this, &AOldManAnimationBall::Print);
-	//设置循环
-	MediaPlayer->SetLooping(Loop);
-	//判断是否启用玩家输入
-	if (PlayerInputCancel)
-	{
-		//Player->SetPlayerInput(false);
-		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), false);
-	}
-	//判断对话框是否自动播放
-	if (myType == E_AniBallType::playAsText)
-	{
-
-	}
-	//创建音频播放组件
-	UMediaSoundComponent* DynamicMediaSoundComponent = NewObject<UMediaSoundComponent>(this, UMediaSoundComponent::StaticClass());
-	if (DynamicMediaSoundComponent)
-	{
-		// 注册组件，使其能被 Tick 并参与渲染
-		DynamicMediaSoundComponent->RegisterComponent();
-
-		// 1. 设置位置：将其附加到根组件[reference:2]
-		DynamicMediaSoundComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-
-		// 2. （可选）手动设置相对位置
-		// DynamicMediaSoundComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f));
-
-		// 3. 关联 MediaPlayer（可选）
-		// DynamicMediaSoundComponent->SetMediaPlayer(MyMediaPlayer);
-
-		// 4. 将组件添加到 Actor 的组件列表，便于管理和查询
-		AddInstanceComponent(DynamicMediaSoundComponent);
-		DynamicMediaSoundComponent->SetMediaPlayer(MediaPlayer);
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_") + text); // 黄字 2 秒
 	}
 }
-
-void AOldManAnimationBall::Print(FString text)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("AB_") + text);
-}
-
 
 void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	Super::OnOverlayBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-	if (OtherActor->Tags.Find(UGlobalTagName::Tag_Player) > -1)
+	if (!IsValid(OtherActor) || !OtherActor->ActorHasTag(UGlobalTagName::Tag_Player))
 	{
-		if (MediaPlayer->IsPlaying())
-		{
-			MediaPlayer->Pause();
-			MediaPlayer->Close();
-		}
-		if (Disposable)
-		{
-			//判断是否为一次性
-			if (IsDisposable)
-			{
-				Disposable = false;
-			}
-			BeforePreparation();
-			//Player = OtherActor->GetComponentByClass<AOldManCharacter>();
-			//绑定事件
-			MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AOldManAnimationBall::ChooseType);
-			//打开媒体源
-			if (!IsCreateOnly)
-			{
-				//打开媒体源
-				switch (UxyLanguageManager::GetLanguageManager()->GetCurrentLanguage())
-				{
-				case ELanguageType::English:
-					MediaPlayer->OpenSource(FileMediaSourceInEnglish);
-					break;
-				case ELanguageType::Chinese:
-					MediaPlayer->OpenSource(FileMediaSource);
-					break;
-				}
-
-			}
-			else
-			{
-				ChooseType();
-			}
-			//如果是一次性的 销毁自己
-			if (!Disposable)
-			{
-				Print("执行死亡");
-				this->SetActorHiddenInGame(true);
-				this->SetActorEnableCollision(false);
-				this->SetActorTickEnabled(false);
-				//this->Destroy();
-			}
-
-		}
+		return;
 	}
-}
 
+	StartPlayback(OtherActor);
+}
+/*
+				   _ooOoo_
+				  o8888888o
+				  88" . "88
+				  (| -_- |)
+				  O\  =  /O
+			   ____/`---'\____
+			 .'  \\|     |//  `.
+			/  \\|||  :  |||//  \
+		   /  _||||| -:- |||||-  \
+		   |   | \\\  -  /// |   |
+		   | \_|  ''\---/''  |   |
+		   \  .-\__  `-`  ___/-. /
+		 ___`. .'  /--.--\  `. . __
+	  ."" '<  `.___\_<|>_/___.'  >'"".
+	 | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+	 \  \ `-.   \_ __\ /__ _/   .-` /  /
+======`-.____`-.___\_____/___.-`____.-'======
+				   `=---='
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			佛祖保佑       永无BUG
+*/

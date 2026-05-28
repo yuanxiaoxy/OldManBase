@@ -43,7 +43,12 @@ void UOldManSavePointManager::SetNewActivePoint(AOldManSavePoint* NewActiveSaveP
 
 void UOldManSavePointManager::OnPlayerDead(float RebornTime)
 {
-	UMonoManager::GetInstance()->SetTimeout(RebornTime, this, &UOldManSavePointManager::OnPlayerRespawn);
+	//UMonoManager::GetInstance()->SetTimeout(RebornTime, this, &UOldManSavePointManager::OnPlayerRespawn);
+}
+
+void UOldManSavePointManager::RestartPlayer()
+{
+	OnPlayerRespawn();
 }
 
 void UOldManSavePointManager::OnPlayerRespawn()

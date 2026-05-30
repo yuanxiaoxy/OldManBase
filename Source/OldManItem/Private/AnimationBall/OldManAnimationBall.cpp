@@ -83,15 +83,18 @@ bool AOldManAnimationBall::IsActiveAnimationBall() const // 是否为本场景�
 
 void AOldManAnimationBall::HandoffFromPreviousBall() // 新球开始播前：结束上一球
 {
-	if (AOldManAnimationBall* PreviousBall = AnimationBallPlayback::ActiveBall.Get()) // 取上一活跃球
+	if (!IsCreateOnly)
 	{
-		if (PreviousBall != this && IsValid(PreviousBall)) // 存在且不是本球
+		if (AOldManAnimationBall* PreviousBall = AnimationBallPlayback::ActiveBall.Get()) // 取上一活跃球
 		{
-			PreviousBall->PlayOverInterruptedByHandoff(); // 收尾上一球，但不 Close 共享 MediaPlayer
+			if (PreviousBall != this && IsValid(PreviousBall)) // 存在且不是本球
+			{
+				PreviousBall->PlayOverInterruptedByHandoff(); // 收尾上一球，但不 Close 共享 MediaPlayer
+			}
 		}
+		AnimationBallPlayback::ActiveBall = this; // 将本球登记为当前活跃球
 	}
 
-	AnimationBallPlayback::ActiveBall = this; // 将本球登记为当前活跃球
 }
 
 void AOldManAnimationBall::UnbindMediaDelegates() // 移除本 Actor 在 MediaPlayer 上的动态委托
@@ -206,122 +209,161 @@ void AOldManAnimationBall::EndPlay(const EEndPlayReason::Type EndPlayReason) // 
 	Super::EndPlay(EndPlayReason); // 调用父类 EndPlay
 }
 
-bool AOldManAnimationBall::CanStartPlayback() const
+bool AOldManAnimationBall::CanStartPlayback() const // 检查是否满足开始播放条件
 {
-	return Disposable && IsMediaSetupValid() && !bMediaPrepared;
+	return Disposable && IsMediaSetupValid() && !bMediaPrepared; // 满足：未消耗、配置有效、未在播放
 }
 
-void AOldManAnimationBall::NotifyBlueprintEnterTrigger(AActor* TriggerActor)
+void AOldManAnimationBall::NotifyBlueprintEnterTrigger(AActor* TriggerActor) // 通知蓝图进入触发
 {
-	OnEnterTrigger(InteractionBox, TriggerActor, nullptr, 0, false, FHitResult());
+	OnEnterTrigger(InteractionBox, TriggerActor, nullptr, 0, false, FHitResult()); // 调用父类虚函数触发蓝图事件
 }
 
-void AOldManAnimationBall::PrepareSharedMediaForNewClip()
+void AOldManAnimationBall::ClearSharedMediaTextureFrame() // 清掉 MediaTexture 上残留的最后一帧
 {
-	if (!IsValid(MediaPlayer))
+	if (!IsValid(MediaTexture))
 	{
 		return;
 	}
 
-	MediaPlayer->Close();
+	MediaTexture->SetMediaPlayer(nullptr);
 
-	if (IsValid(MediaTexture))
+	if (IsValid(MediaPlayer))
 	{
 		MediaTexture->SetMediaPlayer(MediaPlayer);
 	}
 }
 
-void AOldManAnimationBall::ApplyUIVideoBrush()
+void AOldManAnimationBall::PrepareSharedMediaForNewClip() // 为新片段准备共享媒体资源
 {
-	if (!IsActiveAnimationBall() || !bMediaPrepared || CurUIName.IsNone())
+	if (!IsValid(MediaPlayer)) // 播放器无效则直接返回
 	{
 		return;
 	}
 
-	UUserWidget* CurWidget = UUIManager::GetInstance()->GetUI(CurUIName);
-	if (!IsValid(CurWidget))
+	if (!IsCreateOnly)
 	{
-		return;
+		MediaPlayer->Close(); // 非仅创建模式则关闭现有媒体
+		ClearSharedMediaTextureFrame(); // 避免新片段打开前仍显示上一段最后一帧
 	}
-
-	UImage* CurImg = Cast<UImage>(CurWidget->GetWidgetFromName(TEXT("Image_0")));
-	if (!IsValid(CurImg) || !IsValid(PlayWallMaterial))
+	else if (IsValid(MediaTexture))
 	{
-		return;
+		MediaTexture->SetMediaPlayer(MediaPlayer); // 仅创建模式：不关媒体，只保持关联
 	}
-
-	CurImg->SetBrushFromMaterial(PlayWallMaterial);
-	CurImg->SetRenderOpacity(1.f);
 }
 
-void AOldManAnimationBall::SetGlobalTime(float Time)
+void AOldManAnimationBall::ApplySceneVideoMaterial() // 延迟将视频材质应用到场景 PlayWall
 {
-	if (UWorld* World = GetWorld())
+	if (!IsActiveAnimationBall() || !bMediaPrepared || IsCreateOnly)
 	{
-		if (AWorldSettings* WorldSettings = World->GetWorldSettings())
+		return;
+	}
+
+	if (!IsValid(PlayWall))
+	{
+		return;
+	}
+
+	UStaticMeshComponent* PlayWallMesh = PlayWall->GetStaticMeshComponent();
+	if (!IsValid(PlayWallMesh) || !IsValid(PlayWallMaterial))
+	{
+		return;
+	}
+
+	PlayWallMesh->SetMaterial(0, PlayWallMaterial);
+}
+
+void AOldManAnimationBall::ApplyUIVideoBrush() // 将视频材质应用到 UI Image
+{
+	if (!IsActiveAnimationBall() || !bMediaPrepared || CurUIName.IsNone()) // 非活跃球或未准备好则返回
+	{
+		return;
+	}
+
+	UUserWidget* CurWidget = UUIManager::GetInstance()->GetUI(CurUIName); // 获取当前 UI 面板
+	if (!IsValid(CurWidget)) // 面板无效则返回
+	{
+		return;
+	}
+
+	UImage* CurImg = Cast<UImage>(CurWidget->GetWidgetFromName(TEXT("Image_0"))); // 获取 Image 控件
+	if (!IsValid(CurImg) || !IsValid(PlayWallMaterial)) // 图片或材质无效则返回
+	{
+		return;
+	}
+
+	CurImg->SetBrushFromMaterial(PlayWallMaterial); // 设置图片为视频材质
+	CurImg->SetRenderOpacity(1.f); // 设置完全不透明
+}
+
+void AOldManAnimationBall::SetGlobalTime(float Time) // 设置全局时间膨胀
+{
+	if (UWorld* World = GetWorld()) // 获取世界上下文
+	{
+		if (AWorldSettings* WorldSettings = World->GetWorldSettings()) // 获取世界设置
 		{
-			WorldSettings->SetTimeDilation(Time);
+			WorldSettings->SetTimeDilation(Time); // 设置时间膨胀比例（0=暂停，1=正常）
 		}
 	}
 }
 
-bool AOldManAnimationBall::StartPlayback(AActor* TriggerActor)
+bool AOldManAnimationBall::StartPlayback(AActor* TriggerActor) // 开始播放入口
 {
-	if (bMediaPrepared)
+	if (bMediaPrepared) // 已经在准备或播放中
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("AB_StartPlayback: 已在播放准备中，忽略重复调用"));
 		return false;
 	}
 
-	if (!Disposable)
+	if (!Disposable) // 已经触发过一次性
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("AB_StartPlayback: 已触发过（Disposable=false）"));
 		return false;
 	}
 
-	if (!IsMediaSetupValid())
+	if (!IsMediaSetupValid()) // 配置无效
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AB_StartPlayback: 媒体/场景配置无效"));
 		return false;
 	}
 
-	if (IsDisposable)
+	if (IsDisposable) // 如果是消耗性球则标记为已消耗
 	{
 		Disposable = false;
 	}
 
-	HandoffFromPreviousBall();
-	PrepareSharedMediaForNewClip();
-	BeforePreparation();
-	MediaPlayer->OnMediaOpened.AddDynamic(this, &AOldManAnimationBall::OnMediaOpened_ChooseType);
+	HandoffFromPreviousBall(); // 处理上一个球的交接
+	PrepareSharedMediaForNewClip(); // 准备共享媒体资源
+	BeforePreparation(); // 播放前准备
 
-	if (!IsCreateOnly)
+	MediaPlayer->OnMediaOpened.AddDynamic(this, &AOldManAnimationBall::OnMediaOpened_ChooseType); // 绑定打开回调
+
+	if (!IsCreateOnly) // 非仅创建模式
 	{
-		OpenMediaSourceForCurrentLanguage();
+		OpenMediaSourceForCurrentLanguage(); // 打开对应语言的媒体源
 	}
-	else
+	else // 仅创建模式
 	{
-		BindPlaybackEndDelegates();
-		ChooseType();
+		BindPlaybackEndDelegates(); // 直接绑定结束回调
+		ChooseType(); // 跳过媒体打开直接执行播放分支
 	}
 
-	HideIfDisposableTriggered();
+	HideIfDisposableTriggered(); // 处理消耗性隐藏
 
-	// 触发蓝图 OnEnterTrigger：暂停游戏、Niagara、音效等（与碰撞路径一致）
-	NotifyBlueprintEnterTrigger(TriggerActor);
+	NotifyBlueprintEnterTrigger(TriggerActor); // 触发蓝图 OnEnterTrigger：暂停游戏、Niagara、音效等
 
-	return true;
+	return true; // 播放开始成功
 }
 
-void AOldManAnimationBall::PlayVideoInUI()
+void AOldManAnimationBall::PlayVideoInUI() // 兼容旧蓝图名的播放接口
 {
-	StartPlayback(nullptr);
+	StartPlayback(nullptr); // 直接调用主播放函数
 }
 
-void AOldManAnimationBall::Interect(FOldManItemInteractData interectData)
+void AOldManAnimationBall::Interect(FOldManItemInteractData interectData) // 交互触发入口
 {
-	Super::Interect(interectData);
-	StartPlayback(interectData.InteractingActor);
+	Super::Interect(interectData); // 调用基类实现
+	StartPlayback(interectData.InteractingActor); // 开始播放，传递触发玩家
 }
 
 void AOldManAnimationBall::PlayAniInScene() // 激活场景墙并设置材质
@@ -346,14 +388,36 @@ void AOldManAnimationBall::PlayAniInScene() // 激活场景墙并设置材质
 		PlayWall->SetActorTickEnabled(true); // 开启 Tick
 	}
 
+	if (IsCreateOnly) // 仅创建：只显示淡入墙，不贴视频材质，避免共享纹理残留帧
+	{
+		if (IsValid(FadeInMaterial))
+		{
+			PlayWallMesh->SetMaterial(0, FadeInMaterial);
+			if (ShouldFadeIn)
+			{
+				StartFadeIn();
+			}
+		}
+		return;
+	}
+
 	if (ShouldFadeIn && IsValid(FadeInMaterial)) // 需要淡入且有淡入材质
 	{
 		PlayWallMesh->SetMaterial(0, FadeInMaterial); // 槽 0 设为淡入材质
 		StartFadeIn(); // 通知蓝图做淡入
 	}
-	else if (!IsCreateOnly && IsValid(PlayWallMaterial)) // 普通播放且非仅创建
+	else if (IsValid(PlayWallMaterial)) // 普通播放：延迟贴材质，等新片段首帧就绪
 	{
-		PlayWallMesh->SetMaterial(0, PlayWallMaterial); // 槽 0 设为播放材质
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(DeferredSceneVideoMaterialTimer);
+			World->GetTimerManager().SetTimer(
+				DeferredSceneVideoMaterialTimer,
+				this,
+				&AOldManAnimationBall::ApplySceneVideoMaterial,
+				0.05f,
+				false);
+		}
 	}
 }
 
@@ -482,99 +546,100 @@ void AOldManAnimationBall::PlayText() // 文本模式（待实现）
 	UE_LOG(LogTemp, Display, TEXT("AB_text")); // 日志占位
 }
 
-void AOldManAnimationBall::CleanupPlayback(bool bCloseMedia, bool bRestorePlayerInput, bool bDestroyActor) // 统一清理
+void AOldManAnimationBall::CleanupPlayback(bool bCloseMedia, bool bRestorePlayerInput, bool bDestroyActor) // 统一清理入口
 {
-	if (!bMediaPrepared)
+	if (!bMediaPrepared) // 未处于播放状态则直接返回
 	{
 		return;
 	}
 
-	if (!IsActiveAnimationBall())
+	if (!IsActiveAnimationBall()) // 非活跃球则只清理自身状态
 	{
-		bMediaPrepared = false;
-		UnbindMediaDelegates();
+		bMediaPrepared = false; // 重置标记
+		UnbindMediaDelegates(); // 解绑委托
 		return;
 	}
 
-	bMediaPrepared = false;
-	UE_LOG(LogTemp, Display, TEXT("AB_Over"));
+	bMediaPrepared = false; // 重置播放准备标记
+	UE_LOG(LogTemp, Display, TEXT("AB_Over")); // 日志：播放结束
 
 	UnbindMediaDelegates(); // 先解绑，避免 Close/Open 时误回调到本球
 
-	if (UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld()) // 获取世界
 	{
-		World->GetTimerManager().ClearTimer(DeferredUIVideoBrushTimer);
+		World->GetTimerManager().ClearTimer(DeferredUIVideoBrushTimer); // 清除延迟刷 UI 材质定时器
+		World->GetTimerManager().ClearTimer(DeferredSceneVideoMaterialTimer); // 清除延迟刷场景墙材质定时器
 	}
 
-	VideoPlayCompelete();
+	VideoPlayCompelete(); // 调用蓝图播放完成事件
 
-	if (bRestorePlayerInput && PlayerInputCancel)
+	if (bRestorePlayerInput && PlayerInputCancel) // 需要恢复输入且配置了禁用输入
 	{
-		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true);
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), true); // 恢复玩家输入
 	}
 
-	if (myType == E_AniBallType::playOnScene && IsValid(PlayWall) && !PlayWall->IsHidden() && !IsCreateOnly)
+	if (myType == E_AniBallType::playOnScene && IsValid(PlayWall) && !PlayWall->IsHidden() && !IsCreateOnly) // 场景模式且墙可见且非仅创建
 	{
-		PlayWall->SetActorHiddenInGame(true);
-		PlayWall->SetActorEnableCollision(false);
-		PlayWall->SetActorTickEnabled(false);
+		PlayWall->SetActorHiddenInGame(true); // 隐藏播放墙
+		PlayWall->SetActorEnableCollision(false); // 关闭碰撞
+		PlayWall->SetActorTickEnabled(false); // 关闭 Tick
 	}
 
-	if (myType == E_AniBallType::playOnUI && !CurUIName.IsNone())
+	if (myType == E_AniBallType::playOnUI && !CurUIName.IsNone()) // UI 模式且有打开的面板
 	{
-		UUIManager::GetInstance()->CloseUI(CurUIName, true, true);
-		if (IsPauseGame) SetGlobalTime(1);
-		CurUIName = NAME_None;
+		UUIManager::GetInstance()->CloseUI(CurUIName, true, true); // 关闭并销毁 UI 面板
+		if (IsPauseGame) SetGlobalTime(1); // 如果暂停过游戏则恢复
+		CurUIName = NAME_None; // 重置面板名称
 	}
 
-	if (bCloseMedia && IsValid(MediaPlayer))
+	if (bCloseMedia && IsValid(MediaPlayer)) // 需要关闭媒体且播放器有效
 	{
-		MediaPlayer->Close();
+		MediaPlayer->Close(); // 关闭并清理媒体资源
 	}
 
-	if (AnimationBallPlayback::ActiveBall.Get() == this)
+	if (AnimationBallPlayback::ActiveBall.Get() == this) // 自身是活跃球则清除全局引用
 	{
 		AnimationBallPlayback::ActiveBall.Reset();
 	}
 
-	if (bDestroyActor)
+	if (bDestroyActor) // 需要销毁 Actor
 	{
-		Destroy();
+		Destroy(); // 销毁本 Actor
 	}
 }
 
-void AOldManAnimationBall::PlayOver() // 自然结束 / 跳过：关媒体、恢复输入、销毁
+void AOldManAnimationBall::PlayOver() // 自然结束或跳过：完整清理并销毁
 {
-	CleanupPlayback(true, true, true);
+	CleanupPlayback(true, true, true); // 关闭媒体、恢复输入、销毁 Actor
 }
 
-void AOldManAnimationBall::PlayOverInterruptedByHandoff() // 被新球顶替：不关媒体、不恢复输入
+void AOldManAnimationBall::PlayOverInterruptedByHandoff() // 被新球顶替：保留共享资源
 {
-	CleanupPlayback(false, false, true);
+	CleanupPlayback(false, false, true); // 不关媒体、不恢复输入、销毁 Actor
 }
 
 void AOldManAnimationBall::BeforePreparation() // 每次开始播放前的准备
 {
-	if (!IsValid(MediaPlayer)) // 无播放器
+	if (!IsValid(MediaPlayer)) // 无播放器则直接返回
 	{
-		return; // 退出
+		return;
 	}
 
 	UnbindMediaDelegates(); // 先清旧绑定，避免重复
 
-	MediaPlayer->SetLooping(Loop); // 设置是否循环（OnEndReached 在 OnMediaOpened 里再绑）
+	MediaPlayer->SetLooping(Loop); // 设置是否循环
 	bMediaPrepared = true; // 标记已进入准备态
 
 	if (PlayerInputCancel) // 需要禁用玩家输入
 	{
-		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), false); // 发送禁用
+		UMyEventManager::GetEventManager()->TriggerCppEvent(UGlobalEventName::GetKey_Player_ChangeInputActive(), false); // 发送禁用事件
 	}
 
 	EnsureMediaSoundComponent(); // 确保有声音组件
 
-	if (IsValid(MediaTexture) && IsValid(MediaPlayer))
+	if (IsValid(MediaTexture) && IsValid(MediaPlayer)) // 纹理和播放器都有效
 	{
-		MediaTexture->SetMediaPlayer(MediaPlayer);
+		MediaTexture->SetMediaPlayer(MediaPlayer); // 关联纹理和播放器
 	}
 }
 
@@ -586,15 +651,15 @@ void AOldManAnimationBall::Print(FString text) // 屏幕打印调试信息
 	}
 }
 
-void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+void AOldManAnimationBall::OnOverlayBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, // 玩家进入触发框回调
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!IsValid(OtherActor) || !OtherActor->ActorHasTag(UGlobalTagName::Tag_Player))
+	if (!IsValid(OtherActor) || !OtherActor->ActorHasTag(UGlobalTagName::Tag_Player)) // 不是玩家则直接返回
 	{
 		return;
 	}
 
-	StartPlayback(OtherActor);
+	StartPlayback(OtherActor); // 开始播放，传递触发玩家
 }
 /*
 				   _ooOoo_

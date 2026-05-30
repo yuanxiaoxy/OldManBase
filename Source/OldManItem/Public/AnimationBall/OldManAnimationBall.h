@@ -186,9 +186,15 @@ private:
 
 	void ApplyUIVideoBrush(); // 将视频材质赋给 UI Image（延迟一帧避免残影）
 
+	void ApplySceneVideoMaterial(); // 将视频材质赋给场景 PlayWall（延迟避免残影）
+
+	void ClearSharedMediaTextureFrame(); // 断开并重连 MediaTexture，清掉上一段最后一帧
+
 	void SetGlobalTime(float Time); // 设置globalTime
 
 	FTimerHandle DeferredUIVideoBrushTimer; // 延迟刷 UI 材质计时器
+
+	FTimerHandle DeferredSceneVideoMaterialTimer; // 延迟刷场景墙材质计时器
 
 protected:
 	virtual void BeginPlay() override; // 关卡开始时初始化

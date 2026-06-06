@@ -487,12 +487,12 @@ void AOldManAnimationBall::PlayAniInUI() // 根据语言与选项打开对应 UI
 			}
 		}
 	}
-	//else if (IsTouMing) // 无跳过、透明
-	//{
-	//	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", Datas); // 显示简单透明面板
-	//	CurUIName = "AnimationPlayPanel"; // 记录名称
-	//}
-	else // 无跳过、默认无跳过为黑底，改为透明底的话，将上述代码回复，自己配一个对应名称的UIPanel
+	else if (IsTouMing) // 无跳过、透明
+	{
+		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", Datas); // 显示简单透明面板
+		CurUIName = "AnimationPlayPanel"; // 记录名称
+	}
+	else // 无跳过
 	{
 		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithBlack", Datas); // 显示黑底面板
 		CurUIName = "AnimationPlayPanelWithBlack"; // 记录名称

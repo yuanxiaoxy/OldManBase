@@ -450,12 +450,12 @@ void AOldManAnimationBall::PlayAniInUI() // 根据语言与选项打开对应 UI
 	const ELanguageType CurrentLanguage = LanguageManager // 当前语言
 		? LanguageManager->GetCurrentLanguage() // 有管理器则查询
 		: ELanguageType::Chinese; // 否则默认中文
+	Datas->MediaPlayer = MediaPlayer; // 供 UI 内控制播放/跳过
+	Datas->AnimationBall = this; // 供 UI 回调本球
+	Datas->IsPauseGame = IsPauseGame;// 供 UI 确定是否暂停游戏
 
 	if (IsOpenSkip) // 需要跳过按钮的面板
 	{
-		Datas->MediaPlayer = MediaPlayer; // 供 UI 内控制播放/跳过
-		Datas->AnimationBall = this; // 供 UI 回调本球
-		Datas->IsPauseGame = IsPauseGame;// 供 UI 确定是否暂停游戏
 		if (IsTouMing) // 透明背景款
 		{
 			switch (CurrentLanguage) // 按语言选 UI 名
@@ -487,14 +487,14 @@ void AOldManAnimationBall::PlayAniInUI() // 根据语言与选项打开对应 UI
 			}
 		}
 	}
-	else if (IsTouMing) // 无跳过、透明
+	//else if (IsTouMing) // 无跳过、透明
+	//{
+	//	UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel", Datas); // 显示简单透明面板
+	//	CurUIName = "AnimationPlayPanel"; // 记录名称
+	//}
+	else // 无跳过、默认无跳过为黑底，改为透明底的话，将上述代码回复，自己配一个对应名称的UIPanel
 	{
-		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanel"); // 显示简单透明面板
-		CurUIName = "AnimationPlayPanel"; // 记录名称
-	}
-	else // 无跳过、黑底
-	{
-		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithBlack"); // 显示黑底面板
+		UUIManager::GetInstance()->ShowUIByName("AnimationPlayPanelWithBlack", Datas); // 显示黑底面板
 		CurUIName = "AnimationPlayPanelWithBlack"; // 记录名称
 	}
 
